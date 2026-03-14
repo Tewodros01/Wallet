@@ -1,0 +1,59 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  const corsOrigin = configService.get<string>(
+    'corsOrigin',
+    'http://localhost:5173',
+  );
+  app.enableCors({
+    origin: corsOrigin,
+    credentials: true,
+  });
+
+  app.setGlobalPrefix('api/v1');
+
+  const config = new DocumentBuilder()
+    .setTitle('Bingo Game API')
+    .setDescription('Multiplayer Bingo Game API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  const port = configService.get<number>('port', 3000);
+  await app.listen(port);
+
+  logger.log(`🚀 Application is running on: http://localhost:${port}/api/v1`);
+  logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  logger.log(`🎮 WebSocket namespace: ws://localhost:${port}/game`);
+}
+
+bootstrap().catch((error: unknown) => {
+  console.error('❌ Error starting server:', error);
+  process.exit(1);
+});

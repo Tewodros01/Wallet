@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs" 
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  ETB
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum RecurrenceInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model User {
+  id         String     @id @default(cuid())
+  username   String     @unique
+  email      String     @unique
+  password   String
+  firstName  String
+  lastName   String
+  phone      String?    @unique
+  avatar     String?
+  role       Role       @default(USER)
+  isVerified Boolean    @default(false)
+  wallets    Wallet[]
+  sessions   Session[]
+  categories Category[]
+  deletedAt  DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([email])
+  @@index([username])
+  @@index([deletedAt])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @db.VarChar(512)
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([refreshToken])
+  @@index([userId])
+}
+
+model Wallet {
+  id           String        @id @default(cuid())
+  name         String
+  balance      Decimal       @default(0) @db.Decimal(19, 4)
+  currency     Currency      @default(USD)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[] @relation("WalletTransactions")
+  transfersOut Transaction[] @relation("TransferSource")
+  transfersIn  Transaction[] @relation("TransferDestination")
+  isDefault    Boolean       @default(false)
+  isActive     Boolean       @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model Category {
+  id           String          @id @default(cuid())
+  name         String
+  icon         String?
+  color        String?
+  type         TransactionType
+  isSystem     Boolean         @default(false)
+  userId       String?
+  user         User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime        @default(now())
+
+  @@unique([name, userId])
+  @@index([userId])
+}
+
+model Transaction {
+  id                  String              @id @default(cuid())
+  title               String
+  amount              Decimal             @db.Decimal(19, 4)
+  type                TransactionType
+  status              TransactionStatus   @default(COMPLETED)
+  note                String?             @db.Text
+  date                DateTime
+  walletId            String
+  wallet              Wallet              @relation("WalletTransactions", fields: [walletId], references: [id], onDelete: Restrict)
+  categoryId          String?
+  category            Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sourceWalletId      String?
+  sourceWallet        Wallet?             @relation("TransferSource", fields: [sourceWalletId], references: [id], onDelete: SetNull)
+  destinationWalletId String?
+  destinationWallet   Wallet?             @relation("TransferDestination", fields: [destinationWalletId], references: [id], onDelete: SetNull)
+  isRecurring         Boolean             @default(false)
+  recurrenceInterval  RecurrenceInterval?
+  recurrenceEndsAt    DateTime?
+  parentTransactionId String?
+  parentTransaction   Transaction?        @relation("RecurringChildren", fields: [parentTransactionId], references: [id], onDelete: NoAction)
+  recurringChildren   Transaction[]       @relation("RecurringChildren")
+  deletedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([walletId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([parentTransactionId])
+  @@index([deletedAt])
+}
