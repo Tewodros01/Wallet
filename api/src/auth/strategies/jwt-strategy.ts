@@ -15,9 +15,8 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
-    if (!jwtSecret) {
+    if (!jwtSecret)
       throw new Error('JWT_SECRET environment variable is required');
-    }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -30,12 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!this.isValidPayload(payload)) {
       throw new UnauthorizedException('Invalid token structure');
     }
-
-    return {
-      sub: payload.sub,
-      email: payload.email,
-      role: payload.role,
-    };
+    return { sub: payload.sub, email: payload.email, role: payload.role };
   }
 
   private isValidPayload(payload: unknown): payload is JwtPayload {
@@ -45,8 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       'sub' in payload &&
       'email' in payload &&
       'role' in payload &&
-      typeof (payload as any).sub === 'string' &&
-      typeof (payload as any).email === 'string'
+      typeof (payload as JwtPayload).sub === 'string' &&
+      typeof (payload as JwtPayload).email === 'string' &&
+      Object.values(Role).includes((payload as JwtPayload).role)
     );
   }
 }
