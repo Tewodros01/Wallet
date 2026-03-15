@@ -7,6 +7,7 @@ import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { WalletModule } from './wallet/wallet.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
