@@ -1,32 +1,37 @@
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useRegister } from "../hooks/useAuth";
 
+const schema = z.object({
+  firstName: z.string().min(1, "Required"),
+  lastName: z.string().min(1, "Required"),
+  username: z.string().min(3, "At least 3 characters"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "At least 6 characters"),
+  phone: z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
+
 const SignUp = () => {
   const navigate = useNavigate();
   const { mutate: register, isPending, error } = useRegister();
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-  });
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const {
+    register: field,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const { phone, ...rest } = form;
+  const onSubmit = (data: FormData) =>
     register(
-      { ...rest, ...(phone ? { phone } : {}) },
+      { ...data, phone: data.phone || undefined },
       { onSuccess: () => navigate("/dashboard") },
     );
-  };
 
   const errMsg = (error as { response?: { data?: { message?: string } } })
     ?.response?.data?.message;
@@ -39,58 +44,47 @@ const SignUp = () => {
           Get started with your wallet
         </p>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="First Name"
-              name="firstName"
               placeholder="John"
-              value={form.firstName}
-              onChange={onChange}
-              required
+              error={errors.firstName?.message}
+              {...field("firstName")}
             />
             <Input
               label="Last Name"
-              name="lastName"
               placeholder="Doe"
-              value={form.lastName}
-              onChange={onChange}
-              required
+              error={errors.lastName?.message}
+              {...field("lastName")}
             />
           </div>
           <Input
             label="Username"
-            name="username"
             placeholder="johndoe"
-            value={form.username}
-            onChange={onChange}
-            required
+            error={errors.username?.message}
+            {...field("username")}
           />
           <Input
             label="Email"
-            name="email"
             type="email"
             placeholder="you@example.com"
-            value={form.email}
-            onChange={onChange}
-            required
+            error={errors.email?.message}
+            {...field("email")}
           />
           <Input
             label="Password"
-            name="password"
             type="password"
             placeholder="••••••••"
-            value={form.password}
-            onChange={onChange}
-            required
+            error={errors.password?.message}
+            {...field("password")}
           />
           <Input
             label="Phone (optional)"
-            name="phone"
             type="tel"
             placeholder="+1234567890"
-            value={form.phone}
-            onChange={onChange}
+            error={errors.phone?.message}
+            {...field("phone")}
           />
 
           {errMsg && <p className="text-sm text-red-400">{errMsg}</p>}
