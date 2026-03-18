@@ -26,4 +26,10 @@ export const authApi = {
   getProfile: () => api.get<User>("/auth/profile").then((r) => r.data),
 
   getSessions: () => api.get("/auth/sessions").then((r) => r.data),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post("/auth/change-password", { currentPassword, newPassword }).then((r) => r.data),
+
+  revokeSession: (sessionId: string) =>
+    api.post("/auth/sessions/:id/revoke", { sessionId }).then((r) => r.data),
 };

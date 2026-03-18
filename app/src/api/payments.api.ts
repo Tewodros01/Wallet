@@ -1,0 +1,32 @@
+import { api } from "../lib/axios";
+
+export type PaymentMethod = "TELEBIRR" | "CBE_BIRR" | "BANK_CARD";
+
+export interface DepositPayload {
+  amount: number;
+  method: PaymentMethod;
+  reference?: string;
+}
+
+export interface WithdrawalPayload {
+  amount: number;
+  method: PaymentMethod;
+  accountNumber: string;
+}
+
+export const paymentsApi = {
+  getAgents: () => api.get("/payments/agents").then((r) => r.data),
+  deposit: (payload: DepositPayload) =>
+    api.post("/payments/deposit", payload).then((r) => r.data),
+  getDeposits: () => api.get("/payments/deposits").then((r) => r.data),
+  withdraw: (payload: WithdrawalPayload) =>
+    api.post("/payments/withdraw", payload).then((r) => r.data),
+  getWithdrawals: () => api.get("/payments/withdrawals").then((r) => r.data),
+  claimDailyBonus: (coins: number) =>
+    api.post("/payments/daily-bonus", { coins }).then((r) => r.data),
+  getAgentRequests: () => api.get("/payments/agent/requests").then((r) => r.data),
+  agentApproveDeposit: (id: string) => api.post(`/payments/agent/deposits/${id}/approve`).then((r) => r.data),
+  agentRejectDeposit:  (id: string) => api.post(`/payments/agent/deposits/${id}/reject`).then((r) => r.data),
+  agentApproveWithdrawal: (id: string) => api.post(`/payments/agent/withdrawals/${id}/approve`).then((r) => r.data),
+  agentRejectWithdrawal:  (id: string) => api.post(`/payments/agent/withdrawals/${id}/reject`).then((r) => r.data),
+};

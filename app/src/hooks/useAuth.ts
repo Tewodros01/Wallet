@@ -53,3 +53,26 @@ export const useSessions = () =>
     queryKey: authKeys.sessions,
     queryFn: authApi.getSessions,
   });
+
+export const useChangePassword = () =>
+  useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
+      authApi.changePassword(currentPassword, newPassword),
+  });
+
+export const useRevokeSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => authApi.revokeSession(sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: authKeys.sessions }),
+  });
+};
+
+export const useRevokeAllSessions = () => {
+  const { clear } = useAuthStore();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => authApi.logoutAll(),
+    onSuccess: () => { clear(); qc.clear(); },
+  });
+};

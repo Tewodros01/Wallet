@@ -1,20 +1,18 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
-  moduleFormat = "cjs" 
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "mysql"
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum Role {
   USER
+  AGENT
   ADMIN
 }
 
@@ -29,6 +27,12 @@ enum TransactionType {
   INCOME
   EXPENSE
   TRANSFER
+  DEPOSIT
+  WITHDRAWAL
+  GAME_ENTRY
+  GAME_WIN
+  AGENT_COMMISSION
+  REFERRAL_BONUS
 }
 
 enum TransactionStatus {
@@ -45,23 +49,89 @@ enum RecurrenceInterval {
   YEARLY
 }
 
+enum RoomStatus {
+  WAITING
+  PLAYING
+  FINISHED
+  CANCELLED
+}
+
+enum GameSpeed {
+  SLOW
+  NORMAL
+  FAST
+}
+
+enum PlayerStatus {
+  JOINED
+  PLAYING
+  WON
+  LOST
+  LEFT
+}
+
+enum PaymentMethod {
+  TELEBIRR
+  CBE_BIRR
+  BANK_CARD
+}
+
+enum DepositStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum AgentStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
 model User {
-  id         String     @id @default(cuid())
-  username   String     @unique
-  email      String     @unique
-  password   String
-  firstName  String
-  lastName   String
-  phone      String?    @unique
-  avatar     String?
-  role       Role       @default(USER)
-  isVerified Boolean    @default(false)
-  wallets    Wallet[]
-  sessions   Session[]
-  categories Category[]
-  deletedAt  DateTime?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String    @unique
+  password     String
+  firstName    String
+  lastName     String
+  phone        String?   @unique
+  avatar       String?
+  bio          String?   @db.Text
+  role         Role      @default(USER)
+  isVerified   Boolean   @default(false)
+  coinsBalance Int       @default(0)
+
+  wallets      Wallet[]
+  sessions     Session[]
+  categories   Category[]
+  transactions Transaction[]
+  deposits     Deposit[]
+  withdrawals  Withdrawal[]
+
+  // game relations
+  hostedRooms  GameRoom[]    @relation("RoomHost")
+  roomPlayers  RoomPlayer[]
+  bingoCards   BingoCard[]
+
+  // agent relations
+  referredBy      AgentInvite? @relation("InvitedUser",  fields: [referredById], references: [id], onDelete: SetNull)
+  referredById    String?
+  sentInvites     AgentInvite[] @relation("InviterUser")
+
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([email])
   @@index([username])
@@ -86,7 +156,7 @@ model Wallet {
   id           String        @id @default(cuid())
   name         String
   balance      Decimal       @default(0) @db.Decimal(19, 4)
-  currency     Currency      @default(USD)
+  currency     Currency      @default(ETB)
   userId       String
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[] @relation("WalletTransactions")
@@ -126,6 +196,8 @@ model Transaction {
   status              TransactionStatus   @default(COMPLETED)
   note                String?             @db.Text
   date                DateTime
+  userId              String
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   walletId            String
   wallet              Wallet              @relation("WalletTransactions", fields: [walletId], references: [id], onDelete: Restrict)
   categoryId          String?
@@ -140,15 +212,154 @@ model Transaction {
   parentTransactionId String?
   parentTransaction   Transaction?        @relation("RecurringChildren", fields: [parentTransactionId], references: [id], onDelete: NoAction)
   recurringChildren   Transaction[]       @relation("RecurringChildren")
+
+  // game reference (optional)
+  gameRoomId          String?
+  gameRoom            GameRoom?           @relation(fields: [gameRoomId], references: [id], onDelete: SetNull)
+
   deletedAt           DateTime?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
+  @@index([userId])
   @@index([walletId])
   @@index([categoryId])
   @@index([date])
   @@index([type])
   @@index([status])
+  @@index([gameRoomId])
   @@index([parentTransactionId])
   @@index([deletedAt])
+}
+
+// ─── Game ─────────────────────────────────────────────────────────────────────
+
+model GameRoom {
+  id           String      @id @default(cuid())
+  name         String
+  hostId       String
+  host         User        @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  status       RoomStatus  @default(WAITING)
+  speed        GameSpeed   @default(NORMAL)
+  entryFee     Int         @default(0)   // in coins
+  prizePool    Int         @default(0)   // in coins
+  maxPlayers   Int         @default(50)
+  cardsPerPlayer Int       @default(1)
+  isPrivate    Boolean     @default(false)
+  password     String?     // hashed, for private rooms
+  winnerId     String?
+
+  players      RoomPlayer[]
+  rounds       GameRound[]
+  transactions Transaction[]
+
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([hostId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RoomPlayer {
+  id         String       @id @default(cuid())
+  roomId     String
+  room       GameRoom     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     PlayerStatus @default(JOINED)
+  cardId     String?
+  card       BingoCard?   @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  markedNums Json         @default("[]")  // array of marked numbers
+  hasBingo   Boolean      @default(false)
+  prize      Int          @default(0)
+  joinedAt   DateTime     @default(now())
+  finishedAt DateTime?
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+}
+
+model BingoCard {
+  id      String       @id @default(cuid())
+  userId  String
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board   Json         // 5x5 number matrix
+  players RoomPlayer[]
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+}
+
+model GameRound {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  calledNums  Json     @default("[]")  // ordered array of called numbers
+  currentNum  Int?
+  roundNumber Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([roomId])
+}
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+model Deposit {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int           // in coins
+  method        PaymentMethod
+  reference     String?       @unique  // payment provider reference
+  status        DepositStatus @default(PENDING)
+  failureReason String?
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int              // in coins
+  method        PaymentMethod
+  accountNumber String           // destination account
+  status        WithdrawalStatus @default(PENDING)
+  failureReason String?
+  processedAt   DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── Agent / Referral ─────────────────────────────────────────────────────────
+
+model AgentInvite {
+  id           String      @id @default(cuid())
+  inviterId    String
+  inviter      User        @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitedUsers User[]      @relation("InvitedUser")
+  code         String      @unique
+  status       AgentStatus @default(PENDING)
+  commission   Int         @default(0)  // total coins earned from this invite
+  usedAt       DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([inviterId])
+  @@index([code])
 }

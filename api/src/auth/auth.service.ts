@@ -75,7 +75,12 @@ export class AuthService {
 
     try {
       const user = await this.prisma.user.create({
-        data: { ...userData, password: hashedPassword, avatar: userAvatar },
+        data: {
+          ...userData,
+          password: hashedPassword,
+          avatar: userAvatar,
+          isVerified: true,
+        },
         select: userSelect,
       });
 
@@ -237,6 +242,32 @@ export class AuthService {
 
   async getUserProfile(userId: string) {
     return this.validateUser(userId);
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+      if (!user) throw new UnauthorizedException('User not found');
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) throw new UnauthorizedException('Current password is incorrect');
+      const hashed = await bcrypt.hash(newPassword, 10);
+      await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+      // revoke all sessions so user must re-login
+      await this.prisma.session.deleteMany({ where: { userId } });
+      return { success: true };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new InternalServerErrorException('Failed to change password');
+    }
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    try {
+      await this.prisma.session.deleteMany({ where: { id: sessionId, userId } });
+      return { success: true };
+    } catch {
+      throw new InternalServerErrorException('Failed to revoke session');
+    }
   }
 
   async getSessions(userId: string) {

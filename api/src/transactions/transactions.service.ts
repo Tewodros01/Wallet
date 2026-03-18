@@ -63,6 +63,7 @@ export class TransactionsService {
             status: dto.status,
             note: dto.note,
             date: new Date(dto.date),
+            userId,
             walletId: dto.walletId,
             categoryId: dto.categoryId,
             sourceWalletId: dto.sourceWalletId,

@@ -17,6 +17,7 @@ import { AuthService } from './auth.service';
 import { GetUser } from './decorators/get-user.decorators';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
@@ -50,5 +51,60 @@ export class AuthController {
   @Get('profile')
   getProfile(@GetUser('sub') userId: string) {
     return this.authService.getUserProfile(userId);
+  }
+
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Tokens refreshed' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  refresh(@Body() dto: RefreshDto) {
+    return this.authService.refresh(dto.refresh_token);
+  }
+
+  @ApiOperation({ summary: 'Logout current session' })
+  @ApiResponse({ status: 200, description: 'Logged out' })
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  logout(@Body() dto: RefreshDto) {
+    return this.authService.logout(dto.refresh_token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout all sessions' })
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  logoutAll(@GetUser('sub') userId: string) {
+    return this.authService.logoutAll(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password' })
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  changePassword(
+    @GetUser('sub') userId: string,
+    @Body() dto: { currentPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active sessions' })
+  @Get('sessions')
+  getSessions(@GetUser('sub') userId: string) {
+    return this.authService.getSessions(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a session' })
+  @Post('sessions/:id/revoke')
+  @HttpCode(HttpStatus.OK)
+  revokeSession(@GetUser('sub') userId: string, @Body() dto: { sessionId: string }) {
+    return this.authService.revokeSession(userId, dto.sessionId);
   }
 }
