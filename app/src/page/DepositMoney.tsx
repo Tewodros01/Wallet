@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FaCoins } from "react-icons/fa";
-import { FiArrowLeft, FiCheck, FiChevronRight, FiClock } from "react-icons/fi";
+import { FiArrowLeft, FiCheck, FiChevronRight, FiClock, FiLink, FiPaperclip, FiX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { AppBar } from "../components/ui/Layout";
@@ -20,6 +20,9 @@ export default function DepositMoney() {
   const [amount,  setAmount]  = useState("");
   const [agentId, setAgentId] = useState<string | null>(null);
   const [error,   setError]   = useState<string | null>(null);
+  const [proofUrl, setProofUrl] = useState("");
+  const [proofMode, setProofMode] = useState<"link" | "file">("link");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const selectedAgent = agents.find((a: any) => a.id === agentId);
   const numAmount = Number(amount) || 0;
@@ -30,7 +33,7 @@ export default function DepositMoney() {
   const handleSendRequest = () => {
     setError(null);
     deposit(
-      { amount: numAmount, method },
+      { amount: numAmount, method, proofUrl: proofUrl.trim() || undefined },
       {
         onSuccess: () => setStep("pending"),
         onError: (err: any) => setError(err?.response?.data?.message ?? "Deposit failed"),
@@ -62,6 +65,12 @@ export default function DepositMoney() {
             <span className="text-gray-500">Agent</span>
             <span className="font-bold text-white">{selectedAgent ? `${selectedAgent.firstName} ${selectedAgent.lastName}` : "—"}</span>
           </div>
+          {proofUrl && (
+            <div className="flex justify-between text-sm gap-2">
+              <span className="text-gray-500 shrink-0">Proof</span>
+              <span className="font-semibold text-emerald-400 truncate text-right text-xs">{proofUrl.startsWith("data:") ? "File attached" : proofUrl}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Status</span>
             <span className="text-orange-400 font-bold flex items-center gap-1"><FiClock className="text-xs" /> Pending Approval</span>
@@ -108,7 +117,57 @@ export default function DepositMoney() {
           </div>
 
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">How it works</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Payment Proof <span className="text-gray-600 normal-case tracking-normal font-normal">(optional)</span></p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setProofMode("link")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
+                  proofMode === "link" ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/[0.04] border-white/10 text-gray-500"
+                }`}>
+                <FiLink className="text-sm" /> Link
+              </button>
+              <button type="button" onClick={() => setProofMode("file")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
+                  proofMode === "file" ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/[0.04] border-white/10 text-gray-500"
+                }`}>
+                <FiPaperclip className="text-sm" /> File
+              </button>
+            </div>
+            {proofMode === "link" ? (
+              <input
+                type="url"
+                placeholder="https://screenshot-link.com/..."
+                value={proofUrl.startsWith("data:") ? "" : proofUrl}
+                onChange={(e) => setProofUrl(e.target.value)}
+                className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-emerald-500/50 transition-colors"
+              />
+            ) : (
+              <div>
+                <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setProofUrl(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                {proofUrl.startsWith("data:") ? (
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5">
+                    <FiPaperclip className="text-emerald-400 shrink-0" />
+                    <span className="text-xs text-emerald-400 flex-1 truncate">{proofUrl.startsWith("data:image") ? "Image attached" : "PDF attached"}</span>
+                    <button type="button" onClick={() => setProofUrl("")}><FiX className="text-gray-500 text-sm" /></button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-dashed border-white/20 text-xs text-gray-500 flex items-center justify-center gap-2 hover:bg-white/[0.07] transition-colors">
+                    <FiPaperclip /> Attach image or PDF
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
             {[
               { step: "1", text: "Send deposit request to agent" },
               { step: "2", text: "Transfer cash to agent physically or via mobile money" },

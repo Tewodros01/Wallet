@@ -3,78 +3,24 @@ import { FaCrown, FaLock, FaTrophy, FaUsers } from "react-icons/fa";
 import { FiArrowLeft, FiCheck, FiClock, FiX, FiZap } from "react-icons/fi";
 import { GiCoins } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
+import type { Tournament } from "../api/tournaments.api";
+import { useJoinTournament, usePrizePool, useTournaments } from "../hooks/useTournaments";
+import { useWalletStore } from "../store/wallet.store";
 
-type Status = "upcoming" | "live" | "ended";
+type Filter = "all" | "UPCOMING" | "LIVE" | "FINISHED";
 
-interface Tournament {
-  id: string;
-  name: string;
-  subtitle: string;
-  prize: number;
-  entry: number;
-  maxPlayers: number;
-  joined: number;
-  startsAt: Date;
-  status: Status;
-  gradient: string;
-  emoji: string;
-  sponsored?: string;
-}
-
-const now = new Date();
-const h = (hrs: number) => new Date(now.getTime() + hrs * 3600_000);
-
-const TOURNAMENTS: Tournament[] = [
-  {
-    id: "T001", name: "Friday Night Grand", subtitle: "Weekly flagship tournament",
-    prize: 500000, entry: 500, maxPlayers: 200, joined: 187,
-    startsAt: h(0.4), status: "live",
-    gradient: "from-yellow-500/30 via-orange-500/20 to-rose-500/10",
-    emoji: "🏆", sponsored: "Telebirr",
-  },
-  {
-    id: "T002", name: "Beginner's Cup", subtitle: "New players only · Max 50 coins entry",
-    prize: 50000, entry: 50, maxPlayers: 100, joined: 64,
-    startsAt: h(2), status: "upcoming",
-    gradient: "from-emerald-500/25 via-teal-500/15 to-cyan-500/5",
-    emoji: "🌱",
-  },
-  {
-    id: "T003", name: "High Rollers", subtitle: "Elite players · Big stakes",
-    prize: 2000000, entry: 2000, maxPlayers: 50, joined: 31,
-    startsAt: h(5), status: "upcoming",
-    gradient: "from-violet-500/30 via-purple-500/20 to-indigo-500/10",
-    emoji: "💎",
-  },
-  {
-    id: "T004", name: "Weekend Special", subtitle: "Saturday mega event",
-    prize: 1000000, entry: 1000, maxPlayers: 500, joined: 212,
-    startsAt: h(20), status: "upcoming",
-    gradient: "from-cyan-500/25 via-blue-500/15 to-violet-500/5",
-    emoji: "🎉", sponsored: "CBE Birr",
-  },
-  {
-    id: "T005", name: "Morning Rush", subtitle: "Quick 30-min tournament",
-    prize: 20000, entry: 100, maxPlayers: 50, joined: 50,
-    startsAt: h(-2), status: "ended",
-    gradient: "from-gray-500/20 via-gray-500/10 to-transparent",
-    emoji: "☀️",
-  },
-];
-
-const USER_BALANCE = 4000;
-
-function useCountdown(target: Date) {
-  const calc = () => Math.max(0, Math.floor((target.getTime() - Date.now()) / 1000));
+function useCountdown(target: string) {
+  const calc = () => Math.max(0, Math.floor((new Date(target).getTime() - Date.now()) / 1000));
   const [secs, setSecs] = useState(calc);
   useEffect(() => {
     const t = setInterval(() => setSecs(calc()), 1000);
     return () => clearInterval(t);
   });
+  if (secs === 0) return "Starting…";
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-  return secs === 0 ? "Starting…" : `${h > 0 ? `${h}h ` : ""}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+  return `${h > 0 ? `${h}h ` : ""}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
 }
 
 function fmt(n: number) {
@@ -83,20 +29,33 @@ function fmt(n: number) {
   return n.toLocaleString();
 }
 
-/* ── Join Modal ── */
-function JoinModal({ t, onClose, onJoin }: { t: Tournament; onClose: () => void; onJoin: () => void }) {
-  const [loading, setLoading] = useState(false);
-  const can = USER_BALANCE >= t.entry;
+const GRADIENTS: Record<string, string> = {
+  LIVE: "from-rose-500/25 via-orange-500/15 to-yellow-500/5",
+  UPCOMING: "from-violet-500/20 via-blue-500/10 to-cyan-500/5",
+  FINISHED: "from-gray-500/15 via-gray-500/8 to-transparent",
+  CANCELLED: "from-gray-500/10 to-transparent",
+};
 
-  const confirm = () => {
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onJoin(); }, 1400);
-  };
+function JoinModal({
+  t,
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  t: Tournament;
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+}) {
+  const balance = useWalletStore((s) => s.balance);
+  const canAfford = balance >= t.entryFee;
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end justify-center">
       <div className="w-full max-w-md bg-gray-900 border border-white/10 rounded-t-3xl p-5 flex flex-col gap-5">
-        <div className="flex justify-center"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
+        <div className="flex justify-center">
+          <div className="w-10 h-1 bg-white/20 rounded-full" />
+        </div>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-white">Join Tournament</h2>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -104,22 +63,20 @@ function JoinModal({ t, onClose, onJoin }: { t: Tournament; onClose: () => void;
           </button>
         </div>
 
-        {/* Tournament card */}
-        <div className={`bg-gradient-to-br ${t.gradient} border border-white/10 rounded-2xl p-4 flex items-center gap-3`}>
-          <span className="text-3xl">{t.emoji}</span>
+        <div className={`bg-gradient-to-br ${GRADIENTS[t.status]} border border-white/10 rounded-2xl p-4 flex items-center gap-3`}>
+          <FaTrophy className="text-yellow-400 text-2xl shrink-0" />
           <div>
             <p className="text-sm font-black text-white">{t.name}</p>
             <p className="text-xs text-gray-400">{t.subtitle}</p>
           </div>
         </div>
 
-        {/* Breakdown */}
         <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
           {[
-            { label: "Entry Fee",     value: t.entry === 0 ? "Free" : `${t.entry.toLocaleString()} coins`, yellow: false },
-            { label: "Prize Pool",    value: `${fmt(t.prize)} coins`, yellow: true },
-            { label: "Your Balance",  value: `${USER_BALANCE.toLocaleString()} coins`, yellow: false },
-            { label: "After Joining", value: `${(USER_BALANCE - t.entry).toLocaleString()} coins`, yellow: false },
+            { label: "Entry Fee", value: t.entryFee === 0 ? "Free" : `${t.entryFee.toLocaleString()} coins`, yellow: false },
+            { label: "Prize Pool", value: `${fmt(t.prize)} coins`, yellow: true },
+            { label: "Your Balance", value: `${balance.toLocaleString()} coins`, yellow: false },
+            { label: "After Joining", value: `${(balance - t.entryFee).toLocaleString()} coins`, yellow: false },
           ].map(({ label, value, yellow }, i) => (
             <div key={label} className={`flex justify-between px-4 py-3 ${i < 3 ? "border-b border-white/[0.05]" : ""}`}>
               <span className="text-xs text-gray-500">{label}</span>
@@ -128,17 +85,27 @@ function JoinModal({ t, onClose, onJoin }: { t: Tournament; onClose: () => void;
           ))}
         </div>
 
-        {!can && (
+        {!canAfford && (
           <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">
-            Insufficient balance — need {(t.entry - USER_BALANCE).toLocaleString()} more coins
+            Insufficient balance — need {(t.entryFee - balance).toLocaleString()} more coins
           </div>
         )}
 
         <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold">Cancel</button>
-          <button type="button" onClick={confirm} disabled={!can || loading}
-            className="flex-1 py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all">
-            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><FiCheck /> Confirm & Join</>}
+          <button type="button" onClick={onClose} className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canAfford || loading}
+            className="flex-1 py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
+          >
+            {loading ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <><FiCheck /> Confirm & Join</>
+            )}
           </button>
         </div>
       </div>
@@ -146,28 +113,31 @@ function JoinModal({ t, onClose, onJoin }: { t: Tournament; onClose: () => void;
   );
 }
 
-/* ── Tournament Card ── */
 function TCard({ t, onJoin }: { t: Tournament; onJoin: (t: Tournament) => void }) {
   const countdown = useCountdown(t.startsAt);
-  const fill = Math.round((t.joined / t.maxPlayers) * 100);
-  const full = t.joined >= t.maxPlayers;
+  const fill = Math.round((t.joinedCount / t.maxPlayers) * 100);
+  const full = t.joinedCount >= t.maxPlayers;
 
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${t.gradient} border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4`}>
-      {/* Status badge */}
+    <div className={`relative overflow-hidden bg-gradient-to-br ${GRADIENTS[t.status] ?? GRADIENTS.UPCOMING} border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{t.emoji}</span>
-          {t.status === "live" && (
+          {t.status === "LIVE" && (
             <span className="flex items-center gap-1 bg-rose-500/20 border border-rose-500/30 rounded-full px-2.5 py-0.5 text-[10px] font-black text-rose-400">
               <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" /> LIVE
             </span>
           )}
-          {t.status === "ended" && (
+          {t.status === "FINISHED" && (
             <span className="bg-gray-500/20 border border-gray-500/30 rounded-full px-2.5 py-0.5 text-[10px] font-black text-gray-500">ENDED</span>
+          )}
+          {t.status === "UPCOMING" && (
+            <span className="bg-violet-500/20 border border-violet-500/30 rounded-full px-2.5 py-0.5 text-[10px] font-black text-violet-400">UPCOMING</span>
           )}
           {t.sponsored && (
             <span className="bg-white/10 border border-white/10 rounded-full px-2 py-0.5 text-[9px] font-bold text-gray-400">by {t.sponsored}</span>
+          )}
+          {t.isJoined && (
+            <span className="bg-emerald-500/20 border border-emerald-500/30 rounded-full px-2 py-0.5 text-[9px] font-bold text-emerald-400">✓ Joined</span>
           )}
         </div>
         <div className="flex items-center gap-1 bg-yellow-400/15 border border-yellow-400/20 rounded-full px-2.5 py-1">
@@ -178,15 +148,18 @@ function TCard({ t, onJoin }: { t: Tournament; onJoin: (t: Tournament) => void }
 
       <div>
         <p className="text-lg font-black text-white">{t.name}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{t.subtitle}</p>
+        {t.subtitle && <p className="text-xs text-gray-400 mt-0.5">{t.subtitle}</p>}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: <GiCoins className="text-yellow-400" />, label: "Entry", value: t.entry === 0 ? "Free" : `${t.entry}` },
-          { icon: <FaUsers className="text-blue-400" />,   label: "Players", value: `${t.joined}/${t.maxPlayers}` },
-          { icon: <FiClock className="text-orange-400" />, label: t.status === "live" ? "In Progress" : t.status === "ended" ? "Ended" : "Starts In", value: t.status === "ended" ? "—" : countdown },
+          { icon: <GiCoins className="text-yellow-400" />, label: "Entry", value: t.entryFee === 0 ? "Free" : `${t.entryFee}` },
+          { icon: <FaUsers className="text-blue-400" />, label: "Players", value: `${t.joinedCount}/${t.maxPlayers}` },
+          {
+            icon: <FiClock className="text-orange-400" />,
+            label: t.status === "LIVE" ? "In Progress" : t.status === "FINISHED" ? "Ended" : "Starts In",
+            value: t.status === "FINISHED" ? "—" : countdown,
+          },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-black/20 rounded-xl py-2 px-2 flex flex-col gap-0.5">
             <span className="text-xs">{icon}</span>
@@ -196,32 +169,40 @@ function TCard({ t, onJoin }: { t: Tournament; onJoin: (t: Tournament) => void }
         ))}
       </div>
 
-      {/* Fill bar */}
       <div className="flex flex-col gap-1">
         <div className="flex justify-between text-[10px] text-gray-500">
-          <span>{t.joined} joined</span>
-          <span>{t.maxPlayers - t.joined} spots left</span>
+          <span>{t.joinedCount} joined</span>
+          <span>{t.maxPlayers - t.joinedCount} spots left</span>
         </div>
         <div className="h-1.5 bg-black/30 rounded-full overflow-hidden">
           <div className={`h-full rounded-full transition-all ${fill > 90 ? "bg-rose-400" : "bg-emerald-400"}`} style={{ width: `${fill}%` }} />
         </div>
       </div>
 
-      {/* Action */}
-      {t.status !== "ended" && (
+      {t.status !== "FINISHED" && t.status !== "CANCELLED" && (
         <button
           type="button"
-          disabled={full || t.status === "live"}
+          disabled={full || t.status === "LIVE" || t.isJoined}
           onClick={() => onJoin(t)}
           className={`w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
-            t.status === "live"
+            t.isJoined
+              ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default"
+              : t.status === "LIVE"
               ? "bg-rose-500/20 border border-rose-500/30 text-rose-400 cursor-default"
               : full
               ? "bg-white/[0.05] text-gray-600 cursor-not-allowed"
               : "bg-white text-gray-950 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           }`}
         >
-          {t.status === "live" ? <><FiZap /> In Progress</> : full ? <><FaLock /> Full</> : <>Register — {t.entry === 0 ? "Free" : `${t.entry} coins`}</>}
+          {t.isJoined ? (
+            <><FiCheck /> Registered</>
+          ) : t.status === "LIVE" ? (
+            <><FiZap /> In Progress</>
+          ) : full ? (
+            <><FaLock /> Full</>
+          ) : (
+            <>Register — {t.entryFee === 0 ? "Free" : `${t.entryFee} coins`}</>
+          )}
         </button>
       )}
     </div>
@@ -231,16 +212,23 @@ function TCard({ t, onJoin }: { t: Tournament; onJoin: (t: Tournament) => void }
 export default function Tournament() {
   const navigate = useNavigate();
   const [joining, setJoining] = useState<Tournament | null>(null);
-  const [joined, setJoined] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<"all" | Status>("all");
+  const [filter, setFilter] = useState<Filter>("all");
 
-  const filtered = TOURNAMENTS.filter((t) => filter === "all" || t.status === filter);
-  const live = TOURNAMENTS.filter((t) => t.status === "live").length;
-  const upcoming = TOURNAMENTS.filter((t) => t.status === "upcoming").length;
+  const { data: tournaments = [], isLoading } = useTournaments();
+  const { data: prizePoolData } = usePrizePool();
+  const { mutate: joinTournament, isPending } = useJoinTournament();
+
+  const filtered = filter === "all" ? tournaments : tournaments.filter((t) => t.status === filter);
+  const liveCount = tournaments.filter((t) => t.status === "LIVE").length;
+  const upcomingCount = tournaments.filter((t) => t.status === "UPCOMING").length;
+
+  const handleConfirmJoin = () => {
+    if (!joining) return;
+    joinTournament(joining.id, { onSuccess: () => setJoining(null) });
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.06] px-5 pt-5 pb-3 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -249,7 +237,7 @@ export default function Tournament() {
             </button>
             <div>
               <p className="text-base font-black text-white">Tournaments</p>
-              <p className="text-[10px] text-gray-500">{live} live · {upcoming} upcoming</p>
+              <p className="text-[10px] text-gray-500">{liveCount} live · {upcomingCount} upcoming</p>
             </div>
           </div>
           <div className="w-9 h-9 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center">
@@ -257,47 +245,55 @@ export default function Tournament() {
           </div>
         </div>
 
-        {/* Filter tabs */}
         <div className="flex gap-1.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1">
-          {(["all", "live", "upcoming", "ended"] as const).map((f) => (
+          {(["all", "LIVE", "UPCOMING", "FINISHED"] as const).map((f) => (
             <button key={f} type="button" onClick={() => setFilter(f)}
               className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold capitalize transition-all ${
                 filter === f ? "bg-emerald-500 text-white" : "text-gray-500"
               }`}>
-              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === "all" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
       </div>
 
       <div className="flex flex-col gap-4 px-5 py-4 pb-10">
-        {/* Prize pool banner */}
         <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/10 border border-yellow-500/20 rounded-2xl px-4 py-3 flex items-center gap-3">
           <FaCrown className="text-yellow-400 text-xl shrink-0" />
           <div>
-            <p className="text-xs font-black text-white">Total Prize Pool This Week</p>
-            <p className="text-lg font-black text-yellow-300">3.57M coins</p>
+            <p className="text-xs font-black text-white">Total Active Prize Pool</p>
+            <p className="text-lg font-black text-yellow-300">
+              {prizePoolData ? fmt(prizePoolData.totalPrize) : "—"} coins
+            </p>
           </div>
         </div>
 
-        {filtered.map((t) => (
-          <div key={t.id}>
-            <TCard t={t} onJoin={(x) => setJoining(x)} />
-            {joined.has(t.id) && (
-              <div className="mt-2 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
-                <FiCheck className="text-emerald-400 text-xs shrink-0" />
-                <p className="text-xs text-emerald-400 font-semibold">You're registered for this tournament!</p>
-              </div>
-            )}
+        {isLoading ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 bg-white/[0.04] rounded-3xl animate-pulse" />
+            ))}
           </div>
-        ))}
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-20 text-gray-600">
+            <FaTrophy className="text-3xl" />
+            <p className="text-sm font-semibold">No tournaments found</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {filtered.map((t) => (
+              <TCard key={t.id} t={t} onJoin={setJoining} />
+            ))}
+          </div>
+        )}
       </div>
 
       {joining && (
         <JoinModal
           t={joining}
           onClose={() => setJoining(null)}
-          onJoin={() => { setJoined((s) => new Set([...s, joining.id])); setJoining(null); }}
+          onConfirm={handleConfirmJoin}
+          loading={isPending}
         />
       )}
     </div>

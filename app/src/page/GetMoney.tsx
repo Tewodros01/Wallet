@@ -4,17 +4,11 @@ import { FiArrowLeft, FiArrowUp, FiCheck, FiChevronRight, FiCreditCard, FiSmartp
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { AppBar } from "../components/ui/Layout";
-import { useWithdraw } from "../hooks/usePayments";
+import { useWithdraw, useAgents } from "../hooks/usePayments";
 import { useWalletStore } from "../store/wallet.store";
 import type { PaymentMethod } from "../api/payments.api";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000"];
-
-const AGENTS = [
-  { id: 1, name: "Sara K.",  avatar: "https://i.pravatar.cc/40?img=5",  phone: "+251 91 234 5678", status: "online",  accountNumber: "+251912345678" },
-  { id: 2, name: "Mike T.",  avatar: "https://i.pravatar.cc/40?img=8",  phone: "+251 92 345 6789", status: "online",  accountNumber: "+251923456789" },
-  { id: 3, name: "James O.", avatar: "https://i.pravatar.cc/40?img=11", phone: "+251 93 456 7890", status: "offline", accountNumber: "+251934567890" },
-];
 
 const METHODS: { id: PaymentMethod; label: string; sub: string; icon: React.ReactNode; color: string; bg: string }[] = [
   { id: "TELEBIRR",  label: "Telebirr",  sub: "Instant · 0% fee",    icon: <FiSmartphone />, color: "text-violet-400", bg: "bg-violet-500/15 border-violet-500/25" },
@@ -29,22 +23,25 @@ export default function GetMoney() {
   const { balance, setBalance } = useWalletStore();
   const { mutate: withdraw, isPending } = useWithdraw();
 
-  const [step,    setStep]    = useState<Step>("amount");
-  const [amount,  setAmount]  = useState("");
-  const [agentId, setAgentId] = useState<number | null>(null);
-  const [method,  setMethod]  = useState<PaymentMethod>("TELEBIRR");
-  const [error,   setError]   = useState<string | null>(null);
+  const { data: agents = [], isLoading: loadingAgents } = useAgents();
 
-  const numAmount     = Number(amount) || 0;
-  const insufficient  = numAmount > balance;
-  const selectedAgent = AGENTS.find((a) => a.id === agentId);
-  const selectedMethod = METHODS.find((m) => m.id === method)!;
+  const [step,        setStep]        = useState<Step>("amount");
+  const [amount,      setAmount]      = useState("");
+  const [agentId,     setAgentId]     = useState<string | null>(null);
+  const [method,      setMethod]      = useState<PaymentMethod>("TELEBIRR");
+  const [accountNum,  setAccountNum]  = useState("");
+  const [error,       setError]       = useState<string | null>(null);
+
+  const numAmount      = Number(amount) || 0;
+  const insufficient   = numAmount > balance;
+  const selectedAgent  = (agents as any[]).find((a) => a.id === agentId);
+  const selectedMethod = METHODS.find((m) => m.id === method)!
 
   const handleSendRequest = () => {
-    if (!selectedAgent) return;
+    if (!selectedAgent || !accountNum.trim()) return;
     setError(null);
     withdraw(
-      { amount: numAmount, method, accountNumber: selectedAgent.accountNumber },
+      { amount: numAmount, method, accountNumber: accountNum.trim() },
       {
         onSuccess: () => {
           setBalance(Math.max(0, balance - numAmount));
@@ -66,13 +63,13 @@ export default function GetMoney() {
       <div className="text-center">
         <h2 className="text-2xl font-black">Request Sent!</h2>
         <p className="text-gray-400 mt-1 text-sm">
-          Waiting for <span className="text-white font-bold">{selectedAgent?.name}</span> to process your withdrawal
+          Waiting for <span className="text-white font-bold">{selectedAgent ? `${selectedAgent.firstName} ${selectedAgent.lastName}` : "agent"}</span> to process your withdrawal
         </p>
       </div>
       <div className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
         {[
           { label: "Amount",     value: <span className="flex items-center gap-1 font-black text-yellow-300"><FaCoins className="text-xs text-yellow-400" />{numAmount.toLocaleString()} coins</span> },
-          { label: "Agent",      value: <span className="font-bold text-white">{selectedAgent?.name}</span> },
+          { label: "Agent",      value: <span className="font-bold text-white">{selectedAgent ? `${selectedAgent.firstName} ${selectedAgent.lastName}` : "—"}</span> },
           { label: "Payout via", value: <span className="font-bold text-white">{selectedMethod.label}</span> },
           { label: "Status",     value: <span className="text-orange-400 font-bold">Processing</span> },
         ].map(({ label, value }) => (
@@ -112,12 +109,27 @@ export default function GetMoney() {
         <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Agent</p>
           <div className="flex items-center gap-3">
-            <img src={selectedAgent?.avatar} alt={selectedAgent?.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-rose-500/30 shrink-0" />
+            {selectedAgent?.avatar
+              ? <img src={selectedAgent.avatar} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-rose-500/30 shrink-0" />
+              : <div className="w-12 h-12 rounded-full bg-rose-500/20 ring-2 ring-rose-500/30 shrink-0 flex items-center justify-center text-rose-400 font-black text-lg">{selectedAgent?.firstName?.[0]?.toUpperCase()}</div>
+            }
             <div>
-              <p className="text-sm font-black text-white">{selectedAgent?.name}</p>
-              <p className="text-xs text-gray-500">{selectedAgent?.phone}</p>
+              <p className="text-sm font-black text-white">{selectedAgent?.firstName} {selectedAgent?.lastName}</p>
+              <p className="text-xs text-gray-500">{selectedAgent?.phone ?? `@${selectedAgent?.username}`}</p>
             </div>
           </div>
+        </div>
+
+        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Your Account Number</p>
+          <input
+            type="text"
+            placeholder="e.g. +251912345678"
+            value={accountNum}
+            onChange={(e) => setAccountNum(e.target.value)}
+            className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-rose-500/50 transition-colors"
+          />
+          <p className="text-[11px] text-gray-600">The agent will send cash to this account via {selectedMethod.label}.</p>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -145,7 +157,7 @@ export default function GetMoney() {
           <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">{error}</div>
         )}
 
-        <Button loading={isPending} icon={<FiArrowUp />} onClick={handleSendRequest}>
+        <Button loading={isPending} disabled={!accountNum.trim()} icon={<FiArrowUp />} onClick={handleSendRequest}>
           Send Withdrawal Request
         </Button>
       </div>
@@ -168,21 +180,26 @@ export default function GetMoney() {
       <div className="flex flex-col gap-4 px-5 py-6">
         <p className="text-xs text-gray-500">Choose an agent to process your withdrawal.</p>
         <div className="flex flex-col gap-2">
-          {AGENTS.map((agent) => (
+          {loadingAgents ? (
+            [1,2,3].map(i => <div key={i} className="h-16 bg-white/[0.04] rounded-2xl animate-pulse" />)
+          ) : (agents as any[]).length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12 text-gray-600">
+              <FiArrowUp className="text-3xl" />
+              <p className="text-sm font-semibold">No agents available</p>
+            </div>
+          ) : (agents as any[]).map((agent) => (
             <button key={agent.id} type="button"
               onClick={() => { setAgentId(agent.id); setStep("confirm"); }}
               className="flex items-center gap-3 px-4 py-3.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl hover:bg-white/[0.07] active:scale-[0.98] transition-all text-left">
-              <div className="relative shrink-0">
-                <img src={agent.avatar} alt={agent.name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10" />
-                <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-gray-950 ${agent.status === "online" ? "bg-emerald-400" : "bg-gray-600"}`} />
-              </div>
+              {agent.avatar
+                ? <img src={agent.avatar} alt="" className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0" />
+                : <div className="w-11 h-11 rounded-full bg-emerald-500/20 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-emerald-400 font-black">{agent.firstName?.[0]?.toUpperCase()}</div>
+              }
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white">{agent.name}</p>
-                <p className="text-[11px] text-gray-500">{agent.phone}</p>
+                <p className="text-sm font-bold text-white">{agent.firstName} {agent.lastName}</p>
+                <p className="text-[11px] text-gray-500">{agent.phone ?? `@${agent.username}`}</p>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${agent.status === "online" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-gray-500/15 text-gray-500 border-gray-500/30"}`}>
-                {agent.status}
-              </span>
+              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Agent</span>
             </button>
           ))}
         </div>

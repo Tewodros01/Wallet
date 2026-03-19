@@ -13,6 +13,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GetUser } from './decorators/get-user.decorators';
 import { LoginDto } from './dto/login.dto';
@@ -28,6 +29,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email or username already exists' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })  // 5 registrations per minute
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   register(@Body() registerDto: RegisterDto) {
@@ -37,6 +39,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @Throttle({ short: { ttl: 60000, limit: 10 } })  // 10 login attempts per minute
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: LoginDto) {
@@ -106,5 +109,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   revokeSession(@GetUser('sub') userId: string, @Body() dto: { sessionId: string }) {
     return this.authService.revokeSession(userId, dto.sessionId);
+  }
+
+  @ApiOperation({ summary: 'Request password reset (sends token)' })
+  @Throttle({ short: { ttl: 60000, limit: 3 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() dto: { email: string }) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @ApiOperation({ summary: 'Reset password using token' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() dto: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }

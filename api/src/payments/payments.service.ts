@@ -3,21 +3,47 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { DepositStatus, TransactionType, WithdrawalStatus } from 'generated/prisma/client';
+import {
+  DepositStatus,
+  TransactionType,
+  WithdrawalStatus,
+} from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AgentsService } from '../agents/agents.service';
 import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
+
+const KENO_PAYOUTS: Record<number, Record<number, number>> = {
+  1:  { 1: 3 },
+  2:  { 2: 12 },
+  3:  { 2: 2, 3: 40 },
+  4:  { 2: 1, 3: 5, 4: 100 },
+  5:  { 3: 3, 4: 20, 5: 500 },
+  6:  { 3: 2, 4: 8,  5: 100, 6: 1500 },
+  7:  { 3: 1, 4: 5,  5: 40,  6: 400,  7: 5000 },
+  8:  { 4: 3, 5: 20, 6: 100, 7: 1000, 8: 10000 },
+  9:  { 4: 2, 5: 10, 6: 50,  7: 500,  8: 5000, 9: 25000 },
+  10: { 5: 5, 6: 20, 7: 100, 8: 1000, 9: 10000, 10: 100000 },
+};
 
 @Injectable()
 export class PaymentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly agentsService: AgentsService,
+  ) {}
 
   // ── Deposits ──────────────────────────────────────────────────────────────
 
   async createDeposit(dto: CreateDepositDto, userId: string) {
     try {
-      // Create as PENDING — agent must approve before coins are credited
       return await this.prisma.deposit.create({
-        data: { userId, amount: dto.amount, method: dto.method, reference: dto.reference },
+        data: {
+          userId,
+          amount: dto.amount,
+          method: dto.method,
+          reference: dto.reference,
+          proofUrl: dto.proofUrl,
+        },
       });
     } catch {
       throw new InternalServerErrorException('Failed to create deposit request');
@@ -27,15 +53,61 @@ export class PaymentsService {
   async getAgents() {
     return this.prisma.user.findMany({
       where: { role: 'AGENT' },
-      select: { id: true, firstName: true, lastName: true, username: true, avatar: true, phone: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        avatar: true,
+        phone: true,
+      },
+    });
+  }
+
+  async transferCoins(senderId: string, recipientUsername: string, amount: number) {
+    if (amount <= 0) throw new BadRequestException('Amount must be positive');
+    return this.prisma.$transaction(async (tx) => {
+      const sender = await tx.user.findUnique({
+        where: { id: senderId },
+        select: { coinsBalance: true, firstName: true },
+      });
+      if (!sender) throw new BadRequestException('Sender not found');
+      if (sender.coinsBalance < amount)
+        throw new BadRequestException('Insufficient coin balance');
+
+      const recipient = await tx.user.findFirst({
+        where: { username: recipientUsername, deletedAt: null },
+        select: { id: true, firstName: true },
+      });
+      if (!recipient) throw new BadRequestException('Recipient not found');
+      if (recipient.id === senderId)
+        throw new BadRequestException('Cannot transfer to yourself');
+
+      await tx.user.update({ where: { id: senderId }, data: { coinsBalance: { decrement: amount } } });
+      await tx.user.update({ where: { id: recipient.id }, data: { coinsBalance: { increment: amount } } });
+
+      const [sWallet, rWallet] = await Promise.all([
+        tx.wallet.findFirst({ where: { userId: senderId, isDefault: true, deletedAt: null } }),
+        tx.wallet.findFirst({ where: { userId: recipient.id, isDefault: true, deletedAt: null } }),
+      ]);
+      if (sWallet) {
+        await tx.transaction.create({
+          data: { title: `Transfer to @${recipientUsername}`, amount, type: TransactionType.TRANSFER, date: new Date(), userId: senderId, walletId: sWallet.id },
+        });
+        await tx.wallet.update({ where: { id: sWallet.id }, data: { balance: { decrement: amount } } });
+      }
+      if (rWallet) {
+        await tx.transaction.create({
+          data: { title: `Transfer from @${sender.firstName}`, amount, type: TransactionType.INCOME, date: new Date(), userId: recipient.id, walletId: rWallet.id },
+        });
+        await tx.wallet.update({ where: { id: rWallet.id }, data: { balance: { increment: amount } } });
+      }
+      return { success: true, recipient: recipient.firstName };
     });
   }
 
   async getDeposits(userId: string) {
-    return this.prisma.deposit.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.deposit.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
   }
 
   // ── Withdrawals ───────────────────────────────────────────────────────────
@@ -44,50 +116,25 @@ export class PaymentsService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({ where: { id: userId }, select: { coinsBalance: true } });
-        if (!user || user.coinsBalance < dto.amount) {
+        if (!user || user.coinsBalance < dto.amount)
           throw new BadRequestException('Insufficient coin balance');
-        }
 
         const withdrawal = await tx.withdrawal.create({
-          data: {
-            userId,
-            amount: dto.amount,
-            method: dto.method,
-            accountNumber: dto.accountNumber,
-            status: WithdrawalStatus.PENDING,
-          },
+          data: { userId, amount: dto.amount, method: dto.method, accountNumber: dto.accountNumber, status: WithdrawalStatus.PENDING },
         });
 
-        // deduct coins immediately, mark as processing
-        await tx.user.update({
-          where: { id: userId },
-          data: { coinsBalance: { decrement: dto.amount } },
-        });
-
+        await tx.user.update({ where: { id: userId }, data: { coinsBalance: { decrement: dto.amount } } });
         await tx.withdrawal.update({
           where: { id: withdrawal.id },
           data: { status: WithdrawalStatus.PROCESSING, processedAt: new Date() },
         });
 
-        const wallet = await tx.wallet.findFirst({
-          where: { userId, isDefault: true, deletedAt: null },
-        });
-
+        const wallet = await tx.wallet.findFirst({ where: { userId, isDefault: true, deletedAt: null } });
         if (wallet) {
           await tx.transaction.create({
-            data: {
-              title: `Withdrawal to ${dto.method}`,
-              amount: dto.amount,
-              type: TransactionType.WITHDRAWAL,
-              date: new Date(),
-              userId,
-              walletId: wallet.id,
-            },
+            data: { title: `Withdrawal to ${dto.method}`, amount: dto.amount, type: TransactionType.WITHDRAWAL, date: new Date(), userId, walletId: wallet.id },
           });
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: dto.amount } },
-          });
+          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { decrement: dto.amount } } });
         }
 
         return { ...withdrawal, status: WithdrawalStatus.PROCESSING };
@@ -99,10 +146,7 @@ export class PaymentsService {
   }
 
   async getWithdrawals(userId: string) {
-    return this.prisma.withdrawal.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.withdrawal.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
   }
 
   // ── Daily Bonus ───────────────────────────────────────────────────────────
@@ -110,29 +154,100 @@ export class PaymentsService {
   async claimDailyBonus(userId: string, coins: number) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        await tx.user.update({
-          where: { id: userId },
-          data: { coinsBalance: { increment: coins } },
+        // enforce 24-hour cooldown
+        const lastBonus = await tx.transaction.findFirst({
+          where: { userId, title: 'Daily Bonus Spin' },
+          orderBy: { createdAt: 'desc' },
         });
+        if (lastBonus) {
+          const diff = Date.now() - lastBonus.createdAt.getTime();
+          if (diff < 24 * 60 * 60 * 1000) {
+            const nextHrs = Math.ceil((24 * 60 * 60 * 1000 - diff) / (60 * 60 * 1000));
+            throw new BadRequestException(`Daily bonus already claimed. Come back in ${nextHrs}h`);
+          }
+        }
+
+        await tx.user.update({ where: { id: userId }, data: { coinsBalance: { increment: coins } } });
+
+        const wallet = await tx.wallet.findFirst({ where: { userId, isDefault: true, deletedAt: null } });
+        if (wallet) {
+          await tx.transaction.create({
+            data: { title: 'Daily Bonus Spin', amount: coins, type: TransactionType.INCOME, date: new Date(), userId, walletId: wallet.id },
+          });
+          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: coins } } });
+        }
+
+        const updated = await tx.user.findUnique({ where: { id: userId }, select: { coinsBalance: true } });
+        return { coins, newBalance: updated?.coinsBalance ?? 0 };
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to claim daily bonus');
+    }
+  }
+
+  // ── Keno ──────────────────────────────────────────────────────────────────
+
+  async playKeno(userId: string, bet: number, picks: number[]) {
+    // validate picks before touching DB
+    if (picks.length < 1 || picks.length > 10)
+      throw new BadRequestException('Pick between 1 and 10 numbers');
+    if (new Set(picks).size !== picks.length)
+      throw new BadRequestException('Duplicate picks not allowed');
+    if (picks.some((n) => n < 1 || n > 80))
+      throw new BadRequestException('Picks must be between 1 and 80');
+    if (bet <= 0)
+      throw new BadRequestException('Bet must be positive');
+
+    // server generates the draw — never trust client-supplied drawn numbers
+    const pool = Array.from({ length: 80 }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const drawn = pool.slice(0, 20);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({ where: { id: userId }, select: { coinsBalance: true } });
+        if (!user || user.coinsBalance < bet)
+          throw new BadRequestException('Insufficient coin balance');
+
+        const drawnSet = new Set(drawn);
+        const matches = picks.filter((n) => drawnSet.has(n)).length;
+        const multiplier = KENO_PAYOUTS[picks.length]?.[matches] ?? 0;
+        const payout = multiplier * bet;
+        const net = payout - bet;
+
+        await tx.user.update({ where: { id: userId }, data: { coinsBalance: { increment: net } } });
+
         const wallet = await tx.wallet.findFirst({ where: { userId, isDefault: true, deletedAt: null } });
         if (wallet) {
           await tx.transaction.create({
             data: {
-              title: 'Daily Bonus Spin',
-              amount: coins,
-              type: TransactionType.INCOME,
+              title: `Keno — ${matches} match${matches !== 1 ? 'es' : ''} (${picks.length} picks)`,
+              amount: Math.abs(net),
+              type: net >= 0 ? TransactionType.GAME_WIN : TransactionType.GAME_ENTRY,
               date: new Date(),
               userId,
               walletId: wallet.id,
             },
           });
-          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: coins } } });
+          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: net } } });
         }
+
+        if (payout > 0) {
+          await tx.notification.create({
+            data: { userId, type: 'WIN', title: 'Keno Win! 🎰', body: `You matched ${matches}/${picks.length} numbers and won ${payout.toLocaleString()} coins!` },
+          }).catch(() => {});
+        }
+
         const updated = await tx.user.findUnique({ where: { id: userId }, select: { coinsBalance: true } });
-        return { coins, newBalance: updated?.coinsBalance ?? 0 };
+        return { matches, payout, bet, net, drawn, newBalance: updated?.coinsBalance ?? 0 };
       });
-    } catch {
-      throw new InternalServerErrorException('Failed to claim daily bonus');
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to process Keno round');
     }
   }
 
@@ -142,17 +257,22 @@ export class PaymentsService {
     try {
       const deposit = await this.prisma.deposit.findUnique({ where: { id: depositId } });
       if (!deposit) throw new BadRequestException('Deposit not found');
-      if (deposit.status !== DepositStatus.PENDING) throw new BadRequestException('Already processed');
-      return await this.prisma.$transaction(async (tx) => {
+      if (deposit.status !== DepositStatus.PENDING)
+        throw new BadRequestException('Already processed');
+      await this.prisma.$transaction(async (tx) => {
         await tx.deposit.update({ where: { id: depositId }, data: { status: DepositStatus.COMPLETED, completedAt: new Date() } });
         await tx.user.update({ where: { id: deposit.userId }, data: { coinsBalance: { increment: deposit.amount } } });
         const wallet = await tx.wallet.findFirst({ where: { userId: deposit.userId, isDefault: true, deletedAt: null } });
         if (wallet) {
-          await tx.transaction.create({ data: { title: `Deposit via ${deposit.method}`, amount: deposit.amount, type: TransactionType.DEPOSIT, date: new Date(), userId: deposit.userId, walletId: wallet.id } });
+          await tx.transaction.create({
+            data: { title: `Deposit via ${deposit.method}`, amount: deposit.amount, type: TransactionType.DEPOSIT, date: new Date(), userId: deposit.userId, walletId: wallet.id },
+          });
           await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: deposit.amount } } });
         }
-        return { success: true };
       });
+      // credit referral commission non-blocking — never fails the main flow
+      void this.agentsService.creditDepositCommission(deposit.userId, deposit.amount);
+      return { success: true };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to approve deposit');
@@ -163,7 +283,8 @@ export class PaymentsService {
     try {
       const deposit = await this.prisma.deposit.findUnique({ where: { id: depositId } });
       if (!deposit) throw new BadRequestException('Deposit not found');
-      if (deposit.status !== DepositStatus.PENDING) throw new BadRequestException('Already processed');
+      if (deposit.status !== DepositStatus.PENDING)
+        throw new BadRequestException('Already processed');
       await this.prisma.deposit.update({ where: { id: depositId }, data: { status: DepositStatus.FAILED } });
       return { success: true };
     } catch (error) {
@@ -176,7 +297,8 @@ export class PaymentsService {
     try {
       const w = await this.prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
       if (!w) throw new BadRequestException('Withdrawal not found');
-      if (w.status !== WithdrawalStatus.PROCESSING && w.status !== WithdrawalStatus.PENDING) throw new BadRequestException('Already processed');
+      if (w.status !== WithdrawalStatus.PROCESSING && w.status !== WithdrawalStatus.PENDING)
+        throw new BadRequestException('Already processed');
       await this.prisma.withdrawal.update({ where: { id: withdrawalId }, data: { status: WithdrawalStatus.COMPLETED, completedAt: new Date() } });
       return { success: true };
     } catch (error) {
@@ -189,13 +311,14 @@ export class PaymentsService {
     try {
       const w = await this.prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
       if (!w) throw new BadRequestException('Withdrawal not found');
-      if (w.status !== WithdrawalStatus.PROCESSING && w.status !== WithdrawalStatus.PENDING) throw new BadRequestException('Already processed');
-      // refund coins
+      if (w.status !== WithdrawalStatus.PROCESSING && w.status !== WithdrawalStatus.PENDING)
+        throw new BadRequestException('Already processed');
       await this.prisma.$transaction(async (tx) => {
         await tx.withdrawal.update({ where: { id: withdrawalId }, data: { status: WithdrawalStatus.FAILED } });
         await tx.user.update({ where: { id: w.userId }, data: { coinsBalance: { increment: w.amount } } });
         const wallet = await tx.wallet.findFirst({ where: { userId: w.userId, isDefault: true, deletedAt: null } });
-        if (wallet) await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: w.amount } } });
+        if (wallet)
+          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: w.amount } } });
       });
       return { success: true };
     } catch (error) {
@@ -204,11 +327,18 @@ export class PaymentsService {
     }
   }
 
-  async getAgentRequests(agentUserId: string) {
-    // Return all pending deposits and withdrawals (in a real app, scoped to agent's users)
+  async getAgentRequests() {
     const [deposits, withdrawals] = await Promise.all([
-      this.prisma.deposit.findMany({ orderBy: { createdAt: 'desc' }, take: 50, include: { user: { select: { id: true, username: true, firstName: true, lastName: true, avatar: true } } } }),
-      this.prisma.withdrawal.findMany({ orderBy: { createdAt: 'desc' }, take: 50, include: { user: { select: { id: true, username: true, firstName: true, lastName: true, avatar: true } } } }),
+      this.prisma.deposit.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { user: { select: { id: true, username: true, firstName: true, lastName: true, avatar: true } } },
+      }),
+      this.prisma.withdrawal.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { user: { select: { id: true, username: true, firstName: true, lastName: true, avatar: true } } },
+      }),
     ]);
     return { deposits, withdrawals };
   }

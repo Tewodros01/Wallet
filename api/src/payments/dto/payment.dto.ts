@@ -16,6 +16,11 @@ export class CreateDepositDto {
   @IsOptional()
   @IsString()
   reference?: string;
+
+  @ApiPropertyOptional({ example: 'https://...' })
+  @IsOptional()
+  @IsString()
+  proofUrl?: string;
 }
 
 export class CreateWithdrawalDto {

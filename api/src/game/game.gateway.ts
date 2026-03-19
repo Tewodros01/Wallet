@@ -295,6 +295,87 @@ export class GameGateway
     return { success: true };
   }
 
+  /** Spectator joins a room to watch without playing */
+  @SubscribeMessage('spectator:join')
+  async onSpectatorJoin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string },
+  ) {
+    const userId = this.getUserId(client);
+    const { roomId } = payload;
+
+    const room = await this.prisma.gameRoom.findUnique({ where: { id: roomId } });
+    if (!room) throw new WsException('Room not found');
+
+    // spectators join a separate sub-room so we can track them
+    await client.join(`spectator:${roomId}`);
+    await client.join(roomId); // also join main room to receive game events
+
+    const state = this.rooms.get(roomId);
+    if (state) {
+      client.emit('game:state', {
+        calledNums: state.calledNums,
+        current: state.calledNums.at(-1) ?? null,
+        remaining: state.remaining.length,
+      });
+    }
+
+    const spectatorCount = (await this.server.in(`spectator:${roomId}`).fetchSockets()).length;
+    this.server.to(roomId).emit('room:spectator_joined', { userId, spectatorCount });
+
+    this.logger.log(`Spectator ${userId} joined room ${roomId}`);
+    return { success: true, spectator: true };
+  }
+
+  /** Spectator leaves */
+  @SubscribeMessage('spectator:leave')
+  async onSpectatorLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string },
+  ) {
+    const userId = this.getUserId(client);
+    const { roomId } = payload;
+    await client.leave(`spectator:${roomId}`);
+    await client.leave(roomId);
+    const spectatorCount = (await this.server.in(`spectator:${roomId}`).fetchSockets()).length;
+    this.server.to(roomId).emit('room:spectator_left', { userId, spectatorCount });
+    return { success: true };
+  }
+
+  /** Player sends a chat message in a room */
+  @SubscribeMessage('chat:send')
+  async onChatSend(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string; message: string },
+  ) {
+    const userId = this.getUserId(client);
+    const { roomId, message } = payload;
+
+    if (!message?.trim() || message.length > 200) {
+      throw new WsException('Invalid message');
+    }
+
+    // verify user is in the room
+    const player = await this.prisma.roomPlayer.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+      include: { user: { select: { id: true, username: true, avatar: true } } },
+    });
+    if (!player) throw new WsException('Not a member of this room');
+
+    const chatMsg = {
+      id: `${Date.now()}-${userId.slice(-4)}`,
+      userId,
+      username: player.user.username,
+      avatar: player.user.avatar,
+      message: message.trim(),
+      sentAt: new Date().toISOString(),
+    };
+
+    // broadcast to everyone in the room including sender
+    this.server.to(roomId).emit('chat:message', chatMsg);
+    return { success: true };
+  }
+
   /** Get live room state */
   @SubscribeMessage('room:state')
   async onRoomState(

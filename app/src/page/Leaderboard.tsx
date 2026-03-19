@@ -3,16 +3,19 @@ import { FaCrown, FaMedal, FaTrophy } from "react-icons/fa";
 import { FiArrowLeft } from "react-icons/fi";
 import { GiCoins } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
-import { useLeaderboard } from "../hooks/useUser";
-import { useMe } from "../hooks/useUser";
+import { motion } from "framer-motion";
+import { useLeaderboard, useMe } from "../hooks/useUser";
+import { SkeletonLeaderRow } from "../components/ui/Skeletons";
+import EmptyState from "../components/ui/EmptyState";
+import { haptic } from "../lib/haptic";
 
 type Tab = "alltime";
 const TABS: { id: Tab; label: string }[] = [{ id: "alltime", label: "All Time" }];
 
 const PODIUM_COLORS = [
-  { ring: "ring-yellow-400", bg: "bg-yellow-400/20", text: "text-yellow-400", icon: <FaCrown className="text-yellow-400 text-lg" />, size: "w-20 h-20", order: "order-2", height: "pt-0"  },
-  { ring: "ring-gray-300",   bg: "bg-gray-400/15",   text: "text-gray-300",   icon: <FaMedal className="text-gray-300 text-base" />,  size: "w-16 h-16", order: "order-1", height: "pt-6"  },
-  { ring: "ring-orange-400", bg: "bg-orange-400/15", text: "text-orange-400", icon: <FaMedal className="text-orange-400 text-base" />, size: "w-16 h-16", order: "order-3", height: "pt-6"  },
+  { ring: "ring-yellow-400", bg: "bg-yellow-400/20", text: "text-yellow-400", icon: <FaCrown className="text-yellow-400 text-lg" />, size: "w-20 h-20", order: "order-2", height: "pt-0" },
+  { ring: "ring-gray-300",   bg: "bg-gray-400/15",   text: "text-gray-300",   icon: <FaMedal className="text-gray-300 text-base" />,  size: "w-16 h-16", order: "order-1", height: "pt-6" },
+  { ring: "ring-orange-400", bg: "bg-orange-400/15", text: "text-orange-400", icon: <FaMedal className="text-orange-400 text-base" />, size: "w-16 h-16", order: "order-3", height: "pt-6" },
 ];
 
 function fmt(n: number) {
@@ -23,17 +26,22 @@ function fmt(n: number) {
 
 export default function Leaderboard() {
   const navigate = useNavigate();
-  const [tab] = useState<Tab>("alltime");
+  const [tab]    = useState<Tab>("alltime");
 
   const { data: players = [], isLoading } = useLeaderboard(20);
   const { data: me } = useMe();
 
-  const top3 = players.slice(0, 3);
-  const rest  = players.slice(3);
+  const top3    = players.slice(0, 3);
+  const rest    = players.slice(3);
   const myEntry = players.find((p: any) => p.user?.id === me?.id);
+
+  const goProfile = (id: string) => {
+    haptic.light(); navigate(`/profile/${id}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      {/* Header */}
       <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.06] px-5 pt-5 pb-3 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -59,20 +67,31 @@ export default function Leaderboard() {
         </div>
       </div>
 
+      {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col gap-3 px-5 py-5">{[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-white/[0.04] rounded-2xl animate-pulse" />)}</div>
+        <div className="flex flex-col gap-3 px-5 py-5">
+          {[1, 2, 3, 4, 5].map((i) => <SkeletonLeaderRow key={i} />)}
+        </div>
+      ) : players.length === 0 ? (
+        <EmptyState type="leaderboard" title="No players yet" subtitle="Play games to appear on the leaderboard!" />
       ) : (
         <div className="flex flex-col gap-4 px-5 pb-8 overflow-y-auto">
+
           {/* Podium */}
           {top3.length >= 3 && (
             <div className="relative pt-8 pb-2">
               <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-yellow-400/5 to-transparent pointer-events-none rounded-3xl" />
               <div className="flex items-end justify-center gap-3 relative z-10">
                 {[top3[1], top3[0], top3[2]].map((p: any, idx: number) => {
-                  const style = PODIUM_COLORS[idx];
+                  const style   = PODIUM_COLORS[idx];
                   const rankNum = idx === 0 ? 2 : idx === 1 ? 1 : 3;
                   return (
-                    <div key={p.rank} className={`flex flex-col items-center gap-2 ${style.order} ${style.height}`}>
+                    <button
+                      key={p.rank}
+                      type="button"
+                      onClick={() => goProfile(p.user?.id)}
+                      className={`flex flex-col items-center gap-2 ${style.order} ${style.height} active:scale-95 transition-all`}
+                    >
                       <div className="mb-1">{style.icon}</div>
                       <div className={`relative ${style.size} rounded-full ring-2 ${style.ring} overflow-hidden`}>
                         <img src={p.user?.avatar ?? `https://i.pravatar.cc/40?u=${p.user?.id}`} alt="" className="w-full h-full object-cover" />
@@ -90,7 +109,7 @@ export default function Leaderboard() {
                       <div className={`w-20 rounded-t-xl flex items-center justify-center py-1.5 ${style.bg} border-t border-x ${rankNum === 1 ? "h-16 border-yellow-400/30" : "h-10 border-white/10"}`}>
                         <span className={`text-xs font-black ${style.text}`}>#{rankNum}</span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -101,7 +120,15 @@ export default function Leaderboard() {
           {rest.length > 0 && (
             <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
               {rest.map((p: any, i: number) => (
-                <div key={p.rank} className={`flex items-center gap-3 px-4 py-3 ${i < rest.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
+                <motion.button
+                  key={p.rank}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  type="button"
+                  onClick={() => goProfile(p.user?.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 active:bg-white/[0.06] transition-colors text-left ${i < rest.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                >
                   <span className="w-6 text-xs font-black text-gray-500 text-center shrink-0">#{p.rank}</span>
                   <img src={p.user?.avatar ?? `https://i.pravatar.cc/40?u=${p.user?.id}`} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -112,7 +139,7 @@ export default function Leaderboard() {
                     <GiCoins className="text-yellow-400 text-xs" />
                     <span className="text-xs font-black text-yellow-300">{fmt(p.totalEarned)}</span>
                   </div>
-                </div>
+                </motion.button>
               ))}
             </div>
           )}
@@ -147,13 +174,6 @@ export default function Leaderboard() {
             </>
           )}
 
-          {players.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-16 text-gray-600">
-              <FaTrophy className="text-3xl" />
-              <p className="text-sm font-semibold">No data yet</p>
-              <p className="text-xs text-gray-700">Play games to appear on the leaderboard!</p>
-            </div>
-          )}
         </div>
       )}
     </div>

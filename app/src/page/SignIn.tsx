@@ -67,6 +67,9 @@ export default function SignIn() {
           {errMsg && (
             <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2">{errMsg}</p>
           )}
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-xs text-gray-500 hover:text-emerald-400 transition-colors">Forgot password?</Link>
+          </div>
           <Button type="submit" loading={isPending} size="lg">Sign In</Button>
         </form>
 

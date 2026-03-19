@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { FiArrowRight, FiZap } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { usersApi } from "../api/users.api";
+import { useAuthStore } from "../store/auth.store";
 
 const SLIDES = [
   {
@@ -37,12 +39,19 @@ export function hasSeenOnboarding() {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const setUser = useAuthStore((s) => s.setUser);
   const [idx, setIdx] = useState(0);
   const slide = SLIDES[idx];
   const isLast = idx === SLIDES.length - 1;
 
-  const finish = () => {
+  const finish = async () => {
     localStorage.setItem(STORAGE_KEY, "true");
+    try {
+      const updated = await usersApi.completeOnboarding();
+      setUser(updated);
+    } catch {
+      // non-blocking — localStorage flag still prevents re-show
+    }
     navigate("/dashboard", { replace: true });
   };
 

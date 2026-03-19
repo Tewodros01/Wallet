@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { FiBell, FiChevronRight, FiGlobe, FiLock, FiLogOut, FiMoon, FiSettings, FiShield, FiUser } from "react-icons/fi";
+import { FiBell, FiChevronRight, FiGlobe, FiLock, FiLogOut, FiMoon, FiSettings, FiShield, FiUser, FiUsers, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
+import { useSoundStore } from "../store/sound.store";
 import { AppBar, BottomNav } from "../components/ui/Layout";
+import { useState } from "react";
 
 const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
   <button
@@ -16,37 +17,44 @@ const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
 
 export default function Settings() {
   const navigate = useNavigate();
+  const user  = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
   const handleSignOut = () => { clear(); navigate("/signin", { replace: true }); };
   const [notifications, setNotifications] = useState(true);
-  const [sounds, setSounds]               = useState(true);
   const [darkMode, setDarkMode]           = useState(true);
   const [twoFactor, setTwoFactor]         = useState(false);
+  const { muted, toggle: toggleSound }    = useSoundStore();
 
   const sections = [
     {
       title: "Account",
       items: [
-        { icon: <FiUser />,   label: "Edit Profile",       sub: "Name, avatar, username",  action: () => navigate("/edit-profile"),  chevron: true },
-        { icon: <FiLock />,   label: "Change Password",    sub: "Update your password",     action: () => navigate("/change-password"), chevron: true },
-        { icon: <FiGlobe />,  label: "Language",           sub: "English",                  action: () => navigate("/language"),        chevron: true },
+        { icon: <FiUser />,   label: "Edit Profile",    sub: "Name, avatar, username", action: () => navigate("/edit-profile"),    chevron: true },
+        { icon: <FiLock />,   label: "Change Password", sub: "Update your password",   action: () => navigate("/change-password"), chevron: true },
+        { icon: <FiGlobe />,  label: "Language",        sub: "English",               action: () => navigate("/language"),        chevron: true },
       ],
     },
     {
       title: "Preferences",
       items: [
-        { icon: <FiBell />,   label: "Notifications",      sub: "Game alerts & updates",    toggle: true, value: notifications, onToggle: () => setNotifications(!notifications) },
-        { icon: <span>🔊</span>, label: "Sound Effects",   sub: "In-game sounds",           toggle: true, value: sounds,        onToggle: () => setSounds(!sounds) },
-        { icon: <FiMoon />,   label: "Dark Mode",          sub: "Always on",                toggle: true, value: darkMode,      onToggle: () => setDarkMode(!darkMode) },
+        { icon: <FiBell />,                                                label: "Notifications", sub: "Game alerts & updates", toggle: true, value: notifications, onToggle: () => setNotifications(!notifications) },
+        { icon: muted ? <FiVolumeX className="text-rose-400" /> : <FiVolume2 />, label: "Sound Effects",  sub: muted ? "Muted" : "On — tap to mute", toggle: true, value: !muted, onToggle: toggleSound },
+        { icon: <FiMoon />,                                                label: "Dark Mode",     sub: "Always on",            toggle: true, value: darkMode,      onToggle: () => setDarkMode(!darkMode) },
       ],
     },
     {
       title: "Security",
       items: [
-        { icon: <FiShield />, label: "Two-Factor Auth",    sub: "Extra account security",   toggle: true, value: twoFactor,     onToggle: () => setTwoFactor(!twoFactor) },
-        { icon: <FiLock />,   label: "Active Sessions",    sub: "Manage devices",           action: () => navigate("/active-sessions"), chevron: true },
+        { icon: <FiShield />, label: "Two-Factor Auth", sub: "Extra account security", toggle: true, value: twoFactor, onToggle: () => setTwoFactor(!twoFactor) },
+        { icon: <FiLock />,   label: "Active Sessions", sub: "Manage devices",         action: () => navigate("/active-sessions"), chevron: true },
       ],
     },
+    ...(user?.role === "ADMIN" ? [{
+      title: "Admin",
+      items: [
+        { icon: <FiShield />, label: "Admin Panel", sub: "Stats, deposits, withdrawals & agents", action: () => navigate("/admin/panel"), chevron: true },
+      ],
+    }] : []),
   ];
 
   return (
@@ -65,10 +73,13 @@ export default function Settings() {
       <div className="flex flex-col gap-5 px-5 py-5 pb-28">
         {/* Profile card */}
         <button type="button" onClick={() => navigate("/profile")} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.07] transition-colors active:scale-[0.98] text-left">
-          <img src="https://i.pravatar.cc/40" alt="avatar" className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shrink-0" />
+          {user?.avatar
+            ? <img src={user.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shrink-0" />
+            : <div className="w-12 h-12 rounded-full bg-emerald-500/20 ring-2 ring-emerald-500/40 shrink-0 flex items-center justify-center text-emerald-400 font-black text-lg">{user?.firstName?.[0]?.toUpperCase() ?? "?"}</div>
+          }
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white">John Deuo</p>
-            <p className="text-xs text-gray-500 truncate">john@example.com</p>
+            <p className="text-sm font-black text-white">{user ? `${user.firstName} ${user.lastName}` : "—"}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email ?? "—"}</p>
           </div>
           <FiChevronRight className="text-gray-600 shrink-0" />
         </button>
@@ -78,22 +89,31 @@ export default function Settings() {
           <div key={section.title} className="flex flex-col gap-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{section.title}</p>
             <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
-              {section.items.map((item, i) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.action}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left ${i < section.items.length - 1 ? "border-b border-white/[0.05]" : ""}`}
-                >
-                  <span className="text-gray-400 text-sm shrink-0">{item.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">{item.label}</p>
-                    {item.sub && <p className="text-[11px] text-gray-500">{item.sub}</p>}
-                  </div>
-                  {item.toggle && <Toggle on={item.value!} onToggle={item.onToggle!} />}
-                  {item.chevron && <FiChevronRight className="text-gray-600 shrink-0" />}
-                </button>
-              ))}
+              {section.items.map((item, i) => {
+                const base = `w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${i < section.items.length - 1 ? "border-b border-white/[0.05]" : ""}`;
+                if (item.toggle) {
+                  return (
+                    <div key={item.label} className={`${base} hover:bg-white/[0.04]`}>
+                      <span className="text-gray-400 text-sm shrink-0">{item.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">{item.label}</p>
+                        {item.sub && <p className="text-[11px] text-gray-500">{item.sub}</p>}
+                      </div>
+                      <Toggle on={item.value!} onToggle={item.onToggle!} />
+                    </div>
+                  );
+                }
+                return (
+                  <button key={item.label} type="button" onClick={item.action} className={`${base} hover:bg-white/[0.04]`}>
+                    <span className="text-gray-400 text-sm shrink-0">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{item.label}</p>
+                      {item.sub && <p className="text-[11px] text-gray-500">{item.sub}</p>}
+                    </div>
+                    <FiChevronRight className="text-gray-600 shrink-0" />
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}

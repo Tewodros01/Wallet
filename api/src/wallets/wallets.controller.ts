@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -38,7 +47,11 @@ export class WalletsController {
 
   @ApiOperation({ summary: 'Update a wallet' })
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateWalletDto, @GetUser('sub') userId: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateWalletDto,
+    @GetUser('sub') userId: string,
+  ) {
     return this.walletsService.update(id, dto, userId);
   }
 

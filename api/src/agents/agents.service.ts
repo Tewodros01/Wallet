@@ -7,7 +7,8 @@ import {
 import { AgentStatus, TransactionType } from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-const COMMISSION_PER_INVITE = 50; // coins
+const COMMISSION_PER_INVITE = 50;       // coins on signup
+const DEPOSIT_COMMISSION_PCT = 0.02;    // 2% of deposit amount credited to inviter
 
 @Injectable()
 export class AgentsService {
@@ -19,7 +20,14 @@ export class AgentsService {
         where: { inviterId: userId },
         include: {
           invitedUsers: {
-            select: { id: true, username: true, firstName: true, lastName: true, avatar: true, createdAt: true },
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              createdAt: true,
+            },
           },
         },
       });
@@ -33,7 +41,14 @@ export class AgentsService {
           },
           include: {
             invitedUsers: {
-              select: { id: true, username: true, firstName: true, lastName: true, avatar: true, createdAt: true },
+              select: {
+                id: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+                createdAt: true,
+              },
             },
           },
         });
@@ -53,10 +68,14 @@ export class AgentsService {
       });
 
       if (!invite) throw new NotFoundException('Invalid invite code');
-      if (invite.status !== AgentStatus.ACTIVE) throw new BadRequestException('Invite code is no longer active');
-      if (invite.expiresAt && invite.expiresAt < new Date()) throw new BadRequestException('Invite code has expired');
-      if (invite.invitedUsers.some((u) => u.id === newUserId)) throw new BadRequestException('Already used this code');
-      if (invite.inviterId === newUserId) throw new BadRequestException('Cannot use your own invite code');
+      if (invite.status !== AgentStatus.ACTIVE)
+        throw new BadRequestException('Invite code is no longer active');
+      if (invite.expiresAt && invite.expiresAt < new Date())
+        throw new BadRequestException('Invite code has expired');
+      if (invite.invitedUsers.some((u) => u.id === newUserId))
+        throw new BadRequestException('Already used this code');
+      if (invite.inviterId === newUserId)
+        throw new BadRequestException('Cannot use your own invite code');
 
       return await this.prisma.$transaction(async (tx) => {
         // link user to invite
@@ -68,7 +87,10 @@ export class AgentsService {
         // credit commission to inviter
         await tx.agentInvite.update({
           where: { id: invite.id },
-          data: { commission: { increment: COMMISSION_PER_INVITE }, usedAt: new Date() },
+          data: {
+            commission: { increment: COMMISSION_PER_INVITE },
+            usedAt: new Date(),
+          },
         });
 
         await tx.user.update({
@@ -96,8 +118,63 @@ export class AgentsService {
         return { success: true, commission: COMMISSION_PER_INVITE };
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
       throw new InternalServerErrorException('Failed to apply invite code');
+    }
+  }
+
+  async creditDepositCommission(depositedUserId: string, depositAmount: number) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: depositedUserId },
+        select: { referredById: true },
+      });
+      if (!user?.referredById) return; // not referred, skip
+
+      const invite = await this.prisma.agentInvite.findUnique({
+        where: { id: user.referredById },
+        select: { id: true, inviterId: true },
+      });
+      if (!invite) return;
+
+      const commission = Math.floor(depositAmount * DEPOSIT_COMMISSION_PCT);
+      if (commission <= 0) return;
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.agentInvite.update({
+          where: { id: invite.id },
+          data: { commission: { increment: commission } },
+        });
+        await tx.user.update({
+          where: { id: invite.inviterId },
+          data: { coinsBalance: { increment: commission } },
+        });
+        const wallet = await tx.wallet.findFirst({
+          where: { userId: invite.inviterId, isDefault: true, deletedAt: null },
+        });
+        if (wallet) {
+          await tx.transaction.create({
+            data: {
+              title: `Agent commission (2% of deposit)`,
+              amount: commission,
+              type: TransactionType.AGENT_COMMISSION,
+              date: new Date(),
+              userId: invite.inviterId,
+              walletId: wallet.id,
+            },
+          });
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { increment: commission } },
+          });
+        }
+      });
+    } catch {
+      // commission is non-critical — never fail the main deposit flow
     }
   }
 

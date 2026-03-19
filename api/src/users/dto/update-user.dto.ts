@@ -1,5 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { Role } from 'generated/prisma/client';
+
+export class UpdateRoleDto {
+  @IsEnum(Role)
+  role!: Role;
+}
 
 export class UpdateUserDto {
   @ApiPropertyOptional()
@@ -21,7 +34,9 @@ export class UpdateUserDto {
   @IsString()
   @MinLength(3)
   @MaxLength(20)
-  @Matches(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores' })
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username can only contain letters, numbers, and underscores',
+  })
   username?: string;
 
   @ApiPropertyOptional()

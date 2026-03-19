@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -74,14 +76,26 @@ export class AuthService {
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.username}`;
 
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          ...userData,
-          password: hashedPassword,
-          avatar: userAvatar,
-          isVerified: true,
-        },
-        select: userSelect,
+      const user = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            ...userData,
+            password: hashedPassword,
+            avatar: userAvatar,
+            isVerified: true,
+          },
+          select: userSelect,
+        });
+        // auto-create default wallet so all wallet-dependent features work immediately
+        await tx.wallet.create({
+          data: {
+            name: 'Main Wallet',
+            userId: created.id,
+            isDefault: true,
+            isActive: true,
+          },
+        });
+        return created;
       });
 
       const tokens = await this.issueTokens(
@@ -285,6 +299,76 @@ export class AuthService {
       });
     } catch {
       throw new InternalServerErrorException('Failed to fetch sessions');
+    }
+  }
+
+  // ── Forgot / Reset password ───────────────────────────────────────────────
+
+  async forgotPassword(email: string): Promise<{ message: string; resetToken?: string }> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { email, deletedAt: null },
+        select: { id: true, email: true },
+      });
+      // Always return success to prevent email enumeration
+      if (!user) return { message: 'If that email exists, a reset link has been sent.' };
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = this.hashToken(rawToken);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store reset token in session table reusing the same pattern
+      // We use a dedicated prefix so it never collides with refresh tokens
+      await this.prisma.session.create({
+        data: {
+          userId: user.id,
+          refreshToken: `reset:${hashedToken}`,
+          expiresAt,
+        },
+      });
+
+      // In production you would email rawToken. We return it here for
+      // demo/dev purposes — replace with your email provider.
+      return {
+        message: 'If that email exists, a reset link has been sent.',
+        resetToken: rawToken, // REMOVE in production, send via email instead
+      };
+    } catch {
+      throw new InternalServerErrorException('Failed to process password reset');
+    }
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<{ success: boolean }> {
+    try {
+      const hashedToken = this.hashToken(rawToken);
+      const session = await this.prisma.session.findFirst({
+        where: { refreshToken: `reset:${hashedToken}` },
+        include: { user: { select: { id: true, deletedAt: true } } },
+      });
+
+      if (!session || session.expiresAt < new Date()) {
+        if (session) await this.prisma.session.delete({ where: { id: session.id } });
+        throw new BadRequestException('Reset token is invalid or has expired');
+      }
+
+      if (session.user.deletedAt) {
+        throw new NotFoundException('Account not found');
+      }
+
+      const hashed = await bcrypt.hash(newPassword, 10);
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: session.userId }, data: { password: hashed } });
+        // Invalidate the reset token
+        await tx.session.delete({ where: { id: session.id } });
+        // Revoke all active sessions so attacker sessions are killed
+        await tx.session.deleteMany({ where: { userId: session.userId } });
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException('Failed to reset password');
     }
   }
 

@@ -1,37 +1,79 @@
+import { useEffect, useRef } from "react";
 import { FaDrum, FaUsers } from "react-icons/fa";
 import { FiPause, FiPlay } from "react-icons/fi";
 import { MdTimer } from "react-icons/md";
+import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import { AppBar, Avatar, Pill } from "../../components/ui/Layout";
 import { BingoBall, getLetter, LETTER_TEXT, NumberBoard, RecentCalls, StatBadge } from "./bingoComponents";
 import { useGame } from "../../hooks/useGame";
 import { useAuthStore } from "../../store/auth.store";
 import { useRoom } from "../../hooks/useRooms";
+import { useGameSound } from "../../hooks/useSound";
+import { useSoundStore } from "../../store/sound.store";
+import { haptic } from "../../lib/haptic";
+import { fireSideConfetti } from "../../lib/confetti";
+import { announceNumber, cancelAnnouncement } from "../../lib/announcer";
 
 type Props = { roomId: string; isHost?: boolean };
 
 export default function CallerDashboard({ roomId, isHost = false }: Props) {
-  const user = useAuthStore((s) => s.user);
+  const user   = useAuthStore((s) => s.user);
   const { state, startGame, callNext, pauseGame, resumeGame } = useGame();
   const { data: room, refetch } = useRoom(roomId);
+  const { play }  = useGameSound();
+  const muted     = useSoundStore((s) => s.muted);
+  const prevLen   = useRef(0);
+  const didWin    = useRef(false);
 
-  const { calledNums, currentNum, remaining, isStarted, isPaused, isFinished, playerCount, winner, error } = state;
+  const { calledNums, currentNum, remaining, isStarted, isPaused, isFinished, winner, error } = state;
 
   const players    = room?.players ?? [];
-  const maxPlayers  = room?.maxPlayers ?? 0;
-  const dbCount     = room?._count?.players ?? players.length;
-  const liveCount   = state.playerCount > 0 ? state.playerCount : dbCount;
-  const canStart    = liveCount >= 1;
-  const letter      = currentNum ? getLetter(currentNum) : null;
+  const maxPlayers = room?.maxPlayers ?? 0;
+  const dbCount    = room?._count?.players ?? players.length;
+  const liveCount  = state.playerCount > 0 ? state.playerCount : dbCount;
+  const canStart   = liveCount >= 1;
+  const letter     = currentNum ? getLetter(currentNum) : null;
 
-  // ── Winner screen ──
+  // Play ding + speak number on each new call
+  useEffect(() => {
+    if (calledNums.length > prevLen.current) {
+      const latest = calledNums[calledNums.length - 1];
+      play("ding");
+      haptic.medium();
+      announceNumber(latest, muted);
+      prevLen.current = calledNums.length;
+    }
+  }, [calledNums, play, muted]);
+
+  // Confetti + sound on game end
+  useEffect(() => {
+    if ((isFinished || winner) && !didWin.current) {
+      didWin.current = true;
+      play("win"); haptic.win(); fireSideConfetti();
+    }
+  }, [isFinished, winner, play]);
+
+  // Cancel speech on unmount
+  useEffect(() => () => cancelAnnouncement(), []);
+
   if (isFinished || winner) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-6 px-5 text-white">
-        <div className="w-24 h-24 bg-yellow-400/20 border-2 border-yellow-400/40 rounded-full flex items-center justify-center text-5xl shadow-[0_0_60px_rgba(234,179,8,0.3)]">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          className="w-24 h-24 bg-yellow-400/20 border-2 border-yellow-400/40 rounded-full flex items-center justify-center text-5xl shadow-[0_0_60px_rgba(234,179,8,0.3)]"
+        >
           🏆
-        </div>
-        <div className="text-center">
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center"
+        >
           <h2 className="text-3xl font-black">Game Over!</h2>
           {winner ? (
             <p className="text-gray-400 mt-2 text-sm">
@@ -40,7 +82,7 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           ) : (
             <p className="text-gray-500 mt-2 text-sm">All {calledNums.length} numbers were called</p>
           )}
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -69,13 +111,25 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Current Call</p>
           {currentNum ? (
             <>
-              <BingoBall n={currentNum} large />
+              <motion.div
+                key={currentNum}
+                initial={{ scale: 0.5, opacity: 0, rotate: -15 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 18 }}
+              >
+                <BingoBall n={currentNum} large />
+              </motion.div>
               {letter && (
-                <div className="flex items-center gap-2">
+                <motion.div
+                  key={`label-${currentNum}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2"
+                >
                   <span className={`text-sm font-black ${LETTER_TEXT[letter as keyof typeof LETTER_TEXT]}`}>{letter}</span>
                   <span className="text-gray-700">·</span>
                   <span className="text-sm text-gray-400">{calledNums.length} / 75 called</span>
-                </div>
+                </motion.div>
               )}
             </>
           ) : (
@@ -92,7 +146,6 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           <StatBadge icon="👥" value={String(liveCount)} sub="Players" />
         </div>
 
-        {/* Recent calls */}
         {calledNums.length > 0 && (
           <div className="flex flex-col gap-2.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Recent Calls</p>
@@ -100,7 +153,6 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           </div>
         )}
 
-        {/* Number board */}
         <div className="flex flex-col gap-2.5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Number Board</p>
           <NumberBoard called={calledNums} />
@@ -110,7 +162,6 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
         <div className="mt-auto pt-2 flex flex-col gap-2">
           {!isStarted ? (
             <div className="flex flex-col gap-3">
-              {/* Player list */}
               <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Players Joined</p>
@@ -149,7 +200,7 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
               </div>
 
               {isHost && (
-                <Button size="lg" icon={<FiPlay />} onClick={startGame} disabled={!canStart}>
+                <Button size="lg" icon={<FiPlay />} onClick={() => { startGame(); play("ding"); haptic.heavy(); }} disabled={!canStart}>
                   Start Game ({liveCount} player{liveCount !== 1 ? "s" : ""})
                 </Button>
               )}
@@ -158,10 +209,20 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
             <>
               {isHost && (
                 <div className="flex gap-2">
-                  <Button size="lg" variant="secondary" icon={isPaused ? <FiPlay /> : <FiPause />} onClick={isPaused ? resumeGame : pauseGame}>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    icon={isPaused ? <FiPlay /> : <FiPause />}
+                    onClick={() => { isPaused ? resumeGame() : pauseGame(); haptic.medium(); }}
+                  >
                     {isPaused ? "Resume" : "Pause"}
                   </Button>
-                  <Button size="lg" icon={<FaDrum />} onClick={callNext} disabled={remaining === 0 || isPaused}>
+                  <Button
+                    size="lg"
+                    icon={<FaDrum />}
+                    onClick={() => { callNext(); }}
+                    disabled={remaining === 0 || isPaused}
+                  >
                     {remaining === 0 ? "All Called!" : "Call Next"}
                   </Button>
                 </div>

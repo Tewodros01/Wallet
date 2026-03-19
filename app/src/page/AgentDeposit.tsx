@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaCoins } from "react-icons/fa";
-import { FiArrowLeft, FiCheck, FiClock, FiTrendingUp, FiUsers, FiX } from "react-icons/fi";
-import { MdOutlineAccountBalanceWallet } from "react-icons/md";
+import { FiArrowLeft, FiCheck, FiClock, FiExternalLink, FiTrendingUp, FiUsers, FiX } from "react-icons/fi";
+import { MdOutlineAccountBalanceWallet, MdPictureAsPdf } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
 import {
@@ -128,6 +128,26 @@ export default function AgentDeposit() {
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyle[req.status] ?? ""}`}>{req.status}</span>
                         </div>
                       </div>
+                      {/* Payment proof */}
+                      {req.proofUrl && (
+                        <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-2.5 flex flex-col gap-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Payment Proof</p>
+                          {req.proofUrl.startsWith("data:image") ? (
+                            <img src={req.proofUrl} alt="proof" className="w-full max-h-48 object-contain rounded-lg border border-white/10" />
+                          ) : req.proofUrl.startsWith("data:application/pdf") ? (
+                            <div className="flex items-center gap-2 text-rose-400">
+                              <MdPictureAsPdf className="text-2xl shrink-0" />
+                              <span className="text-xs font-semibold">PDF Document attached</span>
+                            </div>
+                          ) : (
+                            <a href={req.proofUrl} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-emerald-400 text-xs font-semibold hover:text-emerald-300 transition-colors truncate">
+                              <FiExternalLink className="shrink-0" />
+                              <span className="truncate">{req.proofUrl}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
                       {req.status === "PENDING" && (
                         <div className="flex gap-2">
                           <button type="button" onClick={() => rejectDeposit(req.id)} disabled={rejectingD}

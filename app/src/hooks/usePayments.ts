@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { paymentsApi, type DepositPayload, type WithdrawalPayload } from "../api/payments.api";
+import { paymentsApi, type DepositPayload, type TransferPayload, type WithdrawalPayload } from "../api/payments.api";
+import { useWalletStore } from "../store/wallet.store";
 
 export const paymentKeys = {
   deposits:    ["payments", "deposits"]    as const,
@@ -39,6 +40,17 @@ export const useWithdraw = () => {
   });
 };
 
+export const useTransfer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: TransferPayload) => paymentsApi.transfer(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users", "me"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+};
+
 export const useClaimDailyBonus = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -46,6 +58,20 @@ export const useClaimDailyBonus = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       qc.invalidateQueries({ queryKey: ["wallets"] });
+    },
+  });
+};
+
+export const usePlayKeno = () => {
+  const qc = useQueryClient();
+  const setBalance = useWalletStore((s) => s.setBalance);
+  return useMutation({
+    mutationFn: ({ bet, picks }: { bet: number; picks: number[] }) =>
+      paymentsApi.playKeno(bet, picks),
+    onSuccess: (data) => {
+      setBalance(data.newBalance);
+      qc.invalidateQueries({ queryKey: ["users", "me"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 };
@@ -82,5 +108,44 @@ export const useAgentRejectWithdrawal = () => {
   return useMutation({
     mutationFn: (id: string) => paymentsApi.agentRejectWithdrawal(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agent", "requests"] }),
+  });
+};
+
+// ── Admin hooks ──
+export const useAdminDeposits = () =>
+  useQuery({ queryKey: ["admin", "deposits"], queryFn: paymentsApi.adminGetAllDeposits, refetchInterval: 10_000 });
+
+export const useAdminWithdrawals = () =>
+  useQuery({ queryKey: ["admin", "withdrawals"], queryFn: paymentsApi.adminGetAllWithdrawals, refetchInterval: 10_000 });
+
+export const useAdminApproveDeposit = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.adminApproveDeposit(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "deposits"] }),
+  });
+};
+
+export const useAdminRejectDeposit = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.adminRejectDeposit(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "deposits"] }),
+  });
+};
+
+export const useAdminApproveWithdrawal = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.adminApproveWithdrawal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "withdrawals"] }),
+  });
+};
+
+export const useAdminRejectWithdrawal = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.adminRejectWithdrawal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "withdrawals"] }),
   });
 };

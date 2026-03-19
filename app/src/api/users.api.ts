@@ -25,4 +25,17 @@ export const usersApi = {
     api.get("/users/me/stats").then((r) => r.data),
   getLeaderboard: (limit = 10) =>
     api.get("/users/leaderboard", { params: { limit } }).then((r) => r.data),
+  getById: (id: string) => api.get(`/users/${id}`).then((r) => r.data),
+  getStatsByUserId: (id: string): Promise<GameStats> =>
+    api.get(`/users/${id}/stats`).then((r) => r.data),
+  adjustCoins: (id: string, amount: number, note?: string) =>
+    api.patch(`/users/${id}/coins`, { amount, note }).then((r) => r.data),
+  // admin
+  getAllUsers: () => api.get("/users").then((r) => r.data),
+  updateRole: (id: string, role: string) =>
+    api.patch(`/users/${id}/role`, { role }).then((r) => r.data),
+  getAgentStats: (id: string) =>
+    api.get(`/users/${id}/agent-stats`).then((r) => r.data),
+  completeOnboarding: () =>
+    api.post("/users/me/onboarding-done").then((r) => r.data),
 };

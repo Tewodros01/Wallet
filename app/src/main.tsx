@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import Toaster from "./components/ui/Toaster.tsx";
 import "./index.css";
 import { queryClient } from "./lib/queryClient.ts";
 
@@ -11,6 +12,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <App />
+        <Toaster />
       </ErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,

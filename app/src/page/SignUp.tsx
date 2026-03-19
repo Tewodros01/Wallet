@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FaApple, FaFacebook, FaGoogle } from "react-icons/fa";
 import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { Divider, SocialBtn } from "../components/ui/Layout";
 import { useRegister } from "../hooks/useAuth";
+import { useUseCode } from "../hooks/useAgents";
 
 const schema = z
   .object({
@@ -34,7 +35,10 @@ const socials = [
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref");
   const { mutate: registerUser, isPending, error } = useRegister();
+  const { mutate: applyCode } = useUseCode();
   const [showPw,  setShowPw]  = useState(false);
   const [showCpw, setShowCpw] = useState(false);
 
@@ -45,7 +49,13 @@ export default function SignUp() {
   const onSubmit = (data: FormData) =>
     registerUser(
       { firstName: data.firstName, lastName: data.lastName, username: data.username, email: data.email, password: data.password },
-      { onSuccess: () => navigate("/onboarding") },
+      {
+        onSuccess: () => {
+          // Apply referral code silently after registration succeeds
+          if (refCode) applyCode(refCode);
+          navigate("/onboarding");
+        },
+      },
     );
 
   const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -63,6 +73,12 @@ export default function SignUp() {
       </div>
 
       <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 flex flex-col gap-5">
+        {refCode && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5 flex items-center gap-2">
+            <span className="text-emerald-400 text-sm">🎁</span>
+            <p className="text-xs text-emerald-400 font-semibold">Referral code <span className="font-black">{refCode}</span> will be applied on signup!</p>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <Input label="First Name" placeholder="John" leftIcon={<FiUser />} error={errors.firstName?.message} {...register("firstName")} />

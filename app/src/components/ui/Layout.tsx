@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { FaCoins } from "react-icons/fa";
 import { FiGrid, FiHome, FiSettings, FiUser, FiUsers } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
+import { haptic } from "../../lib/haptic";
 
 interface AvatarProps {
   src: string;
@@ -54,27 +55,26 @@ export const SocialBtn = ({ icon, label }: { icon: ReactNode; label: string }) =
 );
 
 const NAV_ITEMS = [
-  { path: "/dashboard", label: "Home",     Icon: FiHome },
-  { path: "/wallet",    label: "Wallet",   Icon: FiGrid },
-  { path: "/join",      label: "Join Room", Icon: FiUsers },
-  { path: "/profile",   label: "Profile",  Icon: FiUser },
-  { path: "/settings",  label: "Settings", Icon: FiSettings },
+  { path: "/dashboard", label: "Home",    Icon: FiHome },
+  { path: "/wallet",    label: "Wallet",  Icon: FiGrid },
+  { path: "/game",      label: "Play Game", Icon: FiUsers },
+  { path: "/profile",   label: "Profile", Icon: FiUser },
+  { path: "/settings",  label: "More",    Icon: FiSettings },
 ];
 
 export const BottomNav = () => {
   const { pathname } = useLocation();
   const navigate     = useNavigate();
-
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-2 pointer-events-none">
       <div className="pointer-events-auto flex items-center bg-gray-900/90 backdrop-blur-2xl border border-white/[0.08] rounded-3xl px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
         {NAV_ITEMS.map(({ path, label, Icon }) => {
-          const active = pathname === path;
+          const active = pathname === path || (path === "/game" && pathname.startsWith("/game"));
           return (
             <button
               key={path}
               type="button"
-              onClick={() => navigate(path)}
+              onClick={() => { haptic.light(); navigate(path); }}
               className="flex-1 flex flex-col items-center justify-center gap-1 py-1 transition-all active:scale-90"
             >
               <div className={`w-11 h-9 rounded-2xl flex items-center justify-center transition-all duration-200 ${

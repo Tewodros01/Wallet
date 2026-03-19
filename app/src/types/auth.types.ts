@@ -6,8 +6,9 @@ export interface User {
   lastName: string;
   avatar: string | null;
   phone: string | null;
-  role: "USER" | "ADMIN";
+  role: "USER" | "AGENT" | "ADMIN";
   isVerified: boolean;
+  onboardingDone: boolean;
   createdAt: string;
 }
 

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaCoins, FaGamepad, FaLock } from "react-icons/fa";
 import {
   FiArrowLeft,
   FiCheck,
   FiGrid,
+  FiHash,
   FiRadio,
   FiSearch,
   FiUser,
@@ -11,7 +12,7 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { roomsApi } from "../api/rooms.api";
 import CreateRoomModal from "../components/CreateRoomModal";
 import { GameProvider } from "../hooks/GameProvider";
@@ -22,6 +23,12 @@ import { useWalletStore } from "../store/wallet.store";
 import CalledDashboard from "./bingo/CalledDashboard";
 import CallerDashboard from "./bingo/CallerDashboard";
 import CardSelector from "./bingo/CardSelector";
+import { SkeletonRoomCard } from "../components/ui/Skeletons";
+import EmptyState from "../components/ui/EmptyState";
+import { haptic } from "../lib/haptic";
+import Input from "../components/ui/Input";
+import { BottomNav } from "../components/ui/Layout";
+import { connectSocket } from "../lib/socket";
 
 type GameView = "player" | "caller";
 type Filter = "all" | "waiting" | "playing";
@@ -115,8 +122,8 @@ const statusStyle: Record<string, string> = {
   FINISHED: "bg-rose-500/15 text-rose-400 border-rose-500/30",
 };
 
-function RoomCard({ room, onJoin, isJoined, onRejoin, rejoining }: {
-  room: any; onJoin: (r: any) => void; isJoined: boolean; onRejoin: (r: any) => void; rejoining: string | null;
+function RoomCard({ room, onJoin, isJoined, onRejoin, onSpectate, rejoining }: {
+  room: any; onJoin: (r: any) => void; isJoined: boolean; onRejoin: (r: any) => void; onSpectate: (r: any) => void; rejoining: string | null;
 }) {
   const canJoin   = room.status === "WAITING" && !isJoined;
   const canRejoin = isJoined && (room.status === "WAITING" || room.status === "PLAYING");
@@ -159,16 +166,24 @@ function RoomCard({ room, onJoin, isJoined, onRejoin, rejoining }: {
             <p className="text-sm font-black text-yellow-300">{room.prizePool === 0 ? "No prize" : `${room.prizePool.toLocaleString()} coins`}</p>
           </div>
         </div>
-        <button type="button" disabled={(!canJoin && !canRejoin) || rejoining === room.id}
-          onClick={() => canRejoin ? onRejoin(room) : onJoin(room)}
-          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-            canRejoin ? "bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)]"
-            : canJoin  ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]"
-            : "bg-white/[0.05] text-gray-600 cursor-not-allowed"}`}>
-          {rejoining === room.id
-            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-            : canRejoin ? "Rejoin →" : room.status === "FINISHED" ? "Ended" : room.status === "PLAYING" ? "In Progress" : "Join →"}
-        </button>
+        <div className="flex items-center gap-2">
+          {room.status === "PLAYING" && !isJoined && (
+            <button type="button" onClick={() => onSpectate(room)}
+              className="px-3 py-2.5 rounded-xl text-xs font-bold bg-violet-500/15 border border-violet-500/25 text-violet-400 hover:bg-violet-500/25 transition-colors">
+              👁 Watch
+            </button>
+          )}
+          <button type="button" disabled={(!canJoin && !canRejoin) || rejoining === room.id}
+            onClick={() => canRejoin ? onRejoin(room) : onJoin(room)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+              canRejoin ? "bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)]"
+              : canJoin  ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]"
+              : "bg-white/[0.05] text-gray-600 cursor-not-allowed"}`}>
+            {rejoining === room.id
+              ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+              : canRejoin ? "Rejoin →" : room.status === "FINISHED" ? "Ended" : room.status === "PLAYING" ? "In Progress" : "Join →"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -179,6 +194,7 @@ type Screen = "lobby" | "card-select" | "game";
 
 export default function BingoGame() {
   const navigate  = useNavigate();
+  const { id: roomIdParam } = useParams<{ id: string }>();
   const balance   = useWalletStore((s) => s.balance);
   const user      = useAuthStore((s) => s.user);
 
@@ -188,6 +204,7 @@ export default function BingoGame() {
   const [filter,     setFilter]     = useState<Filter>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [payRoom,    setPayRoom]    = useState<any | null>(null);
+  const [code,       setCode]       = useState("");
   const [activeRoom, setActiveRoom] = useState<any | null>(null);
   const [playerCard, setPlayerCard] = useState<number[][] | null>(null);
   const [rejoining,  setRejoining]  = useState<string | null>(null);
@@ -200,6 +217,12 @@ export default function BingoGame() {
   const qc = useQueryClient();
 
   const seedRoom = (room: any) => qc.setQueryData(roomKeys.one(room.id), room);
+
+  useEffect(() => {
+    if (!roomIdParam || screen !== "lobby" || isLoading) return;
+    const room = roomsData.find((r: any) => r.id === roomIdParam);
+    if (room) handleRejoin(room);
+  }, [roomIdParam, isLoading, roomsData]);
 
   const waiting = roomsData.filter((r: any) => r.status === "WAITING").length;
   const playing = roomsData.filter((r: any) => r.status === "PLAYING").length;
@@ -223,6 +246,17 @@ export default function BingoGame() {
     } finally {
       setRejoining(null);
     }
+  };
+
+  const handleSpectate = (room: any) => {
+    seedRoom(room);
+    setActiveRoom(room);
+    setPlayerCard(null);
+    setRoomCount(room._count?.players ?? room.players?.length ?? 0);
+    const socket = connectSocket();
+    if (!socket.connected) socket.connect();
+    socket.emit("spectator:join", { roomId: room.id });
+    setScreen("game");
   };
 
   // ── Card select screen ──
@@ -281,10 +315,9 @@ export default function BingoGame() {
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button type="button" aria-label="Go back" onClick={() => navigate("/dashboard")}
-            className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors">
-            <FiArrowLeft className="text-white text-sm" />
-          </button>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+            <FaGamepad className="text-emerald-400 text-sm" />
+          </div>
           <div>
             <span className="text-base font-black text-white">Play Bingo</span>
             <p className="text-[10px] text-gray-500">{waiting} waiting · {playing} in progress</p>
@@ -297,7 +330,7 @@ export default function BingoGame() {
       </div>
 
       <div className="flex flex-col gap-4 px-5 py-4 pb-28">
-        <button type="button" onClick={() => setShowCreate(true)}
+        <button type="button" onClick={() => { haptic.light(); setShowCreate(true); }}
           className="w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left">
           <div className="w-12 h-12 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center shrink-0">
             <FaGamepad className="text-emerald-400 text-xl" />
@@ -309,6 +342,32 @@ export default function BingoGame() {
           <span className="text-emerald-400 text-lg">→</span>
         </button>
 
+        {/* Join by code */}
+        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Join with Room Code</p>
+          <Input
+            placeholder="Enter room ID or code"
+            leftIcon={<FiHash />}
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+          />
+          <button
+            type="button"
+            disabled={!roomsData.find((r: any) => r.id.slice(-8).toUpperCase() === code || r.id === code)}
+            onClick={() => {
+              const found = roomsData.find((r: any) => r.id.slice(-8).toUpperCase() === code || r.id === code);
+              if (found) setPayRoom(found);
+            }}
+            className="w-full py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
+          >
+            <FaGamepad />
+            {(() => {
+              const found = roomsData.find((r: any) => r.id.slice(-8).toUpperCase() === code || r.id === code);
+              return found ? `Join "${found.name}"` : "Find & Join Room";
+            })()}
+          </button>
+        </div>
+
         <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
           <FiSearch className="text-gray-500 shrink-0" />
           <input type="text" placeholder="Search rooms, hosts..." value={search} onChange={(e) => setSearch(e.target.value)}
@@ -317,7 +376,7 @@ export default function BingoGame() {
 
         <div className="flex gap-2">
           {(["all", "waiting", "playing"] as Filter[]).map((f) => (
-            <button key={f} type="button" onClick={() => setFilter(f)}
+            <button key={f} type="button" onClick={() => { setFilter(f); haptic.light(); }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
                 filter === f ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]" : "bg-white/[0.05] text-gray-400 hover:bg-white/10"}`}>
               {f === "all" ? `All (${roomsData.length})` : f === "waiting" ? `Waiting (${waiting})` : `Playing (${playing})`}
@@ -341,18 +400,16 @@ export default function BingoGame() {
         <div className="flex flex-col gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{roomsData.length} Room{roomsData.length !== 1 ? "s" : ""} Found</p>
           {isLoading ? (
-            [1, 2, 3].map((i) => <div key={i} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl h-36 animate-pulse" />)
+            [1, 2, 3].map((i) => <SkeletonRoomCard key={i} />)
           ) : roomsData.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-gray-600">
-              <FaGamepad className="text-3xl" />
-              <p className="text-sm font-semibold">No rooms found</p>
-            </div>
+            <EmptyState type="rooms" title="No rooms found" subtitle="Be the first to create one!" action={{ label: "Create Room", onClick: () => setShowCreate(true) }} />
           ) : (
             roomsData.map((room: any) => (
               <RoomCard key={room.id} room={room}
                 isJoined={room.players?.some((p: any) => p.user?.id === user?.id) ?? false}
                 onJoin={(r) => setPayRoom(r)}
                 onRejoin={handleRejoin}
+                onSpectate={handleSpectate}
                 rejoining={rejoining}
               />
             ))
@@ -393,6 +450,7 @@ export default function BingoGame() {
           }}
         />
       )}
+      <BottomNav />
     </div>
   );
 }

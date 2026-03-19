@@ -28,7 +28,6 @@ const badges = [
 
 const quickActions = [
   { label: "Invite Users", icon: <FiUserPlus />, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20", path: "/invite" },
-  { label: "Agent Panel",  icon: <FiSettings />, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", path: "/agent-deposit" },
 ];
 
 const moreItems = [
@@ -40,6 +39,8 @@ const moreItems = [
 export default function Profile() {
   const navigate = useNavigate();
   const clear = useAuthStore((s) => s.clear);
+  const user = useAuthStore((s) => s.user);
+  const isAgent = user?.role === "AGENT";
   const { syncFromUser } = useWalletStore();
 
   const { data: me } = useMe();
@@ -156,6 +157,17 @@ export default function Profile() {
                 <span className="text-sm font-bold text-white">{label}</span>
               </button>
             ))}
+            {isAgent && (
+              <button
+                type="button"
+                aria-label="Agent Panel"
+                onClick={() => navigate("/agent-deposit")}
+                className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 flex flex-col items-start gap-3 active:scale-95 transition-all hover:brightness-110"
+              >
+                <span className="text-xl text-orange-400" aria-hidden="true"><FiSettings /></span>
+                <span className="text-sm font-bold text-white">Agent Panel</span>
+              </button>
+            )}
           </div>
         </div>
 

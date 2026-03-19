@@ -4,6 +4,9 @@ import { FiArrowLeft, FiClock, FiGift } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useWalletStore } from "../store/wallet.store";
 import { useClaimDailyBonus } from "../hooks/usePayments";
+import { useGameSound } from "../hooks/useSound";
+import { haptic } from "../lib/haptic";
+import { fireConfetti } from "../lib/confetti";
 
 const PRIZES = [
   { label: "50",   coins: 50,   color: "#10b981", bg: "#064e3b" },
@@ -18,58 +21,74 @@ const PRIZES = [
 
 const STORAGE_KEY = "daily_bonus_last_spin";
 const SEGMENT_ANGLE = 360 / PRIZES.length;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-function getTimeUntilMidnight() {
-  const now = new Date(), next = new Date();
-  next.setHours(24, 0, 0, 0);
-  const diff = next.getTime() - now.getTime();
-  const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+function hasSpunRecently() {
+  const last = localStorage.getItem(STORAGE_KEY);
+  return last ? Date.now() - new Date(last).getTime() < COOLDOWN_MS : false;
 }
 
-function hasSpunToday() {
+function getTimeUntilNext() {
   const last = localStorage.getItem(STORAGE_KEY);
-  return last ? new Date(last).toDateString() === new Date().toDateString() : false;
+  if (!last) return "00:00:00";
+  const diff = new Date(last).getTime() + COOLDOWN_MS - Date.now();
+  if (diff <= 0) return "00:00:00";
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export default function DailyBonus() {
   const navigate = useNavigate();
   const { balance, setBalance } = useWalletStore();
   const { mutate: claimBonus } = useClaimDailyBonus();
+  const { play } = useGameSound();
 
   const [spinning,    setSpinning]    = useState(false);
   const [rotation,    setRotation]    = useState(0);
   const [prize,       setPrize]       = useState<typeof PRIZES[0] | null>(null);
   const [claimed,     setClaimed]     = useState(false);
-  const [alreadySpin, setAlreadySpin] = useState(hasSpunToday);
-  const [countdown,   setCountdown]   = useState(getTimeUntilMidnight());
+  const [alreadySpin, setAlreadySpin] = useState(hasSpunRecently);
+  const [countdown,   setCountdown]   = useState(getTimeUntilNext);
   const rotRef = useRef(rotation);
   rotRef.current = rotation;
 
   useEffect(() => {
     if (!alreadySpin) return;
-    const t = setInterval(() => setCountdown(getTimeUntilMidnight()), 1000);
+    const t = setInterval(() => setCountdown(getTimeUntilNext()), 1000);
     return () => clearInterval(t);
   }, [alreadySpin]);
 
   const spin = () => {
     if (spinning || alreadySpin) return;
+    haptic.medium();
     const idx    = Math.floor(Math.random() * PRIZES.length);
     const target = 360 * 8 + (360 - idx * SEGMENT_ANGLE - SEGMENT_ANGLE / 2);
     setSpinning(true);
     setPrize(null);
     setRotation(rotRef.current + target);
-    setTimeout(() => { setSpinning(false); setPrize(PRIZES[idx]); }, 4000);
+    setTimeout(() => { setSpinning(false); setPrize(PRIZES[idx]); play("ding"); haptic.success(); }, 4000);
   };
 
   const claim = () => {
     if (!prize) return;
+    play("coin"); haptic.success();
     claimBonus(prize.coins, {
       onSuccess: (data: any) => {
         setBalance(data.newBalance ?? balance + prize.coins);
         localStorage.setItem(STORAGE_KEY, new Date().toISOString());
         setClaimed(true);
         setAlreadySpin(true);
+        play("win"); haptic.win(); fireConfetti();
+      },
+      onError: (err: any) => {
+        const msg: string = err?.response?.data?.message ?? "";
+        // backend enforces 24h — sync local state if already claimed
+        if (msg.includes("Come back in")) {
+          localStorage.setItem(STORAGE_KEY, new Date().toISOString());
+          setAlreadySpin(true);
+        }
       },
     });
   };
@@ -95,7 +114,7 @@ export default function DailyBonus() {
           <span className="text-base font-black text-yellow-300">{balance.toLocaleString()}</span>
         </div>
       </div>
-      <p className="text-xs text-gray-600 text-center">Come back tomorrow for another spin!</p>
+      <p className="text-xs text-gray-600 text-center">Come back in 24 hours for another spin!</p>
       <button type="button" onClick={() => navigate("/dashboard")}
         className="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl active:scale-95 transition-all">
         Back to Home
@@ -105,7 +124,7 @@ export default function DailyBonus() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] flex items-center justify-between px-5 pt-5 pb-3">
         <button type="button" onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
           <FiArrowLeft className="text-white text-sm" />
         </button>
@@ -122,7 +141,7 @@ export default function DailyBonus() {
             <FiGift className="text-emerald-400 text-xl" />
             <h1 className="text-xl font-black">Spin & Win</h1>
           </div>
-          <p className="text-xs text-gray-500">One free spin every day. Don't miss it!</p>
+          <p className="text-xs text-gray-500">One free spin every 24 hours. Don't miss it!</p>
         </div>
 
         {/* Wheel */}
@@ -176,7 +195,7 @@ export default function DailyBonus() {
           <div className="w-full bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 flex items-center gap-3">
             <FiClock className="text-orange-400 text-xl shrink-0" />
             <div>
-              <p className="text-sm font-bold text-white">Already spun today</p>
+              <p className="text-sm font-bold text-white">Already spun recently</p>
               <p className="text-xs text-gray-500 mt-0.5">Next spin in <span className="text-orange-400 font-black">{countdown}</span></p>
             </div>
           </div>

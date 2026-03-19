@@ -6,6 +6,7 @@ export const userKeys = {
   me:          ["users", "me"]          as const,
   stats:       ["users", "me", "stats"] as const,
   leaderboard: ["users", "leaderboard"] as const,
+  all:         ["users", "all"]         as const,
 };
 
 export const useMe = () =>
@@ -19,6 +20,34 @@ export const useLeaderboard = (limit = 10) =>
     queryKey: [...userKeys.leaderboard, limit],
     queryFn: () => usersApi.getLeaderboard(limit),
     staleTime: 60_000,
+  });
+
+export const useAllUsers = () =>
+  useQuery({ queryKey: userKeys.all, queryFn: usersApi.getAllUsers, staleTime: 30_000 });
+
+export const useAdjustCoins = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, amount, note }: { id: string; amount: number; note?: string }) =>
+      usersApi.adjustCoins(id, amount, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  });
+};
+
+export const useUpdateRole = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      usersApi.updateRole(id, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  });
+};
+
+export const useAgentStats = (id: string) =>
+  useQuery({
+    queryKey: ["users", id, "agent-stats"],
+    queryFn: () => usersApi.getAgentStats(id),
+    enabled: !!id,
   });
 
 export const useUpdateMe = () => {

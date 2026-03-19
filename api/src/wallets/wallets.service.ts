@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -54,7 +53,9 @@ export class WalletsService {
           });
         }
 
-        const count = await tx.wallet.count({ where: { userId, deletedAt: null } });
+        const count = await tx.wallet.count({
+          where: { userId, deletedAt: null },
+        });
         const isFirst = count === 0;
 
         return tx.wallet.create({

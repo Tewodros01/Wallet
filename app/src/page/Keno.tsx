@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { FaCoins, FaTrophy } from "react-icons/fa";
-import { FiArrowLeft, FiRefreshCw } from "react-icons/fi";
+import { FiArrowLeft, FiRefreshCw, FiZap } from "react-icons/fi";
 import { GiCoins } from "react-icons/gi";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { usePlayKeno } from "../hooks/usePayments";
+import { useWalletStore } from "../store/wallet.store";
+import { toast } from "../store/toast.store";
+import { useGameSound } from "../hooks/useSound";
+import { haptic } from "../lib/haptic";
+import { fireConfetti } from "../lib/confetti";
+import CoinCounter from "../components/ui/CoinCounter";
 
-const TOTAL     = 80;
-const DRAW_SIZE = 20;
 const MAX_PICK  = 10;
-const USER_BAL  = 4000;
+const BETS      = [10, 25, 50, 100, 200, 500];
 
-const BETS = [10, 25, 50, 100, 200, 500];
-
-// Payout multipliers: [picks][matches] → multiplier
 const PAYOUTS: Record<number, Record<number, number>> = {
   1:  { 1: 3 },
   2:  { 2: 12 },
@@ -25,78 +28,99 @@ const PAYOUTS: Record<number, Record<number, number>> = {
   10: { 5: 5, 6: 20, 7: 100, 8: 1000, 9: 10000, 10: 100000 },
 };
 
-function shuffle(arr: number[]) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 type Phase = "pick" | "drawing" | "result";
 
 export default function Keno() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const balance   = useWalletStore((s) => s.balance);
+  const { mutate: playKeno, isPending } = usePlayKeno();
+  const { play } = useGameSound();
+
   const [picked,   setPicked]   = useState<Set<number>>(new Set());
   const [bet,      setBet]      = useState(50);
   const [phase,    setPhase]    = useState<Phase>("pick");
   const [drawn,    setDrawn]    = useState<number[]>([]);
   const [revealed, setRevealed] = useState<number[]>([]);
-  const [balance,  setBalance]  = useState(USER_BAL);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [result,   setResult]   = useState<{ matches: number; payout: number } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = () => { timerRef.current.forEach(clearTimeout); timerRef.current = []; };
+  useEffect(() => () => clearTimers(), []);
 
   const toggle = (n: number) => {
     if (phase !== "pick") return;
     setPicked((prev) => {
       const s = new Set(prev);
-      if (s.has(n)) { s.delete(n); return s; }
+      if (s.has(n)) { s.delete(n); haptic.light(); return s; }
       if (s.size >= MAX_PICK) return s;
-      s.add(n);
+      s.add(n); haptic.light();
       return s;
     });
   };
 
-  const play = () => {
-    if (picked.size === 0 || balance < bet) return;
-    setBalance((b) => b - bet);
-    const draw = shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(0, DRAW_SIZE);
-    setDrawn(draw);
+  const quickPick = () => {
+    if (phase !== "pick") return;
+    const count = Math.min(MAX_PICK, 5);
+    const picks = shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(0, count);
+    setPicked(new Set(picks));
+    haptic.medium();
+  };
+
+  const play_ = () => {
+    if (picked.size === 0 || balance < bet || isPending) return;
+    haptic.medium();
+
     setRevealed([]);
+    setResult(null);
     setPhase("drawing");
 
-    // Reveal one number every 200ms
-    draw.forEach((num, i) => {
-      timerRef.current = setTimeout(() => {
-        setRevealed((r) => [...r, num]);
-        if (i === draw.length - 1) {
-          setTimeout(() => setPhase("result"), 600);
-        }
-      }, i * 200);
-    });
+    const picksArr = [...picked];
+    playKeno(
+      { bet, picks: picksArr },
+      {
+        onSuccess: (data) => {
+          const draw = data.drawn;
+          setDrawn(draw);
+          // animate reveal of server-drawn numbers
+          draw.forEach((num, i) => {
+            const t = setTimeout(() => {
+              setRevealed((r) => [...r, num]);
+              if (i === draw.length - 1) {
+                setResult({ matches: data.matches, payout: data.payout });
+                setPhase("result");
+                if (data.payout > 0) {
+                  play("win"); haptic.win(); fireConfetti();
+                  toast.success(`🎰 You won ${data.payout.toLocaleString()} coins!`);
+                } else {
+                  play("error"); haptic.error();
+                  toast.info("No match this time. Try again!");
+                }
+              }
+            }, i * 160);
+            timerRef.current.push(t);
+          });
+        },
+        onError: (err: any) => {
+          setPhase("pick");
+          play("error"); haptic.error();
+          toast.error(err?.response?.data?.message ?? "Failed to process round");
+        },
+      },
+    );
   };
 
   const reset = () => {
+    clearTimers();
     setPicked(new Set());
     setDrawn([]);
     setRevealed([]);
+    setResult(null);
     setPhase("pick");
+    haptic.light();
   };
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
-  const matches   = phase === "result" ? [...picked].filter((n) => drawn.includes(n)).length : 0;
-  const payout    = phase === "result" ? (PAYOUTS[picked.size]?.[matches] ?? 0) * bet : 0;
-  const isWin     = payout > 0;
-
-  // Add winnings after result
-  useEffect(() => {
-    if (phase === "result" && payout > 0) {
-      setBalance((b) => b + payout);
-    }
-  }, [phase]);
-
-  const nums = Array.from({ length: TOTAL }, (_, i) => i + 1);
+  const nums = Array.from({ length: 80 }, (_, i) => i + 1);
+  const isWin = (result?.payout ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
@@ -112,32 +136,37 @@ export default function Keno() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
-          <GiCoins className="text-yellow-400 text-sm" />
-          <span className="text-yellow-300 text-xs font-black">{balance.toLocaleString()}</span>
+          <CoinCounter value={balance} />
         </div>
       </div>
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-8">
         {/* Result banner */}
-        {phase === "result" && (
-          <div className={`rounded-2xl p-4 flex items-center gap-3 border ${
-            isWin
-              ? "bg-emerald-500/15 border-emerald-500/30"
-              : "bg-rose-500/10 border-rose-500/20"
-          }`}>
-            <span className="text-3xl">{isWin ? "🎉" : "😔"}</span>
-            <div className="flex-1">
-              <p className="text-sm font-black text-white">{isWin ? "You Won!" : "Better luck next time"}</p>
-              <p className="text-xs text-gray-400">{matches} match{matches !== 1 ? "es" : ""} out of {picked.size} picks</p>
-            </div>
-            {isWin && (
-              <div className="flex items-center gap-1">
-                <FaCoins className="text-yellow-400 text-sm" />
-                <span className="text-lg font-black text-yellow-300">+{payout.toLocaleString()}</span>
+        <AnimatePresence>
+          {phase === "result" && result && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className={`rounded-2xl p-4 flex items-center gap-3 border ${
+                isWin ? "bg-emerald-500/15 border-emerald-500/30" : "bg-rose-500/10 border-rose-500/20"
+              }`}
+            >
+              <span className="text-3xl">{isWin ? "🎉" : "😔"}</span>
+              <div className="flex-1">
+                <p className="text-sm font-black text-white">{isWin ? "You Won!" : "Better luck next time"}</p>
+                <p className="text-xs text-gray-400">{result.matches} match{result.matches !== 1 ? "es" : ""} out of {picked.size} picks</p>
               </div>
-            )}
-          </div>
-        )}
+              {isWin && (
+                <div className="flex items-center gap-1">
+                  <FaCoins className="text-yellow-400 text-sm" />
+                  <span className="text-lg font-black text-yellow-300">+{result.payout.toLocaleString()}</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Number grid */}
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-3">
@@ -151,32 +180,34 @@ export default function Keno() {
               const isDraw     = !isPicked && isRevealed;
 
               return (
-                <button
+                <motion.button
                   key={n}
                   type="button"
                   onClick={() => toggle(n)}
                   disabled={phase !== "pick"}
-                  className={`aspect-square rounded-lg text-[10px] font-black flex items-center justify-center transition-all active:scale-90 ${
-                    isHit   ? "bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.6)] scale-110" :
-                    isMiss  ? "bg-rose-500/30 text-rose-400 border border-rose-500/40" :
-                    isDraw  ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" :
+                  whileTap={phase === "pick" ? { scale: 0.85 } : {}}
+                  animate={isHit ? { scale: [1, 1.25, 1.1] } : {}}
+                  transition={{ duration: 0.3 }}
+                  className={`aspect-square rounded-lg text-[10px] font-black flex items-center justify-center transition-colors ${
+                    isHit    ? "bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.6)]" :
+                    isMiss   ? "bg-rose-500/30 text-rose-400 border border-rose-500/40" :
+                    isDraw   ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" :
                     isPicked ? "bg-yellow-400 text-gray-950 shadow-[0_0_8px_rgba(250,204,21,0.5)]" :
                                "bg-white/[0.06] text-gray-400 hover:bg-white/[0.10]"
                   }`}
                 >
                   {n}
-                </button>
+                </motion.button>
               );
             })}
           </div>
 
-          {/* Legend */}
           <div className="flex items-center justify-center gap-4 mt-3 flex-wrap">
             {[
-              { color: "bg-yellow-400",    label: "Your pick" },
-              { color: "bg-emerald-500",   label: "Match! 🎯" },
-              { color: "bg-blue-500/40",   label: "Drawn" },
-              { color: "bg-rose-500/30",   label: "Missed" },
+              { color: "bg-yellow-400",  label: "Your pick" },
+              { color: "bg-emerald-500", label: "Match! 🎯" },
+              { color: "bg-blue-500/40", label: "Drawn" },
+              { color: "bg-rose-500/30", label: "Missed" },
             ].map(({ color, label }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <div className={`w-3 h-3 rounded-sm ${color}`} />
@@ -186,16 +217,27 @@ export default function Keno() {
           </div>
         </div>
 
-        {/* Pick counter */}
+        {/* Pick counter + Quick Pick */}
         <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-black text-white">{picked.size}</span>
             <span className="text-xs text-gray-500">/ {MAX_PICK} numbers picked</span>
           </div>
-          <div className="flex gap-1">
-            {Array.from({ length: MAX_PICK }, (_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < picked.size ? "bg-yellow-400" : "bg-white/[0.10]"}`} />
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              {Array.from({ length: MAX_PICK }, (_, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < picked.size ? "bg-yellow-400" : "bg-white/[0.10]"}`} />
+              ))}
+            </div>
+            {phase === "pick" && (
+              <button
+                type="button"
+                onClick={quickPick}
+                className="flex items-center gap-1 bg-violet-500/15 border border-violet-500/30 text-violet-400 text-[10px] font-black px-2.5 py-1.5 rounded-xl active:scale-95 transition-all"
+              >
+                <FiZap className="text-[10px]" /> Quick Pick
+              </button>
+            )}
           </div>
         </div>
 
@@ -204,12 +246,10 @@ export default function Keno() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Bet Amount</p>
           <div className="grid grid-cols-6 gap-1.5">
             {BETS.map((b) => (
-              <button key={b} type="button" onClick={() => phase === "pick" && setBet(b)}
+              <button key={b} type="button" onClick={() => { if (phase === "pick") { setBet(b); haptic.light(); } }}
                 disabled={phase !== "pick"}
                 className={`py-2 rounded-xl text-xs font-black transition-all ${
-                  bet === b
-                    ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                    : "bg-white/[0.06] text-gray-400"
+                  bet === b ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/[0.06] text-gray-400"
                 }`}>
                 {b}
               </button>
@@ -219,7 +259,11 @@ export default function Keno() {
 
         {/* Payout table */}
         {picked.size > 0 && phase === "pick" && (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-2">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-2"
+          >
             <div className="flex items-center gap-2 mb-1">
               <FaTrophy className="text-yellow-400 text-xs" />
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Payout Table ({picked.size} picks)</p>
@@ -235,21 +279,30 @@ export default function Keno() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Drawing animation */}
         {phase === "drawing" && (
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3 flex items-center gap-3">
             <span className="w-4 h-4 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin shrink-0" />
-            <p className="text-sm text-gray-400">Drawing numbers… <span className="text-white font-bold">{revealed.length}/{DRAW_SIZE}</span></p>
+            <p className="text-sm text-gray-400">
+              Drawing numbers… <span className="text-white font-bold">{revealed.length}/{DRAW_SIZE}</span>
+            </p>
           </div>
         )}
 
-        {/* Play / Reset button */}
+        {/* Insufficient balance */}
+        {phase === "pick" && balance < bet && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">
+            Insufficient balance — need {(bet - balance).toLocaleString()} more coins
+          </div>
+        )}
+
+        {/* Play / Reset */}
         {phase === "pick" ? (
-          <button type="button" onClick={play}
-            disabled={picked.size === 0 || balance < bet}
+          <button type="button" onClick={play_}
+            disabled={picked.size === 0 || balance < bet || isPending}
             className="w-full py-4 rounded-2xl bg-cyan-500 text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
             <GiCoins className="text-base" />
             Play — {bet} coins

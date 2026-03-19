@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
 import { PaymentsService } from './payments.service';
 
@@ -10,7 +11,10 @@ import { PaymentsService } from './payments.service';
 @UseGuards(JwtAuthGuard)
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @ApiOperation({ summary: 'List all agents' })
   @Get('agents')
@@ -30,9 +34,25 @@ export class PaymentsController {
     return this.paymentsService.getDeposits(userId);
   }
 
+  @ApiOperation({ summary: 'Transfer coins to another user' })
+  @Post('transfer')
+  transferCoins(
+    @Body() dto: { recipientUsername: string; amount: number },
+    @GetUser('sub') userId: string,
+  ) {
+    return this.paymentsService.transferCoins(
+      userId,
+      dto.recipientUsername,
+      dto.amount,
+    );
+  }
+
   @ApiOperation({ summary: 'Create a withdrawal (get money)' })
   @Post('withdraw')
-  createWithdrawal(@Body() dto: CreateWithdrawalDto, @GetUser('sub') userId: string) {
+  createWithdrawal(
+    @Body() dto: CreateWithdrawalDto,
+    @GetUser('sub') userId: string,
+  ) {
     return this.paymentsService.createWithdrawal(dto, userId);
   }
 
@@ -44,14 +64,26 @@ export class PaymentsController {
 
   @ApiOperation({ summary: 'Claim daily bonus' })
   @Post('daily-bonus')
-  claimDailyBonus(@Body() dto: { coins: number }, @GetUser('sub') userId: string) {
+  claimDailyBonus(
+    @Body() dto: { coins: number },
+    @GetUser('sub') userId: string,
+  ) {
     return this.paymentsService.claimDailyBonus(userId, dto.coins);
+  }
+
+  @ApiOperation({ summary: 'Play Keno round' })
+  @Post('keno/play')
+  playKeno(
+    @Body() dto: { bet: number; picks: number[] },
+    @GetUser('sub') userId: string,
+  ) {
+    return this.paymentsService.playKeno(userId, dto.bet, dto.picks);
   }
 
   @ApiOperation({ summary: 'Agent: get all deposit/withdrawal requests' })
   @Get('agent/requests')
-  getAgentRequests(@GetUser('sub') userId: string) {
-    return this.paymentsService.getAgentRequests(userId);
+  getAgentRequests() {
+    return this.paymentsService.getAgentRequests();
   }
 
   @ApiOperation({ summary: 'Agent: approve deposit' })
@@ -75,6 +107,72 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Agent: reject withdrawal' })
   @Post('agent/withdrawals/:id/reject')
   rejectWithdrawal(@Param('id') id: string) {
+    return this.paymentsService.agentRejectWithdrawal(id);
+  }
+
+  // ── Admin endpoints ──────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Admin: get all deposits' })
+  @Get('admin/deposits')
+  adminGetAllDeposits() {
+    return this.prisma.deposit.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  @ApiOperation({ summary: 'Admin: get all withdrawals' })
+  @Get('admin/withdrawals')
+  adminGetAllWithdrawals() {
+    return this.prisma.withdrawal.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  @ApiOperation({ summary: 'Admin: approve deposit' })
+  @Post('admin/deposits/:id/approve')
+  adminApproveDeposit(@Param('id') id: string) {
+    return this.paymentsService.agentApproveDeposit(id);
+  }
+
+  @ApiOperation({ summary: 'Admin: reject deposit' })
+  @Post('admin/deposits/:id/reject')
+  adminRejectDeposit(@Param('id') id: string) {
+    return this.paymentsService.agentRejectDeposit(id);
+  }
+
+  @ApiOperation({ summary: 'Admin: approve withdrawal' })
+  @Post('admin/withdrawals/:id/approve')
+  adminApproveWithdrawal(@Param('id') id: string) {
+    return this.paymentsService.agentApproveWithdrawal(id);
+  }
+
+  @ApiOperation({ summary: 'Admin: reject withdrawal' })
+  @Post('admin/withdrawals/:id/reject')
+  adminRejectWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentRejectWithdrawal(id);
   }
 }

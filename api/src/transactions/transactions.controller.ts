@@ -17,8 +17,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Role } from 'generated/prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorators';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -29,7 +33,32 @@ import { TransactionsService } from './transactions.service';
 @UseGuards(JwtAuthGuard)
 @Controller('transactions')
 export class TransactionsController {
-  constructor(private readonly transactionsService: TransactionsService) {}
+  constructor(
+    private readonly transactionsService: TransactionsService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @ApiOperation({ summary: 'Admin: get all transactions' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Get('admin/all')
+  adminGetAll(
+    @Query('limit') limit = 100,
+    @Query('skip') skip = 0,
+  ) {
+    return this.prisma.transaction.findMany({
+      where: { deletedAt: null },
+      orderBy: { date: 'desc' },
+      take: Number(limit),
+      skip: Number(skip),
+      select: {
+        id: true, title: true, amount: true, type: true,
+        status: true, date: true, createdAt: true,
+        user: { select: { id: true, username: true, firstName: true, lastName: true, avatar: true } },
+        wallet: { select: { id: true, name: true, currency: true } },
+      },
+    });
+  }
 
   @ApiOperation({ summary: 'Create a transaction' })
   @ApiResponse({ status: 201, description: 'Transaction created' })
