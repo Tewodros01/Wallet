@@ -1,6 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role, MissionType } from 'generated/prisma/client';
+import { MissionType, Role } from 'generated/prisma/client';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,7 +26,10 @@ export class MissionsController {
 
   @ApiOperation({ summary: 'Get all missions with user progress' })
   @Get()
-  getMissions(@GetUser('sub') userId: string, @Query('type') type?: MissionType) {
+  getMissions(
+    @GetUser('sub') userId: string,
+    @Query('type') type?: MissionType,
+  ) {
     return this.missionsService.getMissions(userId, type);
   }
 
@@ -36,10 +49,18 @@ export class MissionsController {
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Post()
-  createMission(@Body() dto: {
-    title: string; desc: string; reward: number; total: number;
-    type: string; category: string; icon?: string;
-  }) {
+  createMission(
+    @Body()
+    dto: {
+      title: string;
+      desc: string;
+      reward: number;
+      total: number;
+      type: string;
+      category: string;
+      icon?: string;
+    },
+  ) {
     return this.missionsService.createMission(dto);
   }
 
@@ -47,9 +68,18 @@ export class MissionsController {
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Patch(':id')
-  updateMission(@Param('id') id: string, @Body() dto: Partial<{
-    title: string; desc: string; reward: number; total: number; isActive: boolean; icon: string;
-  }>) {
+  updateMission(
+    @Param('id') id: string,
+    @Body()
+    dto: Partial<{
+      title: string;
+      desc: string;
+      reward: number;
+      total: number;
+      isActive: boolean;
+      icon: string;
+    }>,
+  ) {
     return this.missionsService.updateMission(id, dto);
   }
 
