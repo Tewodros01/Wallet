@@ -1,7 +1,12 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
-interface Props { children: ReactNode; }
-interface State { hasError: boolean; message: string; }
+interface Props {
+  children: ReactNode;
+}
+interface State {
+  hasError: boolean;
+  message: string;
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, message: "" };
@@ -23,7 +28,9 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <div className="text-center">
             <h2 className="text-xl font-black">Something went wrong</h2>
-            <p className="text-sm text-gray-500 mt-1 max-w-xs">{this.state.message}</p>
+            <p className="text-sm text-gray-500 mt-1 max-w-xs">
+              {this.state.message}
+            </p>
           </div>
           <button
             type="button"

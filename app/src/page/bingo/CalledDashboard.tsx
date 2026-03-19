@@ -15,8 +15,15 @@ import { haptic } from "../../lib/haptic";
 import { connectSocket } from "../../lib/socket";
 import { useAuthStore } from "../../store/auth.store";
 import { useSoundStore } from "../../store/sound.store";
-import type { BingoChatMessage, CalledDashboardProps } from "../../types";
+import type { BingoChatMessage, GameRoomDetail } from "../../types";
 import { BingoBall, BingoCard, StatBadge } from "./bingoComponents";
+
+interface CalledDashboardProps {
+  card: number[][] | null;
+  roomId: string;
+  playerCount: number;
+  roomData?: GameRoomDetail;
+}
 
 export default function CalledDashboard({
   card,

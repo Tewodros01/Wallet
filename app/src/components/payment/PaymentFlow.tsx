@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { FaCoins } from "react-icons/fa";
 import { FiArrowLeft } from "react-icons/fi";
+import type { Agent } from "../../types/withdrawal.types";
 import Button from "../ui/Button";
 import { AppBar } from "../ui/Layout";
-import type { Agent } from "../../types/withdrawal.types";
 
 type PaymentTone = "emerald" | "rose" | "orange";
 
@@ -60,8 +60,7 @@ const TONE_CONFIG: Record<PaymentTone, ToneConfig> = {
   emerald: {
     hero: "bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20",
     ring: "ring-emerald-500/30",
-    fallbackAvatar:
-      "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30",
+    fallbackAvatar: "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30",
   },
   rose: {
     hero: "bg-gradient-to-br from-rose-500/10 to-orange-500/5 border border-rose-500/20",
@@ -71,15 +70,11 @@ const TONE_CONFIG: Record<PaymentTone, ToneConfig> = {
   orange: {
     hero: "bg-orange-500/15 border border-orange-500/30",
     ring: "ring-orange-500/30",
-    fallbackAvatar:
-      "bg-orange-500/20 text-orange-400 ring-orange-500/30",
+    fallbackAvatar: "bg-orange-500/20 text-orange-400 ring-orange-500/30",
   },
 };
 
-export function PaymentFlowHeader({
-  title,
-  onBack,
-}: PaymentFlowHeaderProps) {
+export function PaymentFlowHeader({ title, onBack }: PaymentFlowHeaderProps) {
   return (
     <AppBar
       left={
@@ -107,7 +102,9 @@ export function PaymentAmountHero({
   tone,
 }: PaymentAmountHeroProps) {
   return (
-    <div className={`${TONE_CONFIG[tone].hero} rounded-2xl p-5 flex flex-col items-center gap-3`}>
+    <div
+      className={`${TONE_CONFIG[tone].hero} rounded-2xl p-5 flex flex-col items-center gap-3`}
+    >
       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
         {eyebrow}
       </p>
@@ -163,7 +160,10 @@ export function SummaryCard({ rows }: SummaryCardProps) {
   return (
     <div className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
       {rows.map(({ label, value }) => (
-        <div key={label} className="flex items-center justify-between text-sm gap-3">
+        <div
+          key={label}
+          className="flex items-center justify-between text-sm gap-3"
+        >
           <span className="text-gray-500">{label}</span>
           <div className="text-right">{value}</div>
         </div>

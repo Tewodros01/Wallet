@@ -1,9 +1,21 @@
-export function SkeletonLine({ w = "w-full", h = "h-3" }: { w?: string; h?: string }) {
-  return <div className={`${w} ${h} bg-white/[0.07] rounded-full animate-pulse`} />;
+export function SkeletonLine({
+  w = "w-full",
+  h = "h-3",
+}: {
+  w?: string;
+  h?: string;
+}) {
+  return (
+    <div className={`${w} ${h} bg-white/[0.07] rounded-full animate-pulse`} />
+  );
 }
 
 export function SkeletonAvatar({ size = "w-10 h-10" }: { size?: string }) {
-  return <div className={`${size} rounded-full bg-white/[0.07] animate-pulse shrink-0`} />;
+  return (
+    <div
+      className={`${size} rounded-full bg-white/[0.07] animate-pulse shrink-0`}
+    />
+  );
 }
 
 export function SkeletonRoomCard() {
@@ -18,7 +30,12 @@ export function SkeletonRoomCard() {
         <SkeletonLine w="w-14" h="h-5" />
       </div>
       <div className="grid grid-cols-4 gap-1.5">
-        {[1,2,3,4].map(i => <div key={i} className="h-14 bg-white/[0.04] rounded-xl animate-pulse" />)}
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-14 bg-white/[0.04] rounded-xl animate-pulse"
+          />
+        ))}
       </div>
       <div className="flex items-center justify-between">
         <SkeletonLine w="w-24" h="h-4" />
@@ -74,7 +91,9 @@ export function SkeletonLeaderRow() {
       <div className="w-7 h-7 rounded-xl bg-white/[0.06] animate-pulse shrink-0" />
       <SkeletonAvatar size="w-8 h-8" />
       <SkeletonLine w="w-1/3" h="h-3" />
-      <div className="ml-auto"><SkeletonLine w="w-14" h="h-3" /></div>
+      <div className="ml-auto">
+        <SkeletonLine w="w-14" h="h-3" />
+      </div>
     </div>
   );
 }

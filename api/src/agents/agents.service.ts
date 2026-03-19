@@ -7,8 +7,8 @@ import {
 import { AgentStatus, TransactionType } from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-const COMMISSION_PER_INVITE = 50;       // coins on signup
-const DEPOSIT_COMMISSION_PCT = 0.02;    // 2% of deposit amount credited to inviter
+const COMMISSION_PER_INVITE = 50; // coins on signup
+const DEPOSIT_COMMISSION_PCT = 0.02; // 2% of deposit amount credited to inviter
 
 @Injectable()
 export class AgentsService {
@@ -127,7 +127,10 @@ export class AgentsService {
     }
   }
 
-  async creditDepositCommission(depositedUserId: string, depositAmount: number) {
+  async creditDepositCommission(
+    depositedUserId: string,
+    depositAmount: number,
+  ) {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: depositedUserId },
