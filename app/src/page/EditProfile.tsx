@@ -1,12 +1,20 @@
-import { useState, useEffect, useRef } from "react";
-import { FiCamera, FiMail, FiPhone, FiSave, FiUser, FiArrowLeft } from "react-icons/fi";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  FiArrowLeft,
+  FiCamera,
+  FiMail,
+  FiPhone,
+  FiSave,
+  FiUser,
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { AppBar } from "../components/ui/Layout";
 import { useMe, useUpdateMe } from "../hooks/useUser";
 import { api } from "../lib/axios";
-import { useQueryClient } from "@tanstack/react-query";
+import { getErrorMessage } from "../lib/errors";
 
 export default function EditProfile() {
   const navigate = useNavigate();
@@ -14,15 +22,16 @@ export default function EditProfile() {
   const { data: me } = useMe();
   const { mutate: updateMe, isPending } = useUpdateMe();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bioId = useId();
 
-  const [firstName,     setFirstName]     = useState("");
-  const [lastName,      setLastName]       = useState("");
-  const [username,      setUsername]       = useState("");
-  const [phone,         setPhone]          = useState("");
-  const [bio,           setBio]            = useState("");
-  const [error,         setError]          = useState<string | null>(null);
-  const [avatarPreview, setAvatarPreview]  = useState<string | null>(null);
-  const [uploading,     setUploading]      = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // populate form once user data loads
   useEffect(() => {
@@ -38,10 +47,17 @@ export default function EditProfile() {
   const handleSave = () => {
     setError(null);
     updateMe(
-      { firstName, lastName, username, phone: phone || undefined, bio: bio || undefined },
+      {
+        firstName,
+        lastName,
+        username,
+        phone: phone || undefined,
+        bio: bio || undefined,
+      },
       {
         onSuccess: () => navigate("/profile"),
-        onError: (err: any) => setError(err?.response?.data?.message ?? "Failed to save"),
+        onError: (err: unknown) =>
+          setError(getErrorMessage(err, "Failed to save")),
       },
     );
   };
@@ -54,10 +70,12 @@ export default function EditProfile() {
     try {
       const form = new FormData();
       form.append("file", file);
-      await api.post("/users/me/avatar", form, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/users/me/avatar", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       qc.invalidateQueries({ queryKey: ["users", "me"] });
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Failed to upload avatar");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to upload avatar"));
     } finally {
       setUploading(false);
     }
@@ -68,7 +86,13 @@ export default function EditProfile() {
       <AppBar
         left={
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => navigate("/profile")} className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors">
+            <button
+              type="button"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => navigate("/profile")}
+              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+            >
               <FiArrowLeft className="text-white text-sm" />
             </button>
             <span className="text-base font-black">Edit Profile</span>
@@ -92,6 +116,8 @@ export default function EditProfile() {
             )}
             <button
               type="button"
+              aria-label="Change profile photo"
+              title="Change profile photo"
               onClick={() => fileInputRef.current?.click()}
               className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-400 transition-colors"
             >
@@ -101,11 +127,14 @@ export default function EditProfile() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              aria-label="Upload profile photo"
               className="hidden"
               onChange={handleAvatarChange}
             />
           </div>
-          <p className="text-xs text-gray-500">Tap camera to change photo (max 2MB)</p>
+          <p className="text-xs text-gray-500">
+            Tap camera to change photo (max 2MB)
+          </p>
         </div>
 
         {/* Form */}
@@ -127,7 +156,9 @@ export default function EditProfile() {
           <Input
             label="Username"
             placeholder="@username"
-            leftIcon={<span className="text-gray-500 text-sm font-bold">@</span>}
+            leftIcon={
+              <span className="text-gray-500 text-sm font-bold">@</span>
+            }
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
@@ -140,19 +171,30 @@ export default function EditProfile() {
             onChange={(e) => setPhone(e.target.value)}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Email</label>
+            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+              Email
+            </label>
             <div className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3.5">
               <FiMail className="text-gray-600 shrink-0" />
               <span className="text-sm text-gray-500">{me?.email ?? "—"}</span>
-              <span className="ml-auto text-[10px] text-gray-600">Cannot change</span>
+              <span className="ml-auto text-[10px] text-gray-600">
+                Cannot change
+              </span>
             </div>
           </div>
         </div>
 
         {/* Bio */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Bio</label>
+          <label
+            htmlFor={bioId}
+            className="text-[11px] font-bold uppercase tracking-widest text-gray-500"
+          >
+            Bio
+          </label>
           <textarea
+            id={bioId}
+            aria-label="Bio"
             rows={3}
             placeholder="Tell something about yourself..."
             value={bio}

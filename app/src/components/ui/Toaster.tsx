@@ -23,7 +23,13 @@ export default function Toaster() {
             <div className={`w-1 h-8 rounded-full shrink-0 ${m.bar}`} />
             <span className={`text-base shrink-0 ${m.text}`}>{m.icon}</span>
             <p className="flex-1 text-sm font-semibold text-white leading-snug">{t.message}</p>
-            <button type="button" onClick={() => dismiss(t.id)} className="shrink-0 text-gray-500 hover:text-white transition-colors">
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              title="Dismiss notification"
+              onClick={() => dismiss(t.id)}
+              className="shrink-0 text-gray-500 hover:text-white transition-colors"
+            >
               <FiX className="text-sm" />
             </button>
           </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FiArrowRight, FiZap } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { usersApi } from "../api/users.api";
+import { STORAGE_KEYS } from "../config/routes";
 import { useAuthStore } from "../store/auth.store";
 
 const SLIDES = [
@@ -31,12 +32,6 @@ const SLIDES = [
   },
 ];
 
-const STORAGE_KEY = "onboarding_done";
-
-export function hasSeenOnboarding() {
-  return localStorage.getItem(STORAGE_KEY) === "true";
-}
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
@@ -45,7 +40,7 @@ export default function Onboarding() {
   const isLast = idx === SLIDES.length - 1;
 
   const finish = async () => {
-    localStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem(STORAGE_KEYS.onboardingDone, "true");
     try {
       const updated = await usersApi.completeOnboarding();
       setUser(updated);
@@ -64,8 +59,11 @@ export default function Onboarding() {
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Skip */}
       <div className="flex justify-end px-5 pt-5">
-        <button type="button" onClick={finish}
-          className="text-xs text-gray-500 font-semibold hover:text-gray-300 transition-colors">
+        <button
+          type="button"
+          onClick={finish}
+          className="text-xs text-gray-500 font-semibold hover:text-gray-300 transition-colors"
+        >
           Skip
         </button>
       </div>
@@ -73,21 +71,32 @@ export default function Onboarding() {
       {/* Slide */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 gap-8">
         {/* Illustration */}
-        <div className={`w-48 h-48 rounded-3xl bg-gradient-to-br ${slide.bg} border border-white/[0.08] flex items-center justify-center`}
-          style={{ boxShadow: "0 0 80px rgba(16,185,129,0.1)" }}>
+        <div
+          className={`w-48 h-48 rounded-3xl bg-gradient-to-br ${slide.bg} border border-white/[0.08] flex items-center justify-center`}
+          style={{ boxShadow: "0 0 80px rgba(16,185,129,0.1)" }}
+        >
           <span className="text-8xl">{slide.emoji}</span>
         </div>
 
         {/* Text */}
         <div className="text-center flex flex-col gap-3">
-          <h1 className="text-3xl font-black text-white leading-tight">{slide.title}</h1>
-          <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{slide.body}</p>
+          <h1 className="text-3xl font-black text-white leading-tight">
+            {slide.title}
+          </h1>
+          <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+            {slide.body}
+          </p>
         </div>
 
         {/* Dots */}
         <div className="flex items-center gap-2">
           {SLIDES.map((_, i) => (
-            <button key={i} type="button" onClick={() => setIdx(i)}
+            <button
+              key={i}
+              type="button"
+              aria-label={`Go to slide ${i + 1}`}
+              title={`Go to slide ${i + 1}`}
+              onClick={() => setIdx(i)}
               className={`rounded-full transition-all ${i === idx ? `w-6 h-2.5 ${slide.dot}` : "w-2.5 h-2.5 bg-white/20"}`}
             />
           ))}
@@ -96,17 +105,27 @@ export default function Onboarding() {
 
       {/* CTA */}
       <div className="px-5 pb-10 flex flex-col gap-3">
-        <button type="button" onClick={next}
-          className="w-full py-4 rounded-2xl font-black text-white flex items-center justify-center gap-2 active:scale-95 transition-all text-base bg-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.4)]">
+        <button
+          type="button"
+          onClick={next}
+          className="w-full py-4 rounded-2xl font-black text-white flex items-center justify-center gap-2 active:scale-95 transition-all text-base bg-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.4)]"
+        >
           {isLast ? (
-            <><FiZap className="text-lg" /> Let's Play!</>
+            <>
+              <FiZap className="text-lg" /> Let's Play!
+            </>
           ) : (
-            <>Next <FiArrowRight className="text-lg" /></>
+            <>
+              Next <FiArrowRight className="text-lg" />
+            </>
           )}
         </button>
         {!isLast && (
-          <button type="button" onClick={finish}
-            className="text-center text-xs text-gray-600 hover:text-gray-400 transition-colors">
+          <button
+            type="button"
+            onClick={finish}
+            className="text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
             I'll explore on my own
           </button>
         )}

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { STORAGE_KEYS } from "../config/routes";
 
 interface WalletState {
   balance: number;
@@ -14,6 +15,6 @@ export const useWalletStore = create<WalletState>()(
       setBalance: (balance) => set({ balance }),
       syncFromUser: (coinsBalance) => set({ balance: coinsBalance }),
     }),
-    { name: "wallet" },
+    { name: STORAGE_KEYS.wallet },
   ),
 );

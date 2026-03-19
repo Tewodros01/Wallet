@@ -1,39 +1,55 @@
+import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { FaDrum, FaUsers } from "react-icons/fa";
 import { FiPause, FiPlay } from "react-icons/fi";
 import { MdTimer } from "react-icons/md";
-import { motion } from "framer-motion";
 import Button from "../../components/ui/Button";
 import { AppBar, Avatar, Pill } from "../../components/ui/Layout";
-import { BingoBall, getLetter, LETTER_TEXT, NumberBoard, RecentCalls, StatBadge } from "./bingoComponents";
+import { getLetter, LETTER_TEXT } from "../../constance/bingoData";
 import { useGame } from "../../hooks/useGame";
-import { useAuthStore } from "../../store/auth.store";
 import { useRoom } from "../../hooks/useRooms";
 import { useGameSound } from "../../hooks/useSound";
-import { useSoundStore } from "../../store/sound.store";
-import { haptic } from "../../lib/haptic";
-import { fireSideConfetti } from "../../lib/confetti";
 import { announceNumber, cancelAnnouncement } from "../../lib/announcer";
+import { fireSideConfetti } from "../../lib/confetti";
+import { haptic } from "../../lib/haptic";
+import { useAuthStore } from "../../store/auth.store";
+import { useSoundStore } from "../../store/sound.store";
+import type { GameRoomPlayer } from "../../types/game.types";
+import {
+  BingoBall,
+  NumberBoard,
+  RecentCalls,
+  StatBadge,
+} from "./bingoComponents";
 
 type Props = { roomId: string; isHost?: boolean };
 
 export default function CallerDashboard({ roomId, isHost = false }: Props) {
-  const user   = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
   const { state, startGame, callNext, pauseGame, resumeGame } = useGame();
   const { data: room, refetch } = useRoom(roomId);
-  const { play }  = useGameSound();
-  const muted     = useSoundStore((s) => s.muted);
-  const prevLen   = useRef(0);
-  const didWin    = useRef(false);
+  const { play } = useGameSound();
+  const muted = useSoundStore((s) => s.muted);
+  const prevLen = useRef(0);
+  const didWin = useRef(false);
 
-  const { calledNums, currentNum, remaining, isStarted, isPaused, isFinished, winner, error } = state;
+  const {
+    calledNums,
+    currentNum,
+    remaining,
+    isStarted,
+    isPaused,
+    isFinished,
+    winner,
+    error,
+  } = state;
 
-  const players    = room?.players ?? [];
+  const players = room?.players ?? [];
   const maxPlayers = room?.maxPlayers ?? 0;
-  const dbCount    = room?._count?.players ?? players.length;
-  const liveCount  = state.playerCount > 0 ? state.playerCount : dbCount;
-  const canStart   = liveCount >= 1;
-  const letter     = currentNum ? getLetter(currentNum) : null;
+  const dbCount = room?._count?.players ?? players.length;
+  const liveCount = state.playerCount > 0 ? state.playerCount : dbCount;
+  const canStart = liveCount >= 1;
+  const letter = currentNum ? getLetter(currentNum) : null;
 
   // Play ding + speak number on each new call
   useEffect(() => {
@@ -50,7 +66,9 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
   useEffect(() => {
     if ((isFinished || winner) && !didWin.current) {
       didWin.current = true;
-      play("win"); haptic.win(); fireSideConfetti();
+      play("win");
+      haptic.win();
+      fireSideConfetti();
     }
   }, [isFinished, winner, play]);
 
@@ -77,10 +95,15 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           <h2 className="text-3xl font-black">Game Over!</h2>
           {winner ? (
             <p className="text-gray-400 mt-2 text-sm">
-              Winner earned <span className="text-yellow-300 font-black">{winner.prize} coins</span>
+              Winner earned{" "}
+              <span className="text-yellow-300 font-black">
+                {winner.prize} coins
+              </span>
             </p>
           ) : (
-            <p className="text-gray-500 mt-2 text-sm">All {calledNums.length} numbers were called</p>
+            <p className="text-gray-500 mt-2 text-sm">
+              All {calledNums.length} numbers were called
+            </p>
           )}
         </motion.div>
       </div>
@@ -90,10 +113,21 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
-        left={<Avatar src={user?.avatar ?? "https://i.pravatar.cc/40"} name={`Host: ${user?.firstName ?? "You"}`} coins={String(liveCount)} />}
+        left={
+          <Avatar
+            src={user?.avatar ?? "https://i.pravatar.cc/40"}
+            name={`Host: ${user?.firstName ?? "You"}`}
+            coins={String(liveCount)}
+          />
+        }
         right={
           <>
-            <Pill icon={<FaUsers className="text-emerald-400" />} className="text-emerald-300">{liveCount} Players</Pill>
+            <Pill
+              icon={<FaUsers className="text-emerald-400" />}
+              className="text-emerald-300"
+            >
+              {liveCount} Players
+            </Pill>
             <Pill icon={<MdTimer />}>{calledNums.length}/75</Pill>
           </>
         }
@@ -108,7 +142,9 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
       <div className="flex flex-col gap-4 px-5 py-5 flex-1">
         {/* Hero ball */}
         <div className="flex flex-col items-center gap-3 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Current Call</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Current Call
+          </p>
           {currentNum ? (
             <>
               <motion.div
@@ -126,9 +162,15 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-2"
                 >
-                  <span className={`text-sm font-black ${LETTER_TEXT[letter as keyof typeof LETTER_TEXT]}`}>{letter}</span>
+                  <span
+                    className={`text-sm font-black ${LETTER_TEXT[letter as keyof typeof LETTER_TEXT]}`}
+                  >
+                    {letter}
+                  </span>
                   <span className="text-gray-700">·</span>
-                  <span className="text-sm text-gray-400">{calledNums.length} / 75 called</span>
+                  <span className="text-sm text-gray-400">
+                    {calledNums.length} / 75 called
+                  </span>
                 </motion.div>
               )}
             </>
@@ -148,13 +190,17 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
 
         {calledNums.length > 0 && (
           <div className="flex flex-col gap-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Recent Calls</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Recent Calls
+            </p>
             <RecentCalls called={calledNums} />
           </div>
         )}
 
         <div className="flex flex-col gap-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Number Board</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Number Board
+          </p>
           <NumberBoard called={calledNums} />
         </div>
 
@@ -164,26 +210,41 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
             <div className="flex flex-col gap-3">
               <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Players Joined</p>
-                  <span className="text-xs font-black text-white">{dbCount} / {maxPlayers}</span>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    Players Joined
+                  </p>
+                  <span className="text-xs font-black text-white">
+                    {dbCount} / {maxPlayers}
+                  </span>
                 </div>
                 {players.length === 0 ? (
-                  <p className="text-xs text-gray-600 text-center py-2">Waiting for players to join...</p>
+                  <p className="text-xs text-gray-600 text-center py-2">
+                    Waiting for players to join...
+                  </p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {players.map((p: any) => (
+                    {players.map((p: GameRoomPlayer) => (
                       <div key={p.id} className="flex items-center gap-2.5">
                         <img
-                          src={p.user?.avatar ?? `https://i.pravatar.cc/32?u=${p.user?.id}`}
+                          src={
+                            p.user?.avatar ??
+                            `https://i.pravatar.cc/32?u=${p.user?.id}`
+                          }
                           alt={p.user?.username}
                           className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10 shrink-0"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-white truncate">
                             {p.user?.firstName} {p.user?.lastName}
-                            {p.user?.id === user?.id && <span className="text-emerald-400 ml-1">(You)</span>}
+                            {p.user?.id === user?.id && (
+                              <span className="text-emerald-400 ml-1">
+                                (You)
+                              </span>
+                            )}
                           </p>
-                          <p className="text-[10px] text-gray-500">@{p.user?.username}</p>
+                          <p className="text-[10px] text-gray-500">
+                            @{p.user?.username}
+                          </p>
                         </div>
                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                       </div>
@@ -200,7 +261,16 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
               </div>
 
               {isHost && (
-                <Button size="lg" icon={<FiPlay />} onClick={() => { startGame(); play("ding"); haptic.heavy(); }} disabled={!canStart}>
+                <Button
+                  size="lg"
+                  icon={<FiPlay />}
+                  onClick={() => {
+                    startGame();
+                    play("ding");
+                    haptic.heavy();
+                  }}
+                  disabled={!canStart}
+                >
                   Start Game ({liveCount} player{liveCount !== 1 ? "s" : ""})
                 </Button>
               )}
@@ -213,14 +283,23 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
                     size="lg"
                     variant="secondary"
                     icon={isPaused ? <FiPlay /> : <FiPause />}
-                    onClick={() => { isPaused ? resumeGame() : pauseGame(); haptic.medium(); }}
+                    onClick={() => {
+                      if (isPaused) {
+                        resumeGame();
+                      } else {
+                        pauseGame();
+                      }
+                      haptic.medium();
+                    }}
                   >
                     {isPaused ? "Resume" : "Pause"}
                   </Button>
                   <Button
                     size="lg"
                     icon={<FaDrum />}
-                    onClick={() => { callNext(); }}
+                    onClick={() => {
+                      callNext();
+                    }}
                     disabled={remaining === 0 || isPaused}
                   >
                     {remaining === 0 ? "All Called!" : "Call Next"}

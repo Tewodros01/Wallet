@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { GameContext, INITIAL, type GameState } from "./GameContext";
 import { connectSocket } from "../lib/socket";
+import type { RoomStateResponse } from "../types/game.types";
+
+interface SocketAck {
+  error?: {
+    message?: string;
+  };
+}
 
 export function GameProvider({ roomId, children }: { roomId: string; children: ReactNode }) {
   const [state, setState] = useState<GameState>(INITIAL);
@@ -50,9 +57,9 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     s.on("exception",          onException);
 
     const joinRoom = () => {
-      s.emit("room:join", { roomId }, (res: any) => {
+      s.emit("room:join", { roomId }, (_res: SocketAck) => {
         // after joining, request current room state to get accurate player count
-        s.emit("room:state", { roomId }, (roomState: any) => {
+        s.emit("room:state", { roomId }, (roomState: RoomStateResponse) => {
           if (roomState?.room?._count?.players) {
             set({ playerCount: roomState.room._count.players });
           }
@@ -80,7 +87,7 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
   }, [roomId, set]);
 
   const startGame  = useCallback(() => {
-    socketRef.current.emit("game:start", { roomId }, (res: any) => {
+    socketRef.current.emit("game:start", { roomId }, (res: SocketAck) => {
       if (res?.error) set({ error: res.error.message ?? "Failed to start game" });
     });
   }, [roomId, set]);

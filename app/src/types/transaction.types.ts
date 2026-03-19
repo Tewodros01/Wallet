@@ -1,89 +1,91 @@
-export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER";
-export type TransactionStatus = "PENDING" | "COMPLETED" | "FAILED" | "REVERSED";
-export type RecurrenceInterval = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+import { Currency, TransactionType, TransactionStatus, RecurrenceInterval } from "./enums";
+
+// ─── Transaction Types ────────────────────────────────────────────────────────
 
 export interface Transaction {
   id: string;
   title: string;
-  amount: string;
+  amount: string; // Decimal as string from API
   type: TransactionType;
   status: TransactionStatus;
   note: string | null;
   date: string;
+  userId: string;
+  walletId: string;
+  categoryId: string | null;
+  sourceWalletId: string | null;
+  destinationWalletId: string | null;
   isRecurring: boolean;
   recurrenceInterval: RecurrenceInterval | null;
   recurrenceEndsAt: string | null;
+  parentTransactionId: string | null;
+  gameRoomId: string | null;
+  deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  wallet: { id: string; name: string; currency: string };
-  category: {
-    id: string;
-    name: string;
-    icon: string | null;
-    color: string | null;
-  } | null;
-  sourceWallet: { id: string; name: string; currency: string } | null;
-  destinationWallet: { id: string; name: string; currency: string } | null;
-  parentTransactionId: string | null;
 }
 
-export interface TransactionSummary {
-  period: { start: string; end: string };
-  totalIncome: number;
-  totalExpense: number;
-  totalTransfer: number;
-  netBalance: number;
-  transactionCount: number;
-}
-
-export interface PaginatedTransactions {
-  data: Transaction[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  };
-}
-
-export interface CreateTransactionPayload {
+export interface CreateTransactionRequest {
   title: string;
   amount: number;
   type: TransactionType;
-  status?: TransactionStatus;
   note?: string;
-  date: string;
-  walletId: string;
   categoryId?: string;
-  sourceWalletId?: string;
-  destinationWalletId?: string;
   isRecurring?: boolean;
   recurrenceInterval?: RecurrenceInterval;
   recurrenceEndsAt?: string;
 }
 
-export interface UpdateTransactionPayload {
+export interface UpdateTransactionRequest {
   title?: string;
   amount?: number;
-  status?: TransactionStatus;
   note?: string;
-  date?: string;
   categoryId?: string;
-  isRecurring?: boolean;
 }
 
-export interface TransactionQuery {
-  page?: number;
-  limit?: number;
-  type?: TransactionType;
-  status?: TransactionStatus;
-  categoryId?: string;
-  walletId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
-  sortBy?: "date" | "amount" | "createdAt";
-  sortOrder?: "asc" | "desc";
+// ─── Wallet Types ─────────────────────────────────────────────────────────────
+
+export interface Wallet {
+  id: string;
+  name: string;
+  balance: string; // Decimal as string from API
+  currency: Currency;
+  userId: string;
+  isDefault: boolean;
+  isActive: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWalletRequest {
+  name: string;
+  currency?: Currency;
+  isDefault?: boolean;
+}
+
+export interface UpdateWalletRequest {
+  name?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+}
+
+// ─── Category Types ───────────────────────────────────────────────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  type: TransactionType;
+  isSystem: boolean;
+  userId: string | null;
+  createdAt: string;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+  icon?: string;
+  color?: string;
+  type: TransactionType;
 }

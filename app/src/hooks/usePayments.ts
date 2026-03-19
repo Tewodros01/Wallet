@@ -72,9 +72,13 @@ export const usePlayKeno = () => {
       setBalance(data.newBalance);
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["keno", "history"] });
     },
   });
 };
+
+export const useKenoHistory = () =>
+  useQuery({ queryKey: ["keno", "history"], queryFn: paymentsApi.getKenoHistory });
 
 export const useAgentRequests = () =>
   useQuery({ queryKey: ["agent", "requests"], queryFn: paymentsApi.getAgentRequests, refetchInterval: 10_000 });
@@ -117,6 +121,9 @@ export const useAdminDeposits = () =>
 
 export const useAdminWithdrawals = () =>
   useQuery({ queryKey: ["admin", "withdrawals"], queryFn: paymentsApi.adminGetAllWithdrawals, refetchInterval: 10_000 });
+
+export const useAdminAnalytics = () =>
+  useQuery({ queryKey: ["admin", "analytics"], queryFn: paymentsApi.adminGetAnalytics, staleTime: 60_000 });
 
 export const useAdminApproveDeposit = () => {
   const qc = useQueryClient();

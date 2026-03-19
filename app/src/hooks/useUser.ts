@@ -43,6 +43,29 @@ export const useUpdateRole = () => {
   });
 };
 
+export const useBanUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => usersApi.banUser(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  });
+};
+
+export const useUnbanUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => usersApi.unbanUser(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  });
+};
+
+export const useUser = (id: string) =>
+  useQuery({
+    queryKey: ["users", id],
+    queryFn: () => usersApi.getById(id),
+    enabled: !!id,
+  });
+
 export const useAgentStats = (id: string) =>
   useQuery({
     queryKey: ["users", id, "agent-stats"],

@@ -1,4 +1,5 @@
-import { FaCoins } from "react-icons/fa";
+import { motion } from "framer-motion";
+import { FaChartLine, FaCoins, FaTrophy } from "react-icons/fa";
 import {
   FiActivity,
   FiArrowLeft,
@@ -6,6 +7,7 @@ import {
   FiClock,
   FiDollarSign,
   FiShield,
+  FiTarget,
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi";
@@ -13,6 +15,21 @@ import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
 import { useAdminDeposits, useAdminWithdrawals } from "../hooks/usePayments";
 import { useAllUsers } from "../hooks/useUser";
+import type {
+  AdminQuickAction,
+  AdminStatCard,
+  AdminUserBreakdown,
+  User,
+} from "../types";
+import type { Deposit, Withdrawal } from "../types/payment.types";
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.06 } },
+};
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.28 } },
+};
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -23,21 +40,23 @@ export default function AdminPanel() {
   const { data: withdrawals = [], isLoading: withdrawalsLoading } =
     useAdminWithdrawals();
 
-  const agents = users.filter((u: any) => u.role === "AGENT");
-  const admins = users.filter((u: any) => u.role === "ADMIN");
-  const regular = users.filter((u: any) => u.role === "USER");
+  const agents = users.filter((u: User) => u.role === "AGENT");
+  const admins = users.filter((u: User) => u.role === "ADMIN");
+  const regular = users.filter((u: User) => u.role === "USER");
 
-  const pendingDeposits = deposits.filter((d: any) => d.status === "PENDING");
+  const pendingDeposits = deposits.filter(
+    (d: Deposit) => d.status === "PENDING",
+  );
   const pendingWithdrawals = withdrawals.filter(
-    (w: any) => w.status === "PENDING" || w.status === "PROCESSING",
+    (w: Withdrawal) => w.status === "PENDING" || w.status === "PROCESSING",
   );
 
   const totalDepositCoins = deposits
-    .filter((d: any) => d.status === "COMPLETED")
-    .reduce((s: number, d: any) => s + Number(d.amount), 0);
+    .filter((d: Deposit) => d.status === "COMPLETED")
+    .reduce((s: number, d: Deposit) => s + Number(d.amount), 0);
   const totalWithdrawalCoins = withdrawals
-    .filter((w: any) => w.status === "COMPLETED")
-    .reduce((s: number, w: any) => s + Number(w.amount), 0);
+    .filter((w: Withdrawal) => w.status === "COMPLETED")
+    .reduce((s: number, w: Withdrawal) => s + Number(w.amount), 0);
   const netFlow = totalDepositCoins - totalWithdrawalCoins;
 
   const totalPending = pendingDeposits.length + pendingWithdrawals.length;
@@ -47,14 +66,23 @@ export default function AdminPanel() {
       <AppBar
         left={
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => navigate(-1)}
-              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              title="Go back"
+              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+            >
               <FiArrowLeft className="text-white text-sm" />
             </button>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-black text-white leading-tight">Admin Panel</p>
+              <p className="text-base font-black text-white leading-tight">
+                Admin Panel
+              </p>
               <p className="text-[10px] text-gray-500">
-                {usersLoading ? "Loading…" : `${users.length} users · ${totalPending} pending`}
+                {usersLoading
+                  ? "Loading…"
+                  : `${users.length} users · ${totalPending} pending`}
               </p>
             </div>
           </div>
@@ -66,55 +94,69 @@ export default function AdminPanel() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <motion.div
+        variants={stagger}
+        initial="initial"
+        animate="animate"
+        className="flex-1 overflow-y-auto"
+      >
         {/* Header label */}
-        <div className="px-5 pt-5 pb-2">
-          <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Platform Overview</p>
-          <h1 className="text-xl font-black text-white mt-0.5">Welcome back, Admin</h1>
-        </div>
+        <motion.div variants={fadeUp} className="px-5 pt-5 pb-2">
+          <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+            Platform Overview
+          </p>
+          <h1 className="text-xl font-black text-white mt-0.5">
+            Welcome back, Admin
+          </h1>
+        </motion.div>
 
         <div className="flex flex-col gap-5 px-5 pb-12">
           {/* ── Stats row ── */}
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              {
-                label: "Users",
-                value: usersLoading ? "…" : users.length,
-                sub: `${agents.length} agents`,
-                icon: <FiUsers />,
-                from: "from-blue-500",
-                to: "to-cyan-500",
-                glow: "rgba(59,130,246,0.3)",
-              },
-              {
-                label: "Deposits",
-                value: depositsLoading ? "…" : deposits.length,
-                sub: `${pendingDeposits.length} pending`,
-                icon: <FiTrendingUp />,
-                from: "from-emerald-500",
-                to: "to-teal-500",
-                glow: "rgba(16,185,129,0.3)",
-              },
-              {
-                label: "Withdrawals",
-                value: withdrawalsLoading ? "…" : withdrawals.length,
-                sub: `${pendingWithdrawals.length} pending`,
-                icon: <FiDollarSign />,
-                from: "from-orange-500",
-                to: "to-amber-500",
-                glow: "rgba(249,115,22,0.3)",
-              },
-              {
-                label: "Net Flow",
-                value: netFlow.toLocaleString(),
-                sub: "completed coins",
-                icon: <FiActivity />,
-                from: "from-violet-500",
-                to: "to-purple-500",
-                glow: "rgba(139,92,246,0.3)",
-              },
-            ].map(({ label, value, sub, icon, from, to, glow }) => (
-              <div key={label} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden">
+          <motion.div variants={fadeUp} className="grid grid-cols-2 gap-2">
+            {(
+              [
+                {
+                  label: "Users",
+                  value: usersLoading ? "…" : users.length,
+                  sub: `${agents.length} agents`,
+                  icon: <FiUsers />,
+                  from: "from-blue-500",
+                  to: "to-cyan-500",
+                  glow: "rgba(59,130,246,0.3)",
+                },
+                {
+                  label: "Deposits",
+                  value: depositsLoading ? "…" : deposits.length,
+                  sub: `${pendingDeposits.length} pending`,
+                  icon: <FiTrendingUp />,
+                  from: "from-emerald-500",
+                  to: "to-teal-500",
+                  glow: "rgba(16,185,129,0.3)",
+                },
+                {
+                  label: "Withdrawals",
+                  value: withdrawalsLoading ? "…" : withdrawals.length,
+                  sub: `${pendingWithdrawals.length} pending`,
+                  icon: <FiDollarSign />,
+                  from: "from-orange-500",
+                  to: "to-amber-500",
+                  glow: "rgba(249,115,22,0.3)",
+                },
+                {
+                  label: "Net Flow",
+                  value: netFlow.toLocaleString(),
+                  sub: "completed coins",
+                  icon: <FiActivity />,
+                  from: "from-violet-500",
+                  to: "to-purple-500",
+                  glow: "rgba(139,92,246,0.3)",
+                },
+              ] as AdminStatCard[]
+            ).map(({ label, value, sub, icon, from, to, glow }) => (
+              <div
+                key={label}
+                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden"
+              >
                 <div
                   className={`w-8 h-8 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
                   style={{ boxShadow: `0 0 10px ${glow}` }}
@@ -122,16 +164,104 @@ export default function AdminPanel() {
                   {icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-base font-black text-white leading-none">{value}</p>
-                  <p className="text-[10px] font-bold text-white/70 leading-tight mt-0.5">{label}</p>
-                  <p className="text-[9px] text-gray-500 leading-tight">{sub}</p>
+                  <p className="text-base font-black text-white leading-none">
+                    {value}
+                  </p>
+                  <p className="text-[10px] font-bold text-white/70 leading-tight mt-0.5">
+                    {label}
+                  </p>
+                  <p className="text-[9px] text-gray-500 leading-tight">
+                    {sub}
+                  </p>
                 </div>
               </div>
             ))}
-          </div>
+          </motion.div>
+
+          {/* ── Quick actions ── */}
+          <motion.div variants={fadeUp} className="flex flex-col gap-3">
+            <p className="text-sm font-black text-white">Quick Actions</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {(
+                [
+                  {
+                    label: "Manage Users",
+                    sub: `${users.length} total users`,
+                    icon: <FiUsers className="text-blue-400 text-xl" />,
+                    bg: "from-blue-500/15 to-cyan-500/5 border-blue-500/20",
+                    path: "/admin/users",
+                  },
+                  {
+                    label: "Review Deposits",
+                    sub: `${pendingDeposits.length} pending`,
+                    icon: <FiTrendingUp className="text-emerald-400 text-xl" />,
+                    bg: "from-emerald-500/15 to-teal-500/5 border-emerald-500/20",
+                    path: "/admin/deposits",
+                    badge: pendingDeposits.length,
+                  },
+                  {
+                    label: "Withdrawals",
+                    sub: `${pendingWithdrawals.length} pending`,
+                    icon: <FiDollarSign className="text-orange-400 text-xl" />,
+                    bg: "from-orange-500/15 to-amber-500/5 border-orange-500/20",
+                    path: "/admin/withdrawals",
+                    badge: pendingWithdrawals.length,
+                  },
+                  {
+                    label: "Analytics",
+                    sub: "Platform insights",
+                    icon: <FaChartLine className="text-violet-400 text-xl" />,
+                    bg: "from-violet-500/15 to-purple-500/5 border-violet-500/20",
+                    path: "/admin/analytics",
+                  },
+                  {
+                    label: "Tournaments",
+                    sub: "Create & manage",
+                    icon: <FaTrophy className="text-yellow-400 text-xl" />,
+                    bg: "from-yellow-500/15 to-orange-500/5 border-yellow-500/20",
+                    path: "/admin/tournaments",
+                  },
+                  {
+                    label: "Missions",
+                    sub: "Daily challenges",
+                    icon: <FiTarget className="text-rose-400 text-xl" />,
+                    bg: "from-rose-500/15 to-pink-500/5 border-rose-500/20",
+                    path: "/admin/missions",
+                  },
+                ] as AdminQuickAction[]
+              ).map(({ label, sub, icon, bg, path, badge }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label={label}
+                  onClick={() => navigate(path)}
+                  className={`bg-gradient-to-br ${bg} border rounded-2xl p-4 flex flex-col gap-3 active:scale-95 transition-all text-left relative`}
+                >
+                  {badge && badge > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                      {badge}
+                    </span>
+                  )}
+                  <div
+                    className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-white">{label}</p>
+                    <p className="text-[11px] text-gray-500">{sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
 
           {/* ── Coin flow ── */}
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+          <motion.div
+            variants={fadeUp}
+            className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5"
+          >
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
               Coin Flow
             </p>
@@ -176,34 +306,45 @@ export default function AdminPanel() {
                 {netFlow.toLocaleString()}
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* ── User breakdown ── */}
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+          <motion.div
+            variants={fadeUp}
+            className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5"
+          >
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
               User Breakdown
             </p>
             <div className="flex flex-col gap-3">
-              {[
-                {
-                  label: "Regular Users",
-                  count: regular.length,
-                  bar: "bg-gradient-to-r from-blue-500 to-cyan-400",
-                  pct: users.length ? (regular.length / users.length) * 100 : 0,
-                },
-                {
-                  label: "Agents",
-                  count: agents.length,
-                  bar: "bg-gradient-to-r from-emerald-500 to-teal-400",
-                  pct: users.length ? (agents.length / users.length) * 100 : 0,
-                },
-                {
-                  label: "Admins",
-                  count: admins.length,
-                  bar: "bg-gradient-to-r from-yellow-500 to-amber-400",
-                  pct: users.length ? (admins.length / users.length) * 100 : 0,
-                },
-              ].map(({ label, count, bar, pct }) => (
+              {(
+                [
+                  {
+                    label: "Regular Users",
+                    count: regular.length,
+                    bar: "bg-gradient-to-r from-blue-500 to-cyan-400",
+                    pct: users.length
+                      ? (regular.length / users.length) * 100
+                      : 0,
+                  },
+                  {
+                    label: "Agents",
+                    count: agents.length,
+                    bar: "bg-gradient-to-r from-emerald-500 to-teal-400",
+                    pct: users.length
+                      ? (agents.length / users.length) * 100
+                      : 0,
+                  },
+                  {
+                    label: "Admins",
+                    count: admins.length,
+                    bar: "bg-gradient-to-r from-yellow-500 to-amber-400",
+                    pct: users.length
+                      ? (admins.length / users.length) * 100
+                      : 0,
+                  },
+                ] as AdminUserBreakdown[]
+              ).map(({ label, count, bar, pct }) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs text-gray-400 font-semibold">
@@ -222,89 +363,10 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* ── Quick actions ── */}
-          <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
-              Quick Actions
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {[
-                {
-                  icon: <FiUsers />,
-                  label: "Manage Users",
-                  sub: `${users.length} total`,
-                  badge: null,
-                  from: "from-blue-500",
-                  to: "to-cyan-500",
-                  path: "/admin/users",
-                },
-                {
-                  icon: <FiTrendingUp />,
-                  label: "Review Deposits",
-                  sub: `${deposits.length} total`,
-                  badge: pendingDeposits.length,
-                  from: "from-emerald-500",
-                  to: "to-teal-500",
-                  path: "/admin/deposits",
-                },
-                {
-                  icon: <FiDollarSign />,
-                  label: "Review Withdrawals",
-                  sub: `${withdrawals.length} total`,
-                  badge: pendingWithdrawals.length,
-                  from: "from-orange-500",
-                  to: "to-amber-500",
-                  path: "/admin/withdrawals",
-                },
-                {
-                  icon: <FiActivity />,
-                  label: "Tournaments",
-                  sub: "create & manage",
-                  badge: null,
-                  from: "from-yellow-500",
-                  to: "to-orange-500",
-                  path: "/admin/tournaments",
-                },
-                {
-                  icon: <FiClock />,
-                  label: "Missions",
-                  sub: "create & manage",
-                  badge: null,
-                  from: "from-violet-500",
-                  to: "to-purple-500",
-                  path: "/admin/missions",
-                },
-              ].map(({ icon, label, sub, badge, from, to, path }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => navigate(path)}
-                  className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] transition-all text-left hover:bg-white/[0.07]"
-                >
-                  <div
-                    className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-base shrink-0 shadow-lg`}
-                  >
-                    {icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white">{label}</p>
-                    <p className="text-[11px] text-gray-500">{sub}</p>
-                  </div>
-                  {badge != null && badge > 0 && (
-                    <span className="w-6 h-6 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                      {badge}
-                    </span>
-                  )}
-                  <FiChevronRight className="text-gray-600 shrink-0" />
-                </button>
-              ))}
-            </div>
-          </div>
+          </motion.div>
 
           {/* ── Agents ── */}
-          <div>
+          <motion.div variants={fadeUp}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                 Agents
@@ -312,6 +374,7 @@ export default function AdminPanel() {
               <button
                 type="button"
                 onClick={() => navigate("/admin/users")}
+                title="View all agents"
                 className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold"
               >
                 See all <FiChevronRight className="text-xs" />
@@ -333,11 +396,12 @@ export default function AdminPanel() {
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {agents.slice(0, 3).map((u: any) => (
+                {agents.slice(0, 3).map((u: User) => (
                   <button
                     key={u.id}
                     type="button"
                     onClick={() => navigate(`/admin/agents/${u.id}`)}
+                    title={`View ${u.firstName} ${u.lastName}'s profile`}
                     className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-3.5 flex items-center gap-3 active:scale-[0.98] transition-all text-left hover:bg-white/[0.07]"
                   >
                     <div className="relative shrink-0">
@@ -368,6 +432,7 @@ export default function AdminPanel() {
                   <button
                     type="button"
                     onClick={() => navigate("/admin/users")}
+                    title="View all agents"
                     className="text-xs text-gray-600 font-semibold text-center py-2 hover:text-gray-400 transition-colors"
                   >
                     +{agents.length - 3} more agents
@@ -375,11 +440,12 @@ export default function AdminPanel() {
                 )}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* ── Pending alert ── */}
           {totalPending > 0 && (
-            <button
+            <motion.button
+              variants={fadeUp}
               type="button"
               onClick={() =>
                 navigate(
@@ -388,6 +454,7 @@ export default function AdminPanel() {
                     : "/admin/withdrawals",
                 )
               }
+              title="Review pending transactions"
               className="w-full bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
             >
               <div className="w-10 h-10 rounded-2xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center shrink-0">
@@ -405,10 +472,10 @@ export default function AdminPanel() {
               <span className="w-6 h-6 rounded-full bg-yellow-500 text-black text-[10px] font-black flex items-center justify-center shrink-0">
                 {totalPending}
               </span>
-            </button>
+            </motion.button>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

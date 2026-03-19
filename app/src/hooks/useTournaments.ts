@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tournamentsApi } from '../api/tournaments.api';
+import { getErrorMessage } from '../lib/errors';
 import { useWalletStore } from '../store/wallet.store';
 import { toast } from '../store/toast.store';
 
@@ -14,6 +15,9 @@ export const useTournaments = () =>
 export const usePrizePool = () =>
   useQuery({ queryKey: tournamentKeys.prizePool, queryFn: tournamentsApi.getPrizePool, staleTime: 60_000 });
 
+export const useLeaderboard = () =>
+  useQuery({ queryKey: ['tournaments', 'leaderboard'], queryFn: tournamentsApi.getLeaderboard, staleTime: 60_000 });
+
 export const useJoinTournament = () => {
   const qc = useQueryClient();
   const setBalance = useWalletStore((s) => s.setBalance);
@@ -26,8 +30,8 @@ export const useJoinTournament = () => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Successfully joined the tournament! 🏆');
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to join tournament');
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Failed to join tournament'));
     },
   });
 };
@@ -37,7 +41,7 @@ export const useCreateTournament = () => {
   return useMutation({
     mutationFn: tournamentsApi.create,
     onSuccess: () => { qc.invalidateQueries({ queryKey: tournamentKeys.all }); toast.success('Tournament created!'); },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to create tournament'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to create tournament')); },
   });
 };
 
@@ -51,6 +55,6 @@ export const useFinishTournament = () => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success(`🏆 Tournament finished! ${data.prize.toLocaleString()} coins paid out.`);
     },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to finish tournament'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to finish tournament')); },
   });
 };

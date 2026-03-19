@@ -12,10 +12,10 @@ import {
   FiUserPlus,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/auth.store";
-import { useWalletStore } from "../store/wallet.store";
 import { AppBar, BottomNav } from "../components/ui/Layout";
 import { useMe, useMyStats } from "../hooks/useUser";
+import { useAuthStore } from "../store/auth.store";
+import { useWalletStore } from "../store/wallet.store";
 
 const badges = [
   { emoji: "🏆", label: "First Win" },
@@ -27,13 +27,37 @@ const badges = [
 ];
 
 const quickActions = [
-  { label: "Invite Users", icon: <FiUserPlus />, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20", path: "/invite" },
+  {
+    label: "Invite Users",
+    icon: <FiUserPlus />,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+    path: "/invite",
+  },
 ];
 
 const moreItems = [
-  { icon: <FiClock />,   label: "Game History", sub: "View past games",        path: "/history",  danger: false },
-  { icon: <FiSettings />, label: "Settings",    sub: "App preferences",        path: "/settings", danger: false },
-  { icon: <FiLogOut />,  label: "Sign Out",     sub: "Log out of your account", path: null,        danger: true  },
+  {
+    icon: <FiClock />,
+    label: "Game History",
+    sub: "View past games",
+    path: "/history",
+    danger: false,
+  },
+  {
+    icon: <FiSettings />,
+    label: "Settings",
+    sub: "App preferences",
+    path: "/settings",
+    danger: false,
+  },
+  {
+    icon: <FiLogOut />,
+    label: "Sign Out",
+    sub: "Log out of your account",
+    path: null,
+    danger: true,
+  },
 ];
 
 export default function Profile() {
@@ -50,19 +74,46 @@ export default function Profile() {
     if (me?.coinsBalance !== undefined) syncFromUser(me.coinsBalance);
   }, [me?.coinsBalance, syncFromUser]);
 
-  const handleSignOut = () => { clear(); navigate("/signin", { replace: true }); };
+  const handleSignOut = () => {
+    clear();
+    navigate("/signin", { replace: true });
+  };
 
   const statItems = [
-    { icon: <FaGamepad />, label: "Games",    value: String(stats?.totalGames ?? "—"), color: "text-rose-400"    },
-    { icon: <FaTrophy />,  label: "Wins",     value: String(stats?.wins ?? "—"),       color: "text-yellow-400"  },
-    { icon: <FaMedal />,   label: "Win Rate", value: stats ? `${stats.winRate}%` : "—", color: "text-emerald-400" },
-    { icon: <FaCoins />,   label: "Earned",   value: stats ? `${(stats.totalEarned / 1000).toFixed(1)}k` : "—", color: "text-cyan-400" },
+    {
+      icon: <FaGamepad />,
+      label: "Games",
+      value: String(stats?.totalGames ?? "—"),
+      color: "text-rose-400",
+    },
+    {
+      icon: <FaTrophy />,
+      label: "Wins",
+      value: String(stats?.wins ?? "—"),
+      color: "text-yellow-400",
+    },
+    {
+      icon: <FaMedal />,
+      label: "Win Rate",
+      value: stats ? `${stats.winRate}%` : "—",
+      color: "text-emerald-400",
+    },
+    {
+      icon: <FaCoins />,
+      label: "Earned",
+      value: stats ? `${(stats.totalEarned / 1000).toFixed(1)}k` : "—",
+      color: "text-cyan-400",
+    },
   ];
 
   const fields = [
-    { icon: <FiUser />,  label: "Full Name", value: me ? `${me.firstName} ${me.lastName}` : "—" },
-    { icon: <FiMail />,  label: "Email",     value: me?.email ?? "—" },
-    { icon: <FiPhone />, label: "Phone",     value: me?.phone ?? "Not set" },
+    {
+      icon: <FiUser />,
+      label: "Full Name",
+      value: me ? `${me.firstName} ${me.lastName}` : "—",
+    },
+    { icon: <FiMail />, label: "Email", value: me?.email ?? "—" },
+    { icon: <FiPhone />, label: "Phone", value: me?.phone ?? "Not set" },
   ];
 
   return (
@@ -80,6 +131,7 @@ export default function Profile() {
           <button
             type="button"
             aria-label="Edit profile"
+            title="Edit profile"
             onClick={() => navigate("/edit-profile")}
             className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
           >
@@ -106,7 +158,8 @@ export default function Profile() {
               {me ? `${me.firstName} ${me.lastName}` : "—"}
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              @{me?.username ?? "—"} · Member since {me ? new Date(me.createdAt).getFullYear() : "—"}
+              @{me?.username ?? "—"} · Member since{" "}
+              {me ? new Date(me.createdAt).getFullYear() : "—"}
             </p>
           </div>
           <div className="flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-4 py-1.5">
@@ -120,22 +173,36 @@ export default function Profile() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-2">
           {statItems.map(({ icon, label, value, color }) => (
-            <div key={label} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1">
+            <div
+              key={label}
+              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+            >
               <span className={`text-base ${color}`}>{icon}</span>
-              <span className="text-base font-black text-white leading-none">{value}</span>
-              <span className="text-[9px] text-gray-500 uppercase tracking-wide">{label}</span>
+              <span className="text-base font-black text-white leading-none">
+                {value}
+              </span>
+              <span className="text-[9px] text-gray-500 uppercase tracking-wide">
+                {label}
+              </span>
             </div>
           ))}
         </div>
 
         {/* Badges */}
         <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Badges</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Badges
+          </p>
           <div className="grid grid-cols-3 gap-2">
             {badges.map(({ emoji, label }) => (
-              <div key={label} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5">
+              <div
+                key={label}
+                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5"
+              >
                 <span className="text-2xl">{emoji}</span>
-                <span className="text-[10px] text-gray-400 font-semibold">{label}</span>
+                <span className="text-[10px] text-gray-400 font-semibold">
+                  {label}
+                </span>
               </div>
             ))}
           </div>
@@ -143,7 +210,9 @@ export default function Profile() {
 
         {/* Quick Actions */}
         <div className="flex flex-col gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Quick Actions</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Quick Actions
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {quickActions.map(({ label, icon, color, bg, path }) => (
               <button
@@ -153,7 +222,9 @@ export default function Profile() {
                 onClick={() => navigate(path)}
                 className={`${bg} border rounded-2xl p-4 flex flex-col items-start gap-3 active:scale-95 transition-all hover:brightness-110`}
               >
-                <span className={`text-xl ${color}`} aria-hidden="true">{icon}</span>
+                <span className={`text-xl ${color}`} aria-hidden="true">
+                  {icon}
+                </span>
                 <span className="text-sm font-bold text-white">{label}</span>
               </button>
             ))}
@@ -164,8 +235,12 @@ export default function Profile() {
                 onClick={() => navigate("/agent-deposit")}
                 className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 flex flex-col items-start gap-3 active:scale-95 transition-all hover:brightness-110"
               >
-                <span className="text-xl text-orange-400" aria-hidden="true"><FiSettings /></span>
-                <span className="text-sm font-bold text-white">Agent Panel</span>
+                <span className="text-xl text-orange-400" aria-hidden="true">
+                  <FiSettings />
+                </span>
+                <span className="text-sm font-bold text-white">
+                  Agent Panel
+                </span>
               </button>
             )}
           </div>
@@ -173,19 +248,31 @@ export default function Profile() {
 
         {/* More */}
         <div className="flex flex-col gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">More</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            More
+          </p>
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
             {moreItems.map(({ icon, label, sub, path, danger }, i) => (
               <button
                 key={label}
                 type="button"
                 aria-label={label}
-                onClick={() => danger ? handleSignOut() : path && navigate(path)}
+                onClick={() =>
+                  danger ? handleSignOut() : path && navigate(path)
+                }
                 className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left ${i < moreItems.length - 1 ? "border-b border-white/[0.05]" : ""}`}
               >
-                <span className={`text-sm shrink-0 ${danger ? "text-rose-400" : "text-gray-400"}`}>{icon}</span>
+                <span
+                  className={`text-sm shrink-0 ${danger ? "text-rose-400" : "text-gray-400"}`}
+                >
+                  {icon}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${danger ? "text-rose-400" : "text-white"}`}>{label}</p>
+                  <p
+                    className={`text-sm font-semibold ${danger ? "text-rose-400" : "text-white"}`}
+                  >
+                    {label}
+                  </p>
                   <p className="text-[11px] text-gray-500">{sub}</p>
                 </div>
                 <FiArrowRight className="text-gray-600 shrink-0" />
@@ -196,14 +283,23 @@ export default function Profile() {
 
         {/* Info */}
         <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Account Info</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Account Info
+          </p>
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
             {fields.map(({ icon, label, value }, i) => (
-              <div key={label} className={`flex items-center gap-4 px-4 py-3.5 ${i < fields.length - 1 ? "border-b border-white/[0.06]" : ""}`}>
+              <div
+                key={label}
+                className={`flex items-center gap-4 px-4 py-3.5 ${i < fields.length - 1 ? "border-b border-white/[0.06]" : ""}`}
+              >
                 <span className="text-gray-500 text-sm shrink-0">{icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-semibold text-white truncate">{value}</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                    {label}
+                  </p>
+                  <p className="text-sm font-semibold text-white truncate">
+                    {value}
+                  </p>
                 </div>
               </div>
             ))}

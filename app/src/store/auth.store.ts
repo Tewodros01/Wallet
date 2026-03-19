@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { User } from "../types/auth.types";
+import { STORAGE_KEYS } from "../config/routes";
+import type { User } from "../types/user.types";
 
 interface AuthState {
   user: User | null;
@@ -38,7 +39,7 @@ export const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: "auth",
+      name: STORAGE_KEYS.auth,
       partialize: (state: AuthState) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,

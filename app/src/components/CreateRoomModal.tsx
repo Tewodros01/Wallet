@@ -5,6 +5,8 @@ import { MdTimer } from "react-icons/md";
 import Button from "./ui/Button";
 import { useCreateRoom } from "../hooks/useRooms";
 import type { GameSpeed } from "../api/rooms.api";
+import { getErrorMessage } from "../lib/errors";
+import type { GameRoomDetail } from "../types/game.types";
 
 type Props = { onClose: () => void; onEnter?: (roomId: string) => void };
 
@@ -38,7 +40,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
-  <button type="button" onClick={onToggle}
+  <button type="button" onClick={onToggle} aria-label={on ? "Turn off" : "Turn on"} title={on ? "Turn off" : "Turn on"}
     className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${on ? "bg-emerald-500" : "bg-white/15"}`}>
     <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
   </button>
@@ -74,12 +76,12 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
         isPrivate,
       },
       {
-        onSuccess: (data: any) => {
+        onSuccess: (data: GameRoomDetail) => {
           setCreatedId(data.id);
           setStep("created");
         },
-        onError: (err: any) => {
-          setError(err?.response?.data?.message ?? "Failed to create room");
+        onError: (err: unknown) => {
+          setError(getErrorMessage(err, "Failed to create room"));
         },
       },
     );
@@ -107,7 +109,13 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
               {step === "settings" ? "Configure your bingo room" : "Share and wait for players"}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center transition-colors">
+          <button
+            type="button"
+            aria-label="Close modal"
+            title="Close modal"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center transition-colors"
+          >
             <FiX className="text-gray-400 text-sm" />
           </button>
         </div>
@@ -117,7 +125,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <SectionLabel>Room Name (optional)</SectionLabel>
-                <input type="text" placeholder="e.g. Friday Night Bingo" value={roomName}
+                <input type="text" aria-label="Room name" placeholder="e.g. Friday Night Bingo" value={roomName}
                   onChange={(e) => setRoomName(e.target.value)} maxLength={50}
                   className="w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
                 />

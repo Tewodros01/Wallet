@@ -1,16 +1,6 @@
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  avatar: string | null;
-  phone: string | null;
-  role: "USER" | "AGENT" | "ADMIN";
-  isVerified: boolean;
-  onboardingDone: boolean;
-  createdAt: string;
-}
+import type { User } from "./user.types";
+
+export type { User };
 
 export interface AuthResponse {
   access_token: string;

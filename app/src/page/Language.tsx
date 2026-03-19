@@ -4,24 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
 
 const LANGUAGES = [
-  { code: "en",    name: "English",    native: "English",       flag: "🇺🇸" },
-  { code: "am",    name: "Amharic",    native: "አማርኛ",          flag: "🇪🇹" },
-  { code: "om",    name: "Oromo",      native: "Afaan Oromoo",  flag: "🇪🇹" },
-  { code: "ti",    name: "Tigrinya",   native: "ትግርኛ",          flag: "🇪🇹" },
-  { code: "so",    name: "Somali",     native: "Soomaali",      flag: "🇸🇴" },
-  { code: "ar",    name: "Arabic",     native: "العربية",        flag: "🇸🇦" },
-  { code: "fr",    name: "French",     native: "Français",      flag: "🇫🇷" },
-  { code: "sw",    name: "Swahili",    native: "Kiswahili",     flag: "🇰🇪" },
-  { code: "zh",    name: "Chinese",    native: "中文",           flag: "🇨🇳" },
-  { code: "hi",    name: "Hindi",      native: "हिन्दी",          flag: "🇮🇳" },
-  { code: "pt",    name: "Portuguese", native: "Português",     flag: "🇧🇷" },
-  { code: "es",    name: "Spanish",    native: "Español",       flag: "🇪🇸" },
+  { code: "en", name: "English", native: "English", flag: "🇺🇸" },
+  { code: "am", name: "Amharic", native: "አማርኛ", flag: "🇪🇹" },
+  { code: "om", name: "Oromo", native: "Afaan Oromoo", flag: "🇪🇹" },
+  { code: "ti", name: "Tigrinya", native: "ትግርኛ", flag: "🇪🇹" },
+  { code: "so", name: "Somali", native: "Soomaali", flag: "🇸🇴" },
+  { code: "ar", name: "Arabic", native: "العربية", flag: "🇸🇦" },
+  { code: "fr", name: "French", native: "Français", flag: "🇫🇷" },
+  { code: "sw", name: "Swahili", native: "Kiswahili", flag: "🇰🇪" },
+  { code: "zh", name: "Chinese", native: "中文", flag: "🇨🇳" },
+  { code: "hi", name: "Hindi", native: "हिन्दी", flag: "🇮🇳" },
+  { code: "pt", name: "Portuguese", native: "Português", flag: "🇧🇷" },
+  { code: "es", name: "Spanish", native: "Español", flag: "🇪🇸" },
 ];
 
 export default function Language() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState("en");
-  const [search,   setSearch]   = useState("");
+  const [search, setSearch] = useState("");
 
   const filtered = LANGUAGES.filter(
     (l) =>
@@ -36,7 +36,13 @@ export default function Language() {
       <AppBar
         left={
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors">
+            <button
+              type="button"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => navigate(-1)}
+              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+            >
               <FiArrowLeft className="text-white text-sm" />
             </button>
             <span className="text-base font-black">Language</span>
@@ -54,7 +60,9 @@ export default function Language() {
         <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20 rounded-2xl p-4 flex items-center gap-3">
           <span className="text-3xl">{current.flag}</span>
           <div className="flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Current Language</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Current Language
+            </p>
             <p className="text-sm font-black text-white">{current.name}</p>
             <p className="text-xs text-gray-500">{current.native}</p>
           </div>
@@ -66,6 +74,7 @@ export default function Language() {
           <FiSearch className="text-gray-500 shrink-0" />
           <input
             type="text"
+            aria-label="Search language"
             placeholder="Search language..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -95,7 +104,9 @@ export default function Language() {
                 <p className="text-sm font-semibold text-white">{lang.name}</p>
                 <p className="text-[11px] text-gray-500">{lang.native}</p>
               </div>
-              {selected === lang.code && <FiCheck className="text-emerald-400 shrink-0" />}
+              {selected === lang.code && (
+                <FiCheck className="text-emerald-400 shrink-0" />
+              )}
             </button>
           ))}
         </div>

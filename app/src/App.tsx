@@ -1,10 +1,19 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  AppEntryRedirect,
+  DashboardEntryRoute,
+  RequireAdmin,
+  RequireAuth,
+} from "./components/routing/RouteGuards";
+import { APP_ROUTES } from "./config/routes";
 import { useRealtimeNotifications } from "./hooks/useNotifications";
 import ActiveSessions from "./page/ActiveSessions";
+import AdminAnalytics from "./page/AdminAnalytics";
 import AdminDeposits from "./page/AdminDeposits";
 import AdminMissions from "./page/AdminMissions";
 import AdminPanel from "./page/AdminPanel";
 import AdminTournaments from "./page/AdminTournaments";
+import AdminUserDetail from "./page/AdminUserDetail";
 import AdminUsers from "./page/AdminUsers";
 import AdminWithdrawals from "./page/AdminWithdrawals";
 import AgentDeposit from "./page/AgentDeposit";
@@ -12,7 +21,6 @@ import AgentStats from "./page/AgentStats";
 import BingoGame from "./page/BingoGame";
 import ChangePassword from "./page/ChangePassword";
 import DailyBonus from "./page/DailyBonus";
-import Dashboard from "./page/Dashboard";
 import DepositMoney from "./page/DepositMoney";
 import EditProfile from "./page/EditProfile";
 import ForgotPassword from "./page/ForgotPassword";
@@ -20,6 +28,7 @@ import GameHistory from "./page/GameHistory";
 import GetMoney from "./page/GetMoney";
 import Invite from "./page/Invite";
 import Keno from "./page/Keno";
+import KenoHistory from "./page/KenoHistory";
 import Language from "./page/Language";
 import Leaderboard from "./page/Leaderboard";
 import Missions from "./page/Missions";
@@ -31,91 +40,321 @@ import Settings from "./page/Settings";
 import SignIn from "./page/SignIn";
 import SignUp from "./page/SignUp";
 import Tournament from "./page/Tournament";
+import TransactionReceipt from "./page/TransactionReceipt";
 import TransferMoney from "./page/TransferMoney";
+import UserDetail from "./page/UserDetail";
 import UserProfile from "./page/UserProfile";
 import WalletHistory from "./page/WalletHistory";
-import { useAuthStore } from "./store/auth.store";
+import WithdrawalStatus from "./page/WithdrawalStatus";
 
 const App = () => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const user = useAuthStore((s) => s.user);
-
   // Connect notification socket only when authenticated
   useRealtimeNotifications();
-
-  const guard = (el: React.ReactElement) => {
-    if (!isAuthenticated) return <Navigate to="/signin" replace />;
-    return el;
-  };
-
-  // Only redirect to onboarding from the dashboard entry point, not every route
-  const dashboardGuard = () => {
-    if (!isAuthenticated) return <Navigate to="/signin" replace />;
-    if (user && !user.onboardingDone && !localStorage.getItem("onboarding_done")) {
-      return <Navigate to="/onboarding" replace />;
-    }
-    return <Dashboard />;
-  };
-
-  const adminGuard = (el: React.ReactElement) =>
-    !isAuthenticated ? (
-      <Navigate to="/signin" replace />
-    ) : user?.role !== "ADMIN" ? (
-      <Navigate to="/dashboard" replace />
-    ) : (
-      el
-    );
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/dashboard" element={dashboardGuard()} />
-        <Route path="/game" element={guard(<BingoGame />)} />
-        <Route path="/game/:id" element={guard(<BingoGame />)} />
-        <Route path="/profile" element={guard(<Profile />)} />
-        <Route path="/profile/:id" element={guard(<UserProfile />)} />
-        <Route path="/edit-profile" element={guard(<EditProfile />)} />
-        <Route path="/wallet" element={guard(<MyWallet />)} />
-        <Route path="/deposit-money" element={guard(<DepositMoney />)} />
-        <Route path="/get-money" element={guard(<GetMoney />)} />
-        <Route path="/transfer" element={guard(<TransferMoney />)} />
-        <Route path="/invite" element={guard(<Invite />)} />
-        <Route path="/agent-deposit" element={guard(<AgentDeposit />)} />
-        <Route path="/history" element={guard(<GameHistory />)} />
-        <Route path="/settings" element={guard(<Settings />)} />
-        <Route path="/change-password" element={guard(<ChangePassword />)} />
-        <Route path="/language" element={guard(<Language />)} />
-        <Route path="/active-sessions" element={guard(<ActiveSessions />)} />
-        <Route path="/admin/users" element={adminGuard(<AdminUsers />)} />
-        <Route path="/admin/panel" element={adminGuard(<AdminPanel />)} />
-        <Route path="/admin/deposits" element={adminGuard(<AdminDeposits />)} />
+        <Route path={APP_ROUTES.signin} element={<SignIn />} />
+        <Route path={APP_ROUTES.signup} element={<SignUp />} />
+        <Route path={APP_ROUTES.forgotPassword} element={<ForgotPassword />} />
+        <Route path={APP_ROUTES.dashboard} element={<DashboardEntryRoute />} />
         <Route
-          path="/admin/withdrawals"
-          element={adminGuard(<AdminWithdrawals />)}
-        />
-        <Route path="/admin/agents/:id" element={adminGuard(<AgentStats />)} />
-        <Route
-          path="/admin/tournaments"
-          element={adminGuard(<AdminTournaments />)}
-        />
-        <Route path="/admin/missions" element={adminGuard(<AdminMissions />)} />
-        <Route path="/leaderboard" element={guard(<Leaderboard />)} />
-        <Route path="/tournament" element={guard(<Tournament />)} />
-        <Route path="/missions" element={guard(<Missions />)} />
-        <Route path="/notifications" element={guard(<Notifications />)} />
-        <Route path="/daily-bonus" element={guard(<DailyBonus />)} />
-        <Route path="/wallet-history" element={guard(<WalletHistory />)} />
-        <Route path="/onboarding" element={guard(<Onboarding />)} />
-        <Route path="/keno" element={guard(<Keno />)} />
-        <Route
-          path="*"
+          path={APP_ROUTES.game}
           element={
-            <Navigate to={isAuthenticated ? "/dashboard" : "/signin"} replace />
+            <RequireAuth>
+              <BingoGame />
+            </RequireAuth>
           }
         />
+        <Route
+          path={`${APP_ROUTES.game}/:id`}
+          element={
+            <RequireAuth>
+              <BingoGame />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.profile}
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.profile}/:id`}
+          element={
+            <RequireAuth>
+              <UserProfile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.user}/:id`}
+          element={
+            <RequireAuth>
+              <UserDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.editProfile}
+          element={
+            <RequireAuth>
+              <EditProfile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.wallet}
+          element={
+            <RequireAuth>
+              <MyWallet />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.depositMoney}
+          element={
+            <RequireAuth>
+              <DepositMoney />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.getMoney}
+          element={
+            <RequireAuth>
+              <GetMoney />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.transfer}
+          element={
+            <RequireAuth>
+              <TransferMoney />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.invite}
+          element={
+            <RequireAuth>
+              <Invite />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.agentDeposit}
+          element={
+            <RequireAuth>
+              <AgentDeposit />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.history}
+          element={
+            <RequireAuth>
+              <GameHistory />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.settings}
+          element={
+            <RequireAuth>
+              <Settings />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.changePassword}
+          element={
+            <RequireAuth>
+              <ChangePassword />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.language}
+          element={
+            <RequireAuth>
+              <Language />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.activeSessions}
+          element={
+            <RequireAuth>
+              <ActiveSessions />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.users}
+          element={
+            <RequireAdmin>
+              <AdminUsers />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.panel}
+          element={
+            <RequireAdmin>
+              <AdminPanel />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.deposits}
+          element={
+            <RequireAdmin>
+              <AdminDeposits />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.withdrawals}
+          element={
+            <RequireAdmin>
+              <AdminWithdrawals />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.admin.users}/:id`}
+          element={
+            <RequireAdmin>
+              <AdminUserDetail />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.admin.agents}/:id`}
+          element={
+            <RequireAdmin>
+              <AgentStats />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.tournaments}
+          element={
+            <RequireAdmin>
+              <AdminTournaments />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.missions}
+          element={
+            <RequireAdmin>
+              <AdminMissions />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.analytics}
+          element={
+            <RequireAdmin>
+              <AdminAnalytics />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.leaderboard}
+          element={
+            <RequireAuth>
+              <Leaderboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.tournament}
+          element={
+            <RequireAuth>
+              <Tournament />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.missions}
+          element={
+            <RequireAuth>
+              <Missions />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.notifications}
+          element={
+            <RequireAuth>
+              <Notifications />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.dailyBonus}
+          element={
+            <RequireAuth>
+              <DailyBonus />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.walletHistory}
+          element={
+            <RequireAuth>
+              <WalletHistory />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.withdrawalStatus}
+          element={
+            <RequireAuth>
+              <WithdrawalStatus />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.onboarding}
+          element={
+            <RequireAuth>
+              <Onboarding />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.keno}
+          element={
+            <RequireAuth>
+              <Keno />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.kenoHistory}
+          element={
+            <RequireAuth>
+              <KenoHistory />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.transaction}/:id`}
+          element={
+            <RequireAuth>
+              <TransactionReceipt />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<AppEntryRedirect />} />
       </Routes>
     </BrowserRouter>
   );

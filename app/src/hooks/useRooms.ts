@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { roomsApi, type CreateRoomPayload, type RoomQuery } from "../api/rooms.api";
+import type { GameRoomDetail } from "../types/game.types";
 
 export const roomKeys = {
   all:     (q?: RoomQuery) => ["rooms", q]    as const,
@@ -14,7 +15,7 @@ export const useRooms = (query?: RoomQuery) =>
     refetchInterval: 5000, // poll lobby every 5s
   });
 
-export const useRoom = (id: string, placeholder?: any) =>
+export const useRoom = (id: string, placeholder?: GameRoomDetail) =>
   useQuery({
     queryKey: roomKeys.one(id),
     queryFn:  () => roomsApi.getOne(id),

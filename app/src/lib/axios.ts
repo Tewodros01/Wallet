@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { APP_ROUTES } from "../config/routes";
 import { useAuthStore } from "../store/auth.store";
 
 export const api = axios.create({
@@ -61,7 +62,7 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         useAuthStore.getState().clear();
-        window.location.href = "/login";
+        window.location.href = APP_ROUTES.signin;
         return Promise.reject(error);
       } finally {
         isRefreshing = false;

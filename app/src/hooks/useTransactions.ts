@@ -62,13 +62,9 @@ export const useUpdateTransaction = () => {
   });
 };
 
-export const useDeleteTransaction = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => transactionApi.remove(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["wallets"] });
-    },
+export const useUserTransactions = (userId: string) =>
+  useQuery({
+    queryKey: ['userTransactions', userId],
+    queryFn: () => transactionApi.getByUserId(userId),
+    enabled: !!userId,
   });
-};

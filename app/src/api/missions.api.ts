@@ -1,30 +1,21 @@
 import { api } from '../lib/axios';
-
-export interface Mission {
-  id: string;
-  title: string;
-  desc: string;
-  reward: number;
-  total: number;
-  type: 'DAILY' | 'WEEKLY';
-  category: string;
-  icon: string;
-  progress: number;
-  claimed: boolean;
-  claimedAt?: string;
-}
+import type {
+  CreateMissionRequest,
+  MissionWithProgress,
+  UpdateMissionRequest,
+} from '../types/mission.types';
 
 export const missionsApi = {
-  getAll: (type?: 'DAILY' | 'WEEKLY'): Promise<Mission[]> =>
+  getAll: (type?: 'DAILY' | 'WEEKLY'): Promise<MissionWithProgress[]> =>
     api.get('/missions', { params: type ? { type } : {} }).then((r) => r.data),
   claim: (id: string): Promise<{ success: boolean; reward: number; newBalance: number }> =>
     api.post(`/missions/${id}/claim`).then((r) => r.data),
   getStreak: (): Promise<{ streak: number }> =>
     api.get('/missions/streak').then((r) => r.data),
   // admin
-  create: (dto: { title: string; desc: string; reward: number; total: number; type: string; category: string; icon?: string }) =>
+  create: (dto: CreateMissionRequest) =>
     api.post('/missions', dto).then((r) => r.data),
-  update: (id: string, dto: Partial<{ title: string; desc: string; reward: number; total: number; isActive: boolean; icon: string }>) =>
+  update: (id: string, dto: UpdateMissionRequest) =>
     api.patch(`/missions/${id}`, dto).then((r) => r.data),
   remove: (id: string) =>
     api.delete(`/missions/${id}`).then((r) => r.data),

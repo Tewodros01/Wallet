@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { missionsApi } from '../api/missions.api';
+import { getErrorMessage } from '../lib/errors';
 import { useWalletStore } from '../store/wallet.store';
 import { toast } from '../store/toast.store';
+import type { UpdateMissionRequest } from '../types/mission.types';
 
 export const missionKeys = {
   all: ['missions'] as const,
@@ -34,8 +36,8 @@ export const useClaimMission = () => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success(`+${data.reward} coins claimed! 🎉`);
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to claim reward');
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Failed to claim reward'));
     },
   });
 };
@@ -45,16 +47,17 @@ export const useCreateMission = () => {
   return useMutation({
     mutationFn: missionsApi.create,
     onSuccess: () => { qc.invalidateQueries({ queryKey: missionKeys.all }); toast.success('Mission created!'); },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to create mission'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to create mission')); },
   });
 };
 
 export const useUpdateMission = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: any }) => missionsApi.update(id, dto),
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateMissionRequest }) =>
+      missionsApi.update(id, dto),
     onSuccess: () => { qc.invalidateQueries({ queryKey: missionKeys.all }); toast.success('Mission updated!'); },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to update mission'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to update mission')); },
   });
 };
 
@@ -63,7 +66,7 @@ export const useDeleteMission = () => {
   return useMutation({
     mutationFn: (id: string) => missionsApi.remove(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: missionKeys.all }); toast.success('Mission deleted!'); },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to delete mission'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to delete mission')); },
   });
 };
 
@@ -71,7 +74,7 @@ export const useSeedMissions = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: missionsApi.seed,
-    onSuccess: (data: any) => { qc.invalidateQueries({ queryKey: missionKeys.all }); toast.success(data.message ?? 'Seeded!'); },
-    onError: (err: any) => { toast.error(err?.response?.data?.message ?? 'Failed to seed'); },
+    onSuccess: (data: { message?: string }) => { qc.invalidateQueries({ queryKey: missionKeys.all }); toast.success(data.message ?? 'Seeded!'); },
+    onError: (err: unknown) => { toast.error(getErrorMessage(err, 'Failed to seed')); },
   });
 };

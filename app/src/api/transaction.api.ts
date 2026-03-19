@@ -30,5 +30,8 @@ export const transactionApi = {
   update: (id: string, payload: UpdateTransactionPayload) =>
     api.put<Transaction>(`/transactions/${id}`, payload).then((r) => r.data),
 
+  getByUserId: (userId: string) =>
+    api.get<Transaction[]>(`/transactions/user/${userId}`).then((r) => r.data),
+
   remove: (id: string) => api.delete(`/transactions/${id}`).then((r) => r.data),
 };

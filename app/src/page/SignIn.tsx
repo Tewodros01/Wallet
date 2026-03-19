@@ -1,33 +1,29 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FaApple, FaFacebook, FaGoogle } from "react-icons/fa";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
-import { Divider, SocialBtn } from "../components/ui/Layout";
 import { useLogin } from "../hooks/useAuth";
 
 const schema = z.object({
-  email:    z.string().email("Invalid email"),
+  email: z.string().email("Invalid email"),
   password: z.string().min(6, "Min 6 characters"),
 });
 type FormData = z.infer<typeof schema>;
-
-const socials = [
-  { Icon: FaGoogle,   label: "Google" },
-  { Icon: FaApple,    label: "Apple" },
-  { Icon: FaFacebook, label: "Facebook" },
-];
 
 export default function SignIn() {
   const navigate = useNavigate();
   const { mutate: login, isPending, error } = useLogin();
   const [showPw, setShowPw] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
@@ -39,7 +35,6 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-5 py-12">
-      {/* Logo */}
       <div className="flex flex-col items-center gap-3 mb-8">
         <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_28px_rgba(16,185,129,0.3)]">
           <span className="text-3xl">🎱</span>
@@ -50,38 +45,61 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* Card */}
       <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 flex flex-col gap-5">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input label="Email" type="email" placeholder="you@example.com" leftIcon={<FiMail />} error={errors.email?.message} {...register("email")} />
           <Input
-            label="Password" type={showPw ? "text" : "password"} placeholder="••••••••"
-            leftIcon={<FiLock />} error={errors.password?.message}
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            leftIcon={<FiMail />}
+            error={errors.email?.message}
+            {...register("email")}
+          />
+          <Input
+            label="Password"
+            type={showPw ? "text" : "password"}
+            placeholder="••••••••"
+            leftIcon={<FiLock />}
+            error={errors.password?.message}
             rightIcon={
-              <button type="button" aria-label={showPw ? "Hide password" : "Show password"} onClick={() => setShowPw(!showPw)} className="text-gray-500 hover:text-white transition-colors">
+              <button
+                type="button"
+                aria-label={showPw ? "Hide password" : "Show password"}
+                title={showPw ? "Hide password" : "Show password"}
+                onClick={() => setShowPw(!showPw)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
                 {showPw ? <FiEyeOff /> : <FiEye />}
               </button>
             }
             {...register("password")}
           />
           {errMsg && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2">{errMsg}</p>
+            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2">
+              {errMsg}
+            </p>
           )}
           <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-xs text-gray-500 hover:text-emerald-400 transition-colors">Forgot password?</Link>
+            <Link
+              to="/forgot-password"
+              className="text-xs text-gray-500 hover:text-emerald-400 transition-colors"
+            >
+              Forgot password?
+            </Link>
           </div>
-          <Button type="submit" loading={isPending} size="lg">Sign In</Button>
+          <Button type="submit" loading={isPending} size="lg">
+            Sign In
+          </Button>
         </form>
-
-        <Divider label="or continue with" />
-
-        <div className="flex gap-3">
-          {socials.map(({ Icon, label }) => <SocialBtn key={label} icon={<Icon />} label={label} />)}
-        </div>
 
         <p className="text-center text-sm text-gray-500">
           No account?{" "}
-          <Link to="/signup" className="text-emerald-400 font-semibold hover:text-emerald-300">Sign Up</Link>
+          <Link
+            to="/signup"
+            className="text-emerald-400 font-semibold hover:text-emerald-300"
+          >
+            Sign Up
+          </Link>
         </p>
       </div>
     </div>

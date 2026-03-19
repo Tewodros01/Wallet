@@ -1,7 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { FaCoins, FaGamepad, FaMedal, FaTrophy } from "react-icons/fa";
 import { FiArrowLeft, FiUser } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { usersApi } from "../api/users.api";
 import { useAuthStore } from "../store/auth.store";
 
@@ -37,10 +37,30 @@ export default function UserProfile() {
   });
 
   const statItems = [
-    { icon: <FaGamepad />, label: "Games",    value: String(stats?.totalGames ?? "—"), color: "text-rose-400"    },
-    { icon: <FaTrophy />,  label: "Wins",     value: String(stats?.wins ?? "—"),       color: "text-yellow-400"  },
-    { icon: <FaMedal />,   label: "Win Rate", value: stats ? `${stats.winRate}%` : "—", color: "text-emerald-400" },
-    { icon: <FaCoins />,   label: "Earned",   value: stats ? `${(stats.totalEarned / 1000).toFixed(1)}k` : "—", color: "text-cyan-400" },
+    {
+      icon: <FaGamepad />,
+      label: "Games",
+      value: String(stats?.totalGames ?? "—"),
+      color: "text-rose-400",
+    },
+    {
+      icon: <FaTrophy />,
+      label: "Wins",
+      value: String(stats?.wins ?? "—"),
+      color: "text-yellow-400",
+    },
+    {
+      icon: <FaMedal />,
+      label: "Win Rate",
+      value: stats ? `${stats.winRate}%` : "—",
+      color: "text-emerald-400",
+    },
+    {
+      icon: <FaCoins />,
+      label: "Earned",
+      value: stats ? `${(stats.totalEarned / 1000).toFixed(1)}k` : "—",
+      color: "text-cyan-400",
+    },
   ];
 
   return (
@@ -48,7 +68,13 @@ export default function UserProfile() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/95 border-b border-white/[0.06] sticky top-0 z-40 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
+          <button
+            type="button"
+            aria-label="Go back"
+            title="Go back"
+            onClick={() => navigate(-1)}
+            className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+          >
             <FiArrowLeft className="text-white text-sm" />
           </button>
           <span className="text-base font-black">Player Profile</span>
@@ -62,7 +88,12 @@ export default function UserProfile() {
         <div className="flex flex-col gap-4 px-5 py-5">
           <div className="h-48 bg-white/[0.04] rounded-2xl animate-pulse" />
           <div className="grid grid-cols-4 gap-2">
-            {[1,2,3,4].map(i => <div key={i} className="h-20 bg-white/[0.04] rounded-2xl animate-pulse" />)}
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+              />
+            ))}
           </div>
         </div>
       ) : !user ? (
@@ -82,30 +113,51 @@ export default function UserProfile() {
               />
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-black text-white">{user.firstName} {user.lastName}</h2>
+              <h2 className="text-xl font-black text-white">
+                {user.firstName} {user.lastName}
+              </h2>
               <p className="text-sm text-gray-400 mt-0.5">
-                @{user.username} · Member since {new Date(user.createdAt).getFullYear()}
+                @{user.username} · Member since{" "}
+                {new Date(user.createdAt).getFullYear()}
               </p>
-              {user.bio && <p className="text-xs text-gray-500 mt-2 max-w-xs">{user.bio}</p>}
+              {user.bio && (
+                <p className="text-xs text-gray-500 mt-2 max-w-xs">
+                  {user.bio}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-4 py-1.5">
               <FaCoins className="text-yellow-400 text-xs" />
-              <span className="text-yellow-300 text-sm font-black">{(user.coinsBalance ?? 0).toLocaleString()} coins</span>
+              <span className="text-yellow-300 text-sm font-black">
+                {(user.coinsBalance ?? 0).toLocaleString()} coins
+              </span>
             </div>
           </div>
 
           {/* Stats */}
           {loadingStats ? (
             <div className="grid grid-cols-4 gap-2">
-              {[1,2,3,4].map(i => <div key={i} className="h-20 bg-white/[0.04] rounded-2xl animate-pulse" />)}
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+                />
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
               {statItems.map(({ icon, label, value, color }) => (
-                <div key={label} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1">
+                <div
+                  key={label}
+                  className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+                >
                   <span className={`text-base ${color}`}>{icon}</span>
-                  <span className="text-base font-black text-white leading-none">{value}</span>
-                  <span className="text-[9px] text-gray-500 uppercase tracking-wide">{label}</span>
+                  <span className="text-base font-black text-white leading-none">
+                    {value}
+                  </span>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wide">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -113,12 +165,19 @@ export default function UserProfile() {
 
           {/* Badges */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Badges</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Badges
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {badges.map(({ emoji, label }) => (
-                <div key={label} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5">
+                <div
+                  key={label}
+                  className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5"
+                >
                   <span className="text-2xl">{emoji}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold">{label}</span>
+                  <span className="text-[10px] text-gray-400 font-semibold">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>

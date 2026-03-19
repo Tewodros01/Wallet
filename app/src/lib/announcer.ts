@@ -5,10 +5,29 @@ const LETTER = (n: number) =>
   n <= 15 ? "B" : n <= 30 ? "I" : n <= 45 ? "N" : n <= 60 ? "G" : "O";
 
 // Number words for natural speech
-const ONES  = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-               "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
-               "seventeen", "eighteen", "nineteen"];
-const TENS  = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy"];
+const ONES = [
+  "",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy"];
 
 function toWords(n: number): string {
   if (n < 20) return ONES[n];
@@ -34,7 +53,9 @@ function getVoice(): SpeechSynthesisVoice | null {
   const voices = s.getVoices();
   // Prefer a clear English voice
   voice =
-    voices.find((v) => v.lang === "en-US" && v.name.toLowerCase().includes("google")) ??
+    voices.find(
+      (v) => v.lang === "en-US" && v.name.toLowerCase().includes("google"),
+    ) ??
     voices.find((v) => v.lang === "en-US") ??
     voices.find((v) => v.lang.startsWith("en")) ??
     voices[0] ??
@@ -55,16 +76,16 @@ export function announceNumber(n: number, muted = false) {
   s.cancel(); // stop any current speech
 
   const letter = LETTER(n);
-  const words  = toWords(n);
+  const words = toWords(n);
   // e.g. "B ... seven" or "N ... thirty five"
-  const text   = `${letter}... ${words}`;
+  const text = `${letter}... ${words}`;
 
-  const utt        = new SpeechSynthesisUtterance(text);
-  utt.voice        = getVoice();
-  utt.rate         = 0.88;
-  utt.pitch        = 1.05;
-  utt.volume       = 0.95;
-  utt.lang         = "en-US";
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.voice = getVoice();
+  utt.rate = 0.88;
+  utt.pitch = 1.05;
+  utt.volume = 0.95;
+  utt.lang = "en-US";
 
   s.speak(utt);
 }
