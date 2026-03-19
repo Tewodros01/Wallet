@@ -60,6 +60,22 @@ export class TransactionsController {
     });
   }
 
+  @ApiOperation({ summary: 'Admin: get transactions for a specific user' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Get('user/:userId')
+  getUserTransactions(@Param('userId') userId: string) {
+    return this.prisma.transaction.findMany({
+      where: { userId, deletedAt: null },
+      orderBy: { date: 'desc' },
+      take: 50,
+      select: {
+        id: true, title: true, amount: true, type: true,
+        status: true, date: true, createdAt: true, note: true,
+      },
+    });
+  }
+
   @ApiOperation({ summary: 'Create a transaction' })
   @ApiResponse({ status: 201, description: 'Transaction created' })
   @ApiResponse({ status: 400, description: 'Bad request' })

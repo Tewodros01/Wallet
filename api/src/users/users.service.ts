@@ -34,8 +34,7 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      where: { deletedAt: null },
-      select: { ...userSelect, role: true },
+      select: { ...userSelect, role: true, deletedAt: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -290,6 +289,24 @@ export class UsersService {
       return u;
     });
     return { newBalance: updated.coinsBalance };
+  }
+
+  async banUser(id: string) {
+    const user = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: userSelect,
+    });
+  }
+
+  async unbanUser(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: null },
+      select: userSelect,
+    });
   }
 
   async getLeaderboard(limit = 10) {

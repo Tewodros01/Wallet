@@ -85,6 +85,33 @@ export class TournamentsService {
     });
   }
 
+  async getLeaderboard() {
+    const wins = await this.prisma.transaction.findMany({
+      where: { title: { startsWith: 'Tournament win' }, type: 'GAME_WIN' },
+      select: { userId: true, amount: true },
+    });
+
+    const map = new Map<string, number>();
+    for (const w of wins) {
+      map.set(w.userId, (map.get(w.userId) ?? 0) + Number(w.amount));
+    }
+
+    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+    const userIds = sorted.map(([id]) => id);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, username: true, firstName: true, lastName: true, avatar: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return sorted.map(([userId, totalPrize], i) => ({
+      rank: i + 1,
+      user: userMap.get(userId),
+      wins: wins.filter((w) => w.userId === userId).length,
+      totalPrize,
+    }));
+  }
+
   async create(dto: CreateTournamentDto) {
     return this.prisma.tournament.create({
       data: { ...dto, startsAt: new Date(dto.startsAt) },

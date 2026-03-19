@@ -21,6 +21,12 @@ export class TournamentsController {
     return this.tournamentsService.findAll(userId);
   }
 
+  @ApiOperation({ summary: 'Get tournament leaderboard' })
+  @Get('leaderboard')
+  getLeaderboard() {
+    return this.tournamentsService.getLeaderboard();
+  }
+
   @ApiOperation({ summary: 'Get total active prize pool' })
   @Get('prize-pool')
   getPrizePool() {

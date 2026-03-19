@@ -1,5 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +24,28 @@ export class PaymentsController {
   @Get('agents')
   getAgents() {
     return this.paymentsService.getAgents();
+  }
+
+  @ApiOperation({ summary: 'Upload payment proof image/PDF' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
+        return cb(new Error('Only images and PDFs are allowed'), false);
+      }
+      cb(null, true);
+    },
+  }))
+  @Post('proof/upload')
+  uploadProof(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new Error('No file provided');
+    const uploadsDir = path.join(process.cwd(), 'public', 'proofs');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    const ext = path.extname(file.originalname) || '.jpg';
+    const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+    fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
+    return { proofUrl: `/public/proofs/${filename}` };
   }
 
   @ApiOperation({ summary: 'Create a deposit (add money)' })
@@ -80,6 +106,12 @@ export class PaymentsController {
     return this.paymentsService.playKeno(userId, dto.bet, dto.picks);
   }
 
+  @ApiOperation({ summary: 'Get Keno bet history for current user' })
+  @Get('keno/history')
+  getKenoHistory(@GetUser('sub') userId: string) {
+    return this.paymentsService.getKenoHistory(userId);
+  }
+
   @ApiOperation({ summary: 'Agent: get all deposit/withdrawal requests' })
   @Get('agent/requests')
   getAgentRequests() {
@@ -130,6 +162,53 @@ export class PaymentsController {
         },
       },
     });
+  }
+
+  @ApiOperation({ summary: 'Admin: analytics — daily deposit/withdrawal totals for last 30 days' })
+  @Get('admin/analytics')
+  async adminAnalytics() {
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    since.setHours(0, 0, 0, 0);
+
+    const [deposits, withdrawals, users] = await Promise.all([
+      this.prisma.deposit.findMany({
+        where: { createdAt: { gte: since }, status: 'COMPLETED' },
+        select: { amount: true, createdAt: true },
+      }),
+      this.prisma.withdrawal.findMany({
+        where: { createdAt: { gte: since }, status: 'COMPLETED' },
+        select: { amount: true, createdAt: true },
+      }),
+      this.prisma.user.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    // Build a map of day → totals
+    const days: Record<string, { date: string; deposits: number; withdrawals: number; newUsers: number }> = {};
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(since);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      days[key] = { date: key, deposits: 0, withdrawals: 0, newUsers: 0 };
+    }
+
+    for (const dep of deposits) {
+      const key = dep.createdAt.toISOString().slice(0, 10);
+      if (days[key]) days[key].deposits += Number(dep.amount);
+    }
+    for (const wd of withdrawals) {
+      const key = wd.createdAt.toISOString().slice(0, 10);
+      if (days[key]) days[key].withdrawals += Number(wd.amount);
+    }
+    for (const u of users) {
+      const key = u.createdAt.toISOString().slice(0, 10);
+      if (days[key]) days[key].newUsers += 1;
+    }
+
+    return Object.values(days);
   }
 
   @ApiOperation({ summary: 'Admin: get all withdrawals' })

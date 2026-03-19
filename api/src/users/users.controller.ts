@@ -32,6 +32,22 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @ApiOperation({ summary: 'Admin: ban a user' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Post(':id/ban')
+  banUser(@Param('id') id: string) {
+    return this.usersService.banUser(id);
+  }
+
+  @ApiOperation({ summary: 'Admin: unban a user' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Post(':id/unban')
+  unbanUser(@Param('id') id: string) {
+    return this.usersService.unbanUser(id);
+  }
+
   @ApiOperation({ summary: 'Admin: adjust user coin balance' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
