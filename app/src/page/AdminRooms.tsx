@@ -6,7 +6,6 @@ import {
   FiEye,
   FiPlay,
   FiTrash2,
-  FiUsers,
   FiXCircle,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -157,6 +156,15 @@ export default function AdminRooms() {
             buttonClass: "bg-rose-500 text-white",
           };
 
+  const emptyStateCopy =
+    filter === "WAITING"
+      ? "There are no waiting rooms ready to start."
+      : filter === "PLAYING"
+        ? "There are no live rooms at the moment."
+        : filter === "FINISHED"
+          ? "There are no finished or cancelled rooms yet."
+          : "There are no rooms in the system right now.";
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
@@ -289,7 +297,7 @@ export default function AdminRooms() {
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-8 text-center">
               <p className="text-sm font-bold text-white">No rooms found</p>
               <p className="mt-1 text-[11px] text-gray-500">
-                There are no rooms in this filter right now.
+                {emptyStateCopy}
               </p>
             </div>
           ) : (
@@ -366,6 +374,7 @@ export default function AdminRooms() {
                       <button
                         type="button"
                         onClick={() => setPlayersRoom(room)}
+                        disabled={isMutating}
                         className="inline-flex items-center gap-1 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[10px] font-bold text-blue-300 transition-colors hover:bg-blue-500/20"
                       >
                         <FiEye />
@@ -376,6 +385,7 @@ export default function AdminRooms() {
                         <button
                           type="button"
                           onClick={() => openActionModal(room, "cancel")}
+                          disabled={isMutating}
                           className="inline-flex items-center gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-[10px] font-bold text-yellow-300 transition-colors hover:bg-yellow-500/20"
                         >
                           <FiXCircle />
@@ -387,6 +397,7 @@ export default function AdminRooms() {
                         <button
                           type="button"
                           onClick={() => openActionModal(room, "finish")}
+                          disabled={isMutating}
                           className="inline-flex items-center gap-1 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[10px] font-bold text-rose-300 transition-colors hover:bg-rose-500/20"
                         >
                           <FiPlay />
@@ -398,6 +409,7 @@ export default function AdminRooms() {
                         <button
                           type="button"
                           onClick={() => openActionModal(room, "remove")}
+                          disabled={isMutating}
                           className="inline-flex items-center gap-1 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[10px] font-bold text-rose-300 transition-colors hover:bg-rose-500/20"
                         >
                           <FiTrash2 />
