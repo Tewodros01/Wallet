@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { APP_ROUTES } from "../../config/routes";
 import { useAppSession } from "../../hooks/useAppSession";
 import Dashboard from "../../page/Dashboard";
@@ -9,20 +9,34 @@ interface GuardProps {
 }
 
 export function RequireAuth({ children }: GuardProps) {
+  const location = useLocation();
   const { isAuthenticated } = useAppSession();
 
   if (!isAuthenticated) {
-    return <Navigate to={APP_ROUTES.signin} replace />;
+    return (
+      <Navigate
+        to={APP_ROUTES.signin}
+        replace
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+      />
+    );
   }
 
   return children;
 }
 
 export function RequireAdmin({ children }: GuardProps) {
+  const location = useLocation();
   const { isAuthenticated, isAdmin } = useAppSession();
 
   if (!isAuthenticated) {
-    return <Navigate to={APP_ROUTES.signin} replace />;
+    return (
+      <Navigate
+        to={APP_ROUTES.signin}
+        replace
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+      />
+    );
   }
 
   if (!isAdmin) {

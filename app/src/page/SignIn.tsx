@@ -2,10 +2,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import { APP_ROUTES } from "../config/routes";
 import { useLogin } from "../hooks/useAuth";
 import { getErrorMessage } from "../lib/errors";
 
@@ -16,9 +17,12 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function SignIn() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { mutate: login, isPending, error } = useLogin();
   const [showPw, setShowPw] = useState(false);
+  const redirectTo =
+    (location.state as { from?: string } | null)?.from || APP_ROUTES.dashboard;
 
   const {
     register,
@@ -29,7 +33,7 @@ export default function SignIn() {
   });
 
   const onSubmit = (data: FormData) =>
-    login(data, { onSuccess: () => navigate("/dashboard") });
+    login(data, { onSuccess: () => navigate(redirectTo, { replace: true }) });
 
   const errMsg = error ? getErrorMessage(error, "Failed to sign in") : "";
 
