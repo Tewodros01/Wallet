@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { FaCoins } from "react-icons/fa";
 import { FiGrid, FiHome, FiSettings, FiUser, FiUsers } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -53,9 +53,20 @@ interface AppBarProps {
   left: ReactNode;
   center?: ReactNode;
   right?: ReactNode;
+  className?: string;
+  style?: CSSProperties;
 }
-export const AppBar = ({ left, center, right }: AppBarProps) => (
-  <div className="flex items-center justify-between px-5 py-3.5 bg-gray-950/95 border-b border-white/[0.07] backdrop-blur-xl sticky top-0 z-40">
+export const AppBar = ({
+  left,
+  center,
+  right,
+  className = "",
+  style,
+}: AppBarProps) => (
+  <div
+    className={`flex items-center justify-between px-5 py-3.5 bg-gray-950/95 border-b border-white/[0.07] backdrop-blur-xl sticky top-0 z-40 ${className}`}
+    style={style}
+  >
     {left}
     {center && (
       <div className="absolute left-1/2 -translate-x-1/2">{center}</div>

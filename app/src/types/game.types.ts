@@ -6,7 +6,7 @@ import type { User } from "./user.types";
 export interface GameRoom {
   id: string;
   name: string;
-  hostId: string;
+  hostId?: string;
   status: RoomStatus;
   speed: GameSpeed;
   entryFee: number;
@@ -14,12 +14,12 @@ export interface GameRoom {
   maxPlayers: number;
   cardsPerPlayer: number;
   isPrivate: boolean;
-  password: string | null;
+  password?: never;
   winnerId: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateGameRoomRequest {
@@ -42,20 +42,30 @@ export interface UpdateGameRoomRequest {
 
 export interface RoomPlayer {
   id: string;
-  roomId: string;
-  userId: string;
+  roomId?: string;
+  userId?: string;
   status: PlayerStatus;
-  cardId: string | null;
-  markedNums: number[]; // JSON array
   hasBingo: boolean;
   prize: number;
   joinedAt: string;
   finishedAt: string | null;
 }
 
+export interface PlayerCard {
+  id: string;
+  roomPlayerCardId: string;
+  board: number[][];
+  markedNums: number[];
+}
+
+export interface AvailableRoomCard {
+  id: string;
+  board: number[][];
+}
+
 export interface GameRoomPlayer extends RoomPlayer {
   user?: User;
-  card?: BingoCard | null;
+  cards?: PlayerCard[];
 }
 
 export interface GameRoomDetail extends GameRoom {
@@ -68,7 +78,12 @@ export interface GameRoomDetail extends GameRoom {
 
 export interface JoinRoomResponse {
   success: boolean;
-  card?: BingoCard | null;
+  cards: PlayerCard[];
+  cardsToSelect: number;
+}
+
+export interface SelectRoomCardsResponse {
+  cards: PlayerCard[];
 }
 
 export interface RoomStateResponse {

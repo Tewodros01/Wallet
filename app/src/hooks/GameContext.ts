@@ -1,3 +1,4 @@
+import type { PlayerCard } from "../types/game.types";
 import { createContext } from "react";
 import { connectSocket } from "../lib/socket";
 
@@ -5,8 +6,9 @@ export type GameState = {
   calledNums:  number[];
   currentNum:  number | null;
   remaining:   number;
-  markedNums:  Set<number>;
-  card:        number[][] | null;
+  cards:       PlayerCard[];
+  activeCardId: string | null;
+  markedNumsByCardId: Record<string, Set<number>>;
   winner:      { userId: string; prize: number } | null;
   isStarted:   boolean;
   isPaused:    boolean;
@@ -19,18 +21,20 @@ export type GameContextValue = {
   state:       GameState;
   startGame:   () => void;
   callNext:    () => void;
-  markNumber:  (n: number) => void;
-  claimBingo:  () => void;
+  markNumber:  (n: number, cardId?: string) => Promise<void>;
+  claimBingo:  (cardId?: string) => Promise<void>;
   pauseGame:   () => void;
   resumeGame:  () => void;
+  setActiveCard: (cardId: string) => void;
 };
 
 export const INITIAL: GameState = {
   calledNums:  [],
   currentNum:  null,
   remaining:   75,
-  markedNums:  new Set([0]),
-  card:        null,
+  cards:       [],
+  activeCardId: null,
+  markedNumsByCardId: {},
   winner:      null,
   isStarted:   false,
   isPaused:    false,

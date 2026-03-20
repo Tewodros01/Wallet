@@ -84,9 +84,13 @@ export default function DailyBonus() {
     if (!prize) return;
     play("coin");
     haptic.success();
-    claimBonus(prize.coins, {
-      onSuccess: (data: { newBalance?: number }) => {
-        setBalance(data.newBalance ?? balance + prize.coins);
+    claimBonus(undefined, {
+      onSuccess: (data: { coins?: number; newBalance?: number }) => {
+        const awardedCoins = data.coins ?? prize.coins;
+        setPrize((current) =>
+          current ? { ...current, coins: awardedCoins, label: String(awardedCoins) } : current,
+        );
+        setBalance(data.newBalance ?? balance + awardedCoins);
         localStorage.setItem(STORAGE_KEY, new Date().toISOString());
         setClaimed(true);
         setAlreadySpin(true);

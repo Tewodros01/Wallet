@@ -11,6 +11,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Prisma, Role } from 'generated/prisma/client';
+import {
+  getPublicApiUrl,
+  toPublicAssetUrl,
+} from '../common/utils/avatar-url.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './strategies/jwt-strategy';
@@ -160,18 +164,7 @@ export class AuthService {
 
       return {
         ...tokens,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatar: user.avatar,
-          phone: user.phone,
-          role: user.role,
-          isVerified: user.isVerified,
-          createdAt: user.createdAt,
-        },
+        user: this.toSafeUser(user),
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
@@ -247,7 +240,7 @@ export class AuthService {
         select: userSelect,
       });
       if (!user) throw new UnauthorizedException('User not found');
-      return user;
+      return this.toSafeUser(user);
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException('Failed to validate user');
@@ -329,10 +322,14 @@ export class AuthService {
 
       // In production you would email rawToken. We return it here for
       // demo/dev purposes — replace with your email provider.
-      return {
-        message: 'If that email exists, a reset link has been sent.',
-        resetToken: rawToken, // REMOVE in production, send via email instead
-      };
+      return process.env.NODE_ENV === 'production'
+        ? {
+            message: 'If that email exists, a reset link has been sent.',
+          }
+        : {
+            message: 'If that email exists, a reset link has been sent.',
+            resetToken: rawToken,
+          };
     } catch {
       throw new InternalServerErrorException('Failed to process password reset');
     }
@@ -422,12 +419,16 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatar: user.avatar,
+      avatar: this.toPublicAssetUrl(user.avatar),
       phone: user.phone,
       role: user.role,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
     };
+  }
+
+  private toPublicAssetUrl(path: string | null): string | null {
+    return toPublicAssetUrl(path, getPublicApiUrl(this.configService));
   }
 
   private hashToken(token: string): string {

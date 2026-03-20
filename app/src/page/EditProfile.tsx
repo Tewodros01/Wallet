@@ -9,18 +9,20 @@ import {
   FiUser,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { usersApi } from "../api/users.api";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { AppBar } from "../components/ui/Layout";
-import { useMe, useUpdateMe } from "../hooks/useUser";
-import { api } from "../lib/axios";
+import { userKeys, useMe, useUpdateMe } from "../hooks/useUser";
 import { getErrorMessage } from "../lib/errors";
+import { useAuthStore } from "../store/auth.store";
 
 export default function EditProfile() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: me } = useMe();
   const { mutate: updateMe, isPending } = useUpdateMe();
+  const setUser = useAuthStore((s) => s.setUser);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bioId = useId();
 
@@ -66,14 +68,13 @@ export default function EditProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarPreview(URL.createObjectURL(file));
+    setError(null);
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      await api.post("/users/me/avatar", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      qc.invalidateQueries({ queryKey: ["users", "me"] });
+      const { user } = await usersApi.uploadAvatar(file);
+      setUser(user);
+      qc.setQueryData(userKeys.me, user);
+      setAvatarPreview(user.avatar);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to upload avatar"));
     } finally {

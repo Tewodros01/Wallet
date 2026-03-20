@@ -1,5 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import { GameSpeed } from 'generated/prisma/client';
 
 export class CreateRoomDto {
@@ -40,8 +54,10 @@ export class CreateRoomDto {
   isPrivate?: boolean;
 
   @ApiPropertyOptional({ example: 'secret123' })
-  @IsOptional()
+  @ValidateIf((dto: CreateRoomDto) => dto.isPrivate === true)
   @IsString()
+  @MinLength(4)
+  @MaxLength(50)
   password?: string;
 }
 
@@ -50,6 +66,22 @@ export class JoinRoomDto {
   @IsOptional()
   @IsString()
   password?: string;
+}
+
+export class ClaimBingoDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  cardId?: string;
+}
+
+export class SelectRoomCardsDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  cardIds!: string[];
 }
 
 export class QueryRoomsDto {

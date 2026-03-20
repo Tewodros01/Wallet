@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../api/auth.api";
+import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import type { LoginPayload, RegisterPayload } from "../types/auth.types";
 
@@ -29,13 +30,13 @@ export const useRegister = () => {
 };
 
 export const useLogout = () => {
-  const { refreshToken, clear } = useAuthStore();
+  const { refreshToken } = useAuthStore();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authApi.logout(refreshToken ?? ""),
     onSettled: () => {
-      clear();
+      clearClientSession();
       queryClient.clear();
     },
   });
@@ -69,10 +70,9 @@ export const useRevokeSession = () => {
 };
 
 export const useRevokeAllSessions = () => {
-  const { clear } = useAuthStore();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => authApi.logoutAll(),
-    onSuccess: () => { clear(); qc.clear(); },
+    onSuccess: () => { clearClientSession(); qc.clear(); },
   });
 };

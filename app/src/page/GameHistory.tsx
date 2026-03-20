@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { FaCoins } from "react-icons/fa";
-import { FiClock } from "react-icons/fi";
-import { AppBar, BottomNav } from "../components/ui/Layout";
+import { FiArrowLeft, FiClock } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { AppBar } from "../components/ui/Layout";
 import { useGameHistory } from "../hooks/useRooms";
 import { useMyStats } from "../hooks/useUser";
 import type { GameHistoryItem } from "../types/game-history.types";
@@ -10,6 +11,7 @@ const FILTERS = ["All", "Wins", "Losses"] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function GameHistory() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("All");
 
   const { data: history = [], isLoading } = useGameHistory();
@@ -50,16 +52,27 @@ export default function GameHistory() {
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
         left={
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-              <FiClock className="text-violet-400 text-sm" />
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => navigate(-1)}
+              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+            >
+              <FiArrowLeft className="text-white text-sm" />
+            </button>
             <span className="text-base font-black">Game History</span>
+          </div>
+        }
+        right={
+          <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
+            <FiClock className="text-violet-400 text-sm" />
           </div>
         }
       />
 
-      <div className="flex flex-col gap-5 px-5 py-5 pb-28">
+      <div className="flex flex-col gap-5 px-5 py-5">
         {/* Summary */}
         <div className="grid grid-cols-4 gap-2">
           {summary.map(({ label, value, color }) => (
@@ -188,7 +201,6 @@ export default function GameHistory() {
           </div>
         )}
       </div>
-      <BottomNav />
     </div>
   );
 }

@@ -54,7 +54,7 @@ export const useTransfer = () => {
 export const useClaimDailyBonus = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (coins: number) => paymentsApi.claimDailyBonus(coins),
+    mutationFn: () => paymentsApi.claimDailyBonus(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       qc.invalidateQueries({ queryKey: ["wallets"] });

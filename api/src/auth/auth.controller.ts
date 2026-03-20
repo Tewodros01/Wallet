@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -107,8 +108,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Revoke a session' })
   @Post('sessions/:id/revoke')
   @HttpCode(HttpStatus.OK)
-  revokeSession(@GetUser('sub') userId: string, @Body() dto: { sessionId: string }) {
-    return this.authService.revokeSession(userId, dto.sessionId);
+  revokeSession(@GetUser('sub') userId: string, @Param('id') sessionId: string) {
+    return this.authService.revokeSession(userId, sessionId);
   }
 
   @ApiOperation({ summary: 'Request password reset (sends token)' })

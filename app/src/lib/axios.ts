@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { APP_ROUTES } from "../config/routes";
 import { useAuthStore } from "../store/auth.store";
+import { clearClientSession } from "./session";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
@@ -15,10 +16,18 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 let isRefreshing = false;
-let queue: Array<(token: string) => void> = [];
+let queue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: AxiosError) => void;
+}> = [];
 
 const processQueue = (token: string) => {
-  queue.forEach((cb) => cb(token));
+  queue.forEach(({ resolve }) => resolve(token));
+  queue = [];
+};
+
+const rejectQueue = (error: AxiosError) => {
+  queue.forEach(({ reject }) => reject(error));
   queue = [];
 };
 
@@ -28,15 +37,33 @@ api.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+    const requestUrl = original?.url ?? "";
+    const isAuthEndpoint =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/refresh") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/reset-password");
+    const accessToken = useAuthStore.getState().accessToken;
+    const refreshToken = useAuthStore.getState().refreshToken;
+    const shouldHandleUnauthorized =
+      error.response?.status === 401 &&
+      !original?._retry &&
+      !isAuthEndpoint &&
+      Boolean(accessToken) &&
+      Boolean(refreshToken);
 
-    if (error.response?.status === 401 && !original._retry) {
+    if (shouldHandleUnauthorized) {
       original._retry = true;
 
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          queue.push((token) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(api(original));
+        return new Promise((resolve, reject) => {
+          queue.push({
+            resolve: (token) => {
+              original.headers.Authorization = `Bearer ${token}`;
+              resolve(api(original));
+            },
+            reject: (queuedError) => reject(queuedError),
           });
         });
       }
@@ -44,7 +71,6 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = useAuthStore.getState().refreshToken;
         if (!refreshToken) throw new Error("No refresh token");
 
         const { data } = await axios.post<{
@@ -61,7 +87,8 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${data.access_token}`;
         return api(original);
       } catch {
-        useAuthStore.getState().clear();
+        rejectQueue(error);
+        clearClientSession();
         window.location.href = APP_ROUTES.signin;
         return Promise.reject(error);
       } finally {

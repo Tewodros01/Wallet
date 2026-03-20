@@ -4,13 +4,24 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { TransactionType, TournamentStatus } from 'generated/prisma/client';
+import { ConfigService } from '@nestjs/config';
+import {
+  MissionCategory,
+  TransactionType,
+  TournamentStatus,
+} from 'generated/prisma/client';
+import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
+import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTournamentDto } from './dto/tournament.dto';
 
 @Injectable()
 export class TournamentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly missionsService: MissionsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async findAll(userId: string) {
     const tournaments = await this.prisma.tournament.findMany({
@@ -61,7 +72,7 @@ export class TournamentsService {
     if (!user || user.coinsBalance < t.entryFee)
       throw new BadRequestException('Insufficient coin balance');
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (t.entryFee > 0) {
         await tx.user.update({ where: { id: userId }, data: { coinsBalance: { decrement: t.entryFee } } });
         await tx.tournament.update({ where: { id: tournamentId }, data: { prize: { increment: t.entryFee } } });
@@ -83,6 +94,12 @@ export class TournamentsService {
       const updated = await tx.user.findUnique({ where: { id: userId }, select: { coinsBalance: true } });
       return { success: true, newBalance: updated?.coinsBalance ?? 0 };
     });
+
+    void this.missionsService
+      .incrementCategoryProgress(userId, MissionCategory.TOURNAMENT)
+      .catch(() => {});
+
+    return result;
   }
 
   async getLeaderboard() {
@@ -104,12 +121,15 @@ export class TournamentsService {
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
-    return sorted.map(([userId, totalPrize], i) => ({
+    return normalizeAvatarUrls(sorted.map(([userId, totalPrize], i) => ({
       rank: i + 1,
       user: userMap.get(userId),
       wins: wins.filter((w) => w.userId === userId).length,
       totalPrize,
-    }));
+    })), this.configService.get<string>(
+      'publicApiUrl',
+      `http://localhost:${this.configService.get<number>('port', 3000)}`,
+    ));
   }
 
   async create(dto: CreateTournamentDto) {

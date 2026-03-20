@@ -5,10 +5,16 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, Role } from 'generated/prisma/client';
-import * as path from 'path';
+import {
+  getPublicApiUrl,
+  toPublicAssetUrl,
+} from '../common/utils/avatar-url.util';
+import {
+  IMAGE_UPLOAD_MIME_TYPES,
+  storeUploadedFile,
+} from '../common/utils/upload.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -30,13 +36,17 @@ const userSelect = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async findAll() {
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       select: { ...userSelect, role: true, deletedAt: true },
       orderBy: { createdAt: 'desc' },
     });
+    return users.map((user) => this.serializeUser(user));
   }
 
   async updateRole(id: string, role: Role) {
@@ -44,11 +54,12 @@ export class UsersService {
       where: { id, deletedAt: null },
     });
     if (!user) throw new NotFoundException('User not found');
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: { role },
       select: userSelect,
     });
+    return this.serializeUser(updatedUser);
   }
 
   async findOne(id: string) {
@@ -57,16 +68,17 @@ export class UsersService {
       select: userSelect,
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    return this.serializeUser(user);
   }
 
   async update(id: string, dto: UpdateUserDto) {
     try {
-      return await this.prisma.user.update({
+      const user = await this.prisma.user.update({
         where: { id },
         data: dto,
         select: userSelect,
       });
+      return this.serializeUser(user);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -83,25 +95,23 @@ export class UsersService {
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file provided');
-
-    // Save to /public/avatars — in production swap this for S3/Cloudinary
-    const uploadsDir = path.join(process.cwd(), 'public', 'avatars');
-    if (!fs.existsSync(uploadsDir))
-      fs.mkdirSync(uploadsDir, { recursive: true });
-
-    const ext = path.extname(file.originalname) || '.jpg';
-    const filename = `${userId}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-    const filepath = path.join(uploadsDir, filename);
-    fs.writeFileSync(filepath, file.buffer);
-
-    const avatarUrl = `/public/avatars/${filename}`;
+    const avatarUrl = storeUploadedFile({
+      file,
+      subdirectory: 'avatars',
+      allowedMimeTypes: IMAGE_UPLOAD_MIME_TYPES,
+      fallbackExtension: '.jpg',
+      filenamePrefix: userId,
+      errorMessage: 'Only JPG, PNG, WEBP, and GIF files are allowed',
+    });
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { avatar: avatarUrl },
       select: userSelect,
     });
-    return { avatarUrl, user };
+    return {
+      avatarUrl: this.toPublicAssetUrl(avatarUrl),
+      user: this.serializeUser(user),
+    };
   }
 
   async getGameStats(userId: string) {
@@ -219,7 +229,7 @@ export class UsersService {
       ).length;
 
       return {
-        agent,
+        agent: this.serializeUser(agent),
         invite: invite
           ? {
               code: invite.code,
@@ -228,9 +238,18 @@ export class UsersService {
               usedAt: invite.usedAt,
             }
           : null,
-        invitedUsers: invite?.invitedUsers ?? [],
-        deposits,
-        withdrawals,
+        invitedUsers:
+          invite?.invitedUsers.map((user) => this.serializeUser(user)) ?? [],
+        deposits: deposits.map((deposit) => ({
+          ...deposit,
+          user: deposit.user ? this.serializeUser(deposit.user) : deposit.user,
+        })),
+        withdrawals: withdrawals.map((withdrawal) => ({
+          ...withdrawal,
+          user: withdrawal.user
+            ? this.serializeUser(withdrawal.user)
+            : withdrawal.user,
+        })),
         summary: {
           totalInvited: invitedIds.length,
           totalDepositCoins,
@@ -249,11 +268,12 @@ export class UsersService {
   }
 
   async completeOnboarding(userId: string) {
-    return this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: { onboardingDone: true },
       select: userSelect,
     });
+    return this.serializeUser(user);
   }
 
   async adjustCoins(id: string, amount: number, note: string) {
@@ -261,6 +281,9 @@ export class UsersService {
       where: { id, deletedAt: null },
     });
     if (!user) throw new NotFoundException('User not found');
+    if (amount < 0 && user.coinsBalance + amount < 0) {
+      throw new BadRequestException('Adjustment would make balance negative');
+    }
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.user.update({
         where: { id },
@@ -292,7 +315,9 @@ export class UsersService {
   }
 
   async banUser(id: string) {
-    const user = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!user) throw new NotFoundException('User not found');
     return this.prisma.user.update({
       where: { id },
@@ -335,12 +360,29 @@ export class UsersService {
 
       return players.map((p, i) => ({
         rank: i + 1,
-        user: userMap.get(p.userId),
+        user: userMap.get(p.userId)
+          ? this.serializeUser(userMap.get(p.userId)!)
+          : null,
         totalEarned: p._sum.prize ?? 0,
         wins: p._count.hasBingo,
       }));
     } catch {
       throw new InternalServerErrorException('Failed to fetch leaderboard');
     }
+  }
+
+  private getPublicApiUrl() {
+    return getPublicApiUrl(this.configService);
+  }
+
+  private toPublicAssetUrl(path: string | null) {
+    return toPublicAssetUrl(path, this.getPublicApiUrl());
+  }
+
+  private serializeUser<T extends { avatar: string | null }>(user: T): T {
+    return {
+      ...user,
+      avatar: this.toPublicAssetUrl(user.avatar),
+    };
   }
 }

@@ -1,4 +1,4 @@
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -15,7 +15,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoomsService } from '../rooms/rooms.service';
-import { GameSpeed, RoomStatus } from 'generated/prisma/client';
+import {
+  cardContainsNumber,
+  hasWinningPattern,
+  normalizeBoard,
+  normalizeCalledNums,
+  normalizeMarkedNums,
+} from '../rooms/bingo.util';
+import { GameSpeed, PlayerStatus, RoomStatus } from 'generated/prisma/client';
 
 // ── Speed → interval ms ──────────────────────────────────────────────────────
 const SPEED_INTERVAL: Record<GameSpeed, number> = {
@@ -31,6 +38,17 @@ interface RoomState {
   intervalId: NodeJS.Timeout | null;
   speed:      GameSpeed;
 }
+
+type GatewayPlayerCard = {
+  id: string;
+  cardId: string;
+  markedNums: unknown;
+  card: { id: string; board: unknown };
+};
+
+type GatewayRoomPlayerWithCards = {
+  cards: GatewayPlayerCard[];
+};
 
 @WebSocketGateway({
   namespace: '/game',
@@ -55,6 +73,7 @@ export class GameGateway
 
   afterInit() {
     this.logger.log('🎮 GameGateway initialised');
+    void this.restoreActiveGames();
   }
 
   // ── Connection / auth ──────────────────────────────────────────────────────
@@ -91,9 +110,94 @@ export class GameGateway
     return uid;
   }
 
+  private async getRoomAccess(
+    roomId: string,
+    userId: string,
+  ): Promise<{ room: { id: string; isPrivate: boolean }; isMember: boolean }> {
+    const room = await this.prisma.gameRoom.findUnique({
+      where: { id: roomId },
+      select: { id: true, isPrivate: true },
+    });
+    if (!room) throw new WsException('Room not found');
+
+    const player = await this.prisma.roomPlayer.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+      select: { id: true },
+    });
+
+    return { room, isMember: Boolean(player) };
+  }
+
   private buildRemaining(called: number[]): number[] {
     const set = new Set(called);
     return Array.from({ length: 75 }, (_, i) => i + 1).filter((n) => !set.has(n));
+  }
+
+  private async restoreActiveGames() {
+    try {
+      const activeRooms = await this.prisma.gameRoom.findMany({
+        where: { status: RoomStatus.PLAYING },
+        include: {
+          rounds: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      for (const room of activeRooms) {
+        const calledNums = normalizeCalledNums(room.rounds[0]?.calledNums);
+        const state: RoomState = {
+          calledNums,
+          remaining: this.buildRemaining(calledNums),
+          intervalId: null,
+          speed: room.speed,
+        };
+        this.rooms.set(room.id, state);
+        if (state.remaining.length > 0) {
+          this.startAutoCaller(room.id, state);
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        'Failed to restore active games',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  private async ensureRoomState(roomId: string): Promise<RoomState | null> {
+    const existing = this.rooms.get(roomId);
+    if (existing) return existing;
+
+    const room = await this.prisma.gameRoom.findUnique({
+      where: { id: roomId },
+      include: {
+        rounds: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!room || room.status !== RoomStatus.PLAYING) {
+      return null;
+    }
+
+    const calledNums = normalizeCalledNums(room.rounds[0]?.calledNums);
+    const state: RoomState = {
+      calledNums,
+      remaining: this.buildRemaining(calledNums),
+      intervalId: null,
+      speed: room.speed,
+    };
+    this.rooms.set(roomId, state);
+
+    if (state.remaining.length > 0) {
+      this.startAutoCaller(roomId, state);
+    }
+
+    return state;
   }
 
   // ── Events ─────────────────────────────────────────────────────────────────
@@ -106,18 +210,23 @@ export class GameGateway
   ) {
     const userId = this.getUserId(client);
     const { roomId } = payload;
+    const alreadyJoined = client.rooms.has(roomId);
 
     // verify player is in the DB room
     const player = await this.prisma.roomPlayer.findUnique({
       where: { roomId_userId: { roomId, userId } },
-      include: { card: true },
+      include: {
+        cards: {
+          include: { card: true },
+        },
+      },
     });
     if (!player) throw new WsException('Not a member of this room');
 
     await client.join(roomId);
 
     // send current game state if game is already running
-    const state = this.rooms.get(roomId);
+    const state = await this.ensureRoomState(roomId);
     if (state) {
       client.emit('game:state', {
         calledNums: state.calledNums,
@@ -126,11 +235,23 @@ export class GameGateway
       });
     }
 
-    // send player their card
-    client.emit('player:card', { card: player.card });
+    const playerWithCards = player as typeof player & GatewayRoomPlayerWithCards;
 
-    // notify room
-    this.server.to(roomId).emit('room:player_joined', { userId, count: await this.prisma.roomPlayer.count({ where: { roomId } }) });
+    client.emit('player:cards', {
+      cards: playerWithCards.cards.map((entry) => ({
+        id: entry.card.id,
+        roomPlayerCardId: entry.id,
+        board: entry.card.board,
+        markedNums: Array.isArray(entry.markedNums) ? entry.markedNums : [],
+      })),
+    });
+
+    if (!alreadyJoined) {
+      this.server.to(roomId).emit('room:player_joined', {
+        userId,
+        count: await this.prisma.roomPlayer.count({ where: { roomId } }),
+      });
+    }
 
     this.logger.log(`User ${userId} joined socket room ${roomId}`);
     return { success: true };
@@ -182,6 +303,7 @@ export class GameGateway
     const room = await this.prisma.gameRoom.findUnique({ where: { id: roomId } });
     if (!room || room.hostId !== userId) throw new WsException('Unauthorized');
 
+    await this.ensureRoomState(roomId);
     await this.callNextNumber(roomId);
     return { success: true };
   }
@@ -190,31 +312,44 @@ export class GameGateway
   @SubscribeMessage('player:mark')
   async onPlayerMark(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string; number: number },
+    @MessageBody() payload: { roomId: string; cardId: string; number: number },
   ) {
     const userId = this.getUserId(client);
-    const { roomId, number } = payload;
+    const { roomId, cardId, number } = payload;
 
-    const state = this.rooms.get(roomId);
+    const state = await this.ensureRoomState(roomId);
     if (!state || !state.calledNums.includes(number)) {
       throw new WsException('Number has not been called');
     }
 
     const player = await this.prisma.roomPlayer.findUnique({
       where: { roomId_userId: { roomId, userId } },
+      include: {
+        cards: {
+          include: { card: true },
+        },
+      },
     });
     if (!player) throw new WsException('Not in room');
 
-    const marked: number[] = Array.isArray(player.markedNums) ? (player.markedNums as number[]) : [];
+    const playerWithCards = player as typeof player & GatewayRoomPlayerWithCards;
+    const playerCard = playerWithCards.cards.find((entry) => entry.cardId === cardId);
+    if (!playerCard) throw new WsException('Card not found');
+
+    const board = normalizeBoard(playerCard.card.board);
+    const hasNumber = cardContainsNumber(board, number);
+    if (!hasNumber) throw new WsException('Number is not on this card');
+
+    const marked = normalizeMarkedNums(playerCard.markedNums);
     if (!marked.includes(number)) {
       marked.push(number);
-      await this.prisma.roomPlayer.update({
-        where: { roomId_userId: { roomId, userId } },
+      await this.prisma.roomPlayerCard.update({
+        where: { id: playerCard.id },
         data: { markedNums: marked },
       });
     }
 
-    client.emit('player:marked', { number, markedNums: marked });
+    client.emit('player:marked', { cardId, number, markedNums: marked });
     return { success: true };
   }
 
@@ -222,34 +357,42 @@ export class GameGateway
   @SubscribeMessage('game:bingo')
   async onBingoClaim(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string },
+    @MessageBody() payload: { roomId: string; cardId: string },
   ) {
     const userId = this.getUserId(client);
-    const { roomId } = payload;
+    const { roomId, cardId } = payload;
 
-    const state = this.rooms.get(roomId);
+    const state = await this.ensureRoomState(roomId);
     if (!state) throw new WsException('Game not active');
 
     // validate win on server side
     const player = await this.prisma.roomPlayer.findUnique({
       where: { roomId_userId: { roomId, userId } },
-      include: { card: true },
+      include: {
+        cards: {
+          include: { card: true },
+        },
+      },
     });
-    if (!player || !player.card) throw new WsException('Player not found');
+    if (!player) throw new WsException('Player not found');
 
-    const board   = player.card.board as number[][];
-    const marked  = new Set<number>(Array.isArray(player.markedNums) ? (player.markedNums as number[]) : []);
+    const playerWithCards = player as typeof player & GatewayRoomPlayerWithCards;
+    const playerCard = playerWithCards.cards.find((entry) => entry.cardId === cardId);
+    if (!playerCard?.card) throw new WsException('Card not found');
+
+    const board = normalizeBoard(playerCard.card.board);
+    const marked = new Set<number>(normalizeMarkedNums(playerCard.markedNums));
     marked.add(0); // free space
 
-    if (!this.checkWin(board, marked, new Set(state.calledNums))) {
+    if (!hasWinningPattern(board, marked, new Set(state.calledNums))) {
       throw new WsException('No valid BINGO pattern detected');
     }
 
-    // stop auto-caller
-    this.stopAutoCaller(roomId);
-
     // persist win
-    const result = await this.roomsService.claimBingo(roomId, userId);
+    const result = await this.roomsService.claimBingo(roomId, userId, cardId);
+
+    // stop auto-caller only after the win is persisted
+    this.stopAutoCaller(roomId);
 
     // broadcast to all in room
     this.server.to(roomId).emit('game:winner', {
@@ -272,6 +415,7 @@ export class GameGateway
     const room   = await this.prisma.gameRoom.findUnique({ where: { id: payload.roomId } });
     if (!room || room.hostId !== userId) throw new WsException('Unauthorized');
 
+    await this.ensureRoomState(payload.roomId);
     this.stopAutoCaller(payload.roomId);
     this.server.to(payload.roomId).emit('game:paused');
     return { success: true };
@@ -287,11 +431,25 @@ export class GameGateway
     const room   = await this.prisma.gameRoom.findUnique({ where: { id: payload.roomId } });
     if (!room || room.hostId !== userId) throw new WsException('Unauthorized');
 
-    const state = this.rooms.get(payload.roomId);
+    const state = await this.ensureRoomState(payload.roomId);
     if (!state) throw new WsException('Game state not found');
 
     this.startAutoCaller(payload.roomId, state);
     this.server.to(payload.roomId).emit('game:resumed');
+    return { success: true };
+  }
+
+  /** Player leaves a socket room */
+  @SubscribeMessage('room:leave')
+  async onRoomLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string },
+  ) {
+    const userId = this.getUserId(client);
+    const { roomId } = payload;
+
+    await client.leave(roomId);
+    this.logger.log(`User ${userId} left socket room ${roomId}`);
     return { success: true };
   }
 
@@ -303,15 +461,16 @@ export class GameGateway
   ) {
     const userId = this.getUserId(client);
     const { roomId } = payload;
-
-    const room = await this.prisma.gameRoom.findUnique({ where: { id: roomId } });
-    if (!room) throw new WsException('Room not found');
+    const { room, isMember } = await this.getRoomAccess(roomId, userId);
+    if (room.isPrivate && !isMember) {
+      throw new WsException('Private room spectators are not allowed');
+    }
 
     // spectators join a separate sub-room so we can track them
     await client.join(`spectator:${roomId}`);
     await client.join(roomId); // also join main room to receive game events
 
-    const state = this.rooms.get(roomId);
+    const state = await this.ensureRoomState(roomId);
     if (state) {
       client.emit('game:state', {
         calledNums: state.calledNums,
@@ -382,8 +541,14 @@ export class GameGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { roomId: string },
   ) {
+    const userId = this.getUserId(client);
     const { roomId } = payload;
-    const state = this.rooms.get(roomId);
+    const { room: accessRoom, isMember } = await this.getRoomAccess(roomId, userId);
+    if (accessRoom.isPrivate && !isMember) {
+      throw new WsException('Not authorized to view this room');
+    }
+
+    const state = await this.ensureRoomState(roomId);
     const room  = await this.prisma.gameRoom.findUnique({
       where: { id: roomId },
       include: {
@@ -408,12 +573,29 @@ export class GameGateway
     if (state.intervalId) clearInterval(state.intervalId);
 
     state.intervalId = setInterval(async () => {
-      if (state.remaining.length === 0) {
+      try {
+        if (state.remaining.length === 0) {
+          this.stopAutoCaller(roomId);
+          await this.finishRoomWithoutWinner(roomId);
+          this.server.to(roomId).emit('game:all_called');
+          return;
+        }
+        await this.callNextNumber(roomId);
+      } catch (error) {
         this.stopAutoCaller(roomId);
-        this.server.to(roomId).emit('game:all_called');
-        return;
+        await this.cancelRoomDueToRuntimeError(roomId);
+        this.server.to(roomId).emit('game:cancelled', {
+          roomId,
+          message: 'Game stopped because of a server error.',
+        });
+        this.server.to(roomId).emit('exception', {
+          message: 'Game stopped because of a server error.',
+        });
+        this.logger.error(
+          `Auto-caller failed for room ${roomId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
       }
-      await this.callNextNumber(roomId);
     }, SPEED_INTERVAL[state.speed]);
   }
 
@@ -430,17 +612,26 @@ export class GameGateway
     if (!state || state.remaining.length === 0) return;
 
     // pick random from remaining
-    const idx    = Math.floor(Math.random() * state.remaining.length);
+    const idx = Math.floor(Math.random() * state.remaining.length);
     const number = state.remaining[idx];
-
-    state.remaining.splice(idx, 1);
-    state.calledNums.push(number);
+    const nextCalledNums = [...state.calledNums, number];
 
     // persist to DB
-    await this.prisma.gameRound.updateMany({
-      where: { roomId },
-      data:  { calledNums: state.calledNums, currentNum: number },
+    const updatedRounds = await this.prisma.gameRound.updateMany({
+      where: {
+        roomId,
+        room: { status: RoomStatus.PLAYING },
+      },
+      data: { calledNums: nextCalledNums, currentNum: number },
     });
+    if (updatedRounds.count < 1) {
+      this.stopAutoCaller(roomId);
+      this.rooms.delete(roomId);
+      return;
+    }
+
+    state.remaining.splice(idx, 1);
+    state.calledNums = nextCalledNums;
 
     // broadcast
     this.server.to(roomId).emit('game:number_called', {
@@ -450,30 +641,67 @@ export class GameGateway
     });
   }
 
-  // ── Win detection ──────────────────────────────────────────────────────────
+  private async finishRoomWithoutWinner(roomId: string) {
+    const finishedAt = new Date();
 
-  private checkWin(
-    board:   number[][],
-    marked:  Set<number>,
-    called:  Set<number>,
-  ): boolean {
-    const isMarked = (r: number, c: number) => {
-      const n = board[r][c];
-      return n === 0 || (marked.has(n) && called.has(n));
-    };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gameRoom.updateMany({
+        where: {
+          id: roomId,
+          status: RoomStatus.PLAYING,
+        },
+        data: {
+          status: RoomStatus.FINISHED,
+          finishedAt,
+        },
+      });
 
-    // rows
-    for (let r = 0; r < 5; r++) {
-      if ([0,1,2,3,4].every((c) => isMarked(r, c))) return true;
-    }
-    // cols
-    for (let c = 0; c < 5; c++) {
-      if ([0,1,2,3,4].every((r) => isMarked(r, c))) return true;
-    }
-    // diagonals
-    if ([0,1,2,3,4].every((i) => isMarked(i, i))) return true;
-    if ([0,1,2,3,4].every((i) => isMarked(i, 4 - i))) return true;
+      await tx.roomPlayer.updateMany({
+        where: {
+          roomId,
+          status: {
+            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+          },
+        },
+        data: {
+          status: PlayerStatus.LOST,
+          finishedAt,
+        },
+      });
+    });
 
-    return false;
+    this.rooms.delete(roomId);
+  }
+
+  private async cancelRoomDueToRuntimeError(roomId: string) {
+    const finishedAt = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gameRoom.updateMany({
+        where: {
+          id: roomId,
+          status: RoomStatus.PLAYING,
+        },
+        data: {
+          status: RoomStatus.CANCELLED,
+          finishedAt,
+        },
+      });
+
+      await tx.roomPlayer.updateMany({
+        where: {
+          roomId,
+          status: {
+            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+          },
+        },
+        data: {
+          status: PlayerStatus.LEFT,
+          finishedAt,
+        },
+      });
+    });
+
+    this.rooms.delete(roomId);
   }
 }

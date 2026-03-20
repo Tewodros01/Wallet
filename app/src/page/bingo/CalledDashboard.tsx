@@ -15,24 +15,31 @@ import { haptic } from "../../lib/haptic";
 import { connectSocket } from "../../lib/socket";
 import { useAuthStore } from "../../store/auth.store";
 import { useSoundStore } from "../../store/sound.store";
-import type { BingoChatMessage, GameRoomDetail } from "../../types";
+import type { BingoChatMessage, GameRoomDetail, PlayerCard } from "../../types";
 import { BingoBall, BingoCard, StatBadge } from "./bingoComponents";
 
+const PLAYER_BAR_OFFSET_PX = 100;
+const CHAT_ACK_TIMEOUT_MS = 4000;
+
 interface CalledDashboardProps {
-  card: number[][] | null;
+  cards: PlayerCard[];
+  selectedCardId: string | null;
+  onSelectCard: (cardId: string) => void;
   roomId: string;
   playerCount: number;
   roomData?: GameRoomDetail;
 }
 
 export default function CalledDashboard({
-  card,
+  cards: initialCards,
+  selectedCardId,
+  onSelectCard,
   roomId,
   playerCount: initialCount,
   roomData,
 }: CalledDashboardProps) {
   const user = useAuthStore((s) => s.user);
-  const { state, markNumber, claimBingo } = useGame();
+  const { state, markNumber, claimBingo, setActiveCard } = useGame();
   const { data: room } = useRoom(roomId, roomData);
   const { play } = useGameSound();
   const muted = useSoundStore((s) => s.muted);
@@ -44,6 +51,8 @@ export default function CalledDashboard({
   const [chatMsgs, setChatMsgs] = useState<BingoChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [unreadChat, setUnreadChat] = useState(0);
+  const [isClaimingBingo, setIsClaimingBingo] = useState(false);
+  const [isSendingChat, setIsSendingChat] = useState(false);
 
   // Subscribe to chat events
   useEffect(() => {
@@ -65,17 +74,36 @@ export default function CalledDashboard({
 
   const sendChat = () => {
     const msg = chatInput.trim();
-    if (!msg) return;
+    if (!msg || isSendingChat) return;
     const socket = connectSocket();
-    socket.emit("chat:send", { roomId, message: msg });
-    setChatInput("");
+    setIsSendingChat(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSendingChat(false);
+    }, CHAT_ACK_TIMEOUT_MS);
+
+    socket.emit(
+      "chat:send",
+      { roomId, message: msg },
+      (res?: { success?: boolean; error?: { message?: string } }) => {
+        window.clearTimeout(timeoutId);
+        setIsSendingChat(false);
+
+        if (res?.error?.message) {
+          return;
+        }
+
+        setChatInput("");
+      },
+    );
   };
 
   const {
     calledNums,
     currentNum,
-    markedNums,
-    card: serverCard,
+    cards: serverCards,
+    activeCardId,
+    markedNumsByCardId,
     winner,
     isFinished,
     error,
@@ -89,10 +117,22 @@ export default function CalledDashboard({
         ? dbCount
         : initialCount;
 
-  const board = serverCard ?? card;
+  const cards = serverCards.length ? serverCards : initialCards;
+  const resolvedCardId = selectedCardId ?? activeCardId ?? cards[0]?.id ?? null;
+  const activeCard = cards.find((card) => card.id === resolvedCardId) ?? null;
+  const markedNums = resolvedCardId
+    ? (markedNumsByCardId[resolvedCardId] ?? new Set([0]))
+    : new Set([0]);
+  const board = activeCard?.board ?? null;
   const called = new Set(calledNums);
   const latest = currentNum ?? 0;
   const ll = latest ? getLetter(latest) : null;
+
+  useEffect(() => {
+    if (resolvedCardId) {
+      setActiveCard(resolvedCardId);
+    }
+  }, [resolvedCardId, setActiveCard]);
 
   // Pop sound + spoken announcement on each new number
   useEffect(() => {
@@ -120,6 +160,12 @@ export default function CalledDashboard({
       }
     }
   }, [isFinished, winner, user?.id, play]);
+
+  useEffect(() => {
+    if (error || winner || isFinished) {
+      setIsClaimingBingo(false);
+    }
+  }, [error, winner, isFinished]);
 
   // Cancel speech on unmount
   useEffect(() => () => cancelAnnouncement(), []);
@@ -176,6 +222,8 @@ export default function CalledDashboard({
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
+        className="!fixed !left-0 !right-0 !z-40 !px-4 !py-2"
+        style={{ top: PLAYER_BAR_OFFSET_PX }}
         left={
           <Avatar
             src={user?.avatar ?? "https://i.pravatar.cc/40"}
@@ -212,19 +260,22 @@ export default function CalledDashboard({
         }
       />
 
-      {error && (
-        <div className="mx-5 mt-3 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-2 text-xs text-rose-400 font-semibold text-center">
-          {error}
-        </div>
-      )}
+      <div
+        className="flex flex-col gap-4 px-5 pb-5 flex-1"
+        style={{ paddingTop: PLAYER_BAR_OFFSET_PX }}
+      >
+        {error && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-2 text-xs text-rose-400 font-semibold text-center">
+            {error}
+          </div>
+        )}
 
-      {!state.isStarted && (
-        <div className="mx-5 mt-3 bg-orange-500/10 border border-orange-500/20 rounded-xl px-4 py-3 text-xs text-orange-400 font-semibold text-center animate-pulse">
-          Waiting for host to start the game...
-        </div>
-      )}
+        {!state.isStarted && (
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl px-4 py-3 text-xs text-orange-400 font-semibold text-center animate-pulse">
+            Waiting for host to start the game...
+          </div>
+        )}
 
-      <div className="flex flex-col gap-4 px-5 py-5 flex-1">
         {calledNums.length > 0 && (
           <div className="flex flex-col gap-2.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -268,6 +319,36 @@ export default function CalledDashboard({
           />
         </div>
 
+        {cards.length > 1 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Your Cards
+            </p>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {cards.map((card, index) => {
+                const selected = card.id === resolvedCardId;
+                const markedCount =
+                  (markedNumsByCardId[card.id]?.size ??
+                    card.markedNums.length + 1) - 1;
+                return (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => onSelectCard(card.id)}
+                    className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-bold whitespace-nowrap transition-colors ${
+                      selected
+                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.18)]"
+                        : "bg-white/[0.04] border-white/10 text-gray-400 hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    Card {index + 1} · {markedCount} marked
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {board ? (
           <div className="flex flex-col gap-1.5 flex-1">
             <BingoCard
@@ -275,9 +356,14 @@ export default function CalledDashboard({
               marked={markedNums}
               called={called}
               latestCall={latest}
-              onToggle={(n) => {
-                markNumber(n);
-                haptic.light();
+              onToggle={async (n) => {
+                if (!resolvedCardId) return;
+                try {
+                  await markNumber(n, resolvedCardId);
+                  haptic.light();
+                } catch {
+                  // Errors are surfaced through shared socket/game state.
+                }
               }}
             />
             <p className="text-center text-[11px] text-gray-600">
@@ -294,12 +380,17 @@ export default function CalledDashboard({
           <Button
             variant="gold"
             size="lg"
-            onClick={() => {
-              claimBingo();
-              play("win");
-              haptic.win();
+            loading={isClaimingBingo}
+            onClick={async () => {
+              if (!resolvedCardId) return;
+              setIsClaimingBingo(true);
+              try {
+                await claimBingo(resolvedCardId);
+              } catch {
+                setIsClaimingBingo(false);
+              }
             }}
-            disabled={!state.isStarted || isFinished}
+            disabled={!state.isStarted || isFinished || isClaimingBingo}
           >
             🎉 BINGO!
           </Button>
@@ -378,7 +469,7 @@ export default function CalledDashboard({
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") sendChat();
+                  if (e.key === "Enter") void sendChat();
                 }}
                 maxLength={200}
                 className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500/50"
@@ -387,11 +478,15 @@ export default function CalledDashboard({
                 type="button"
                 aria-label="Send message"
                 title="Send message"
-                onClick={sendChat}
-                disabled={!chatInput.trim()}
+                onClick={() => void sendChat()}
+                disabled={!chatInput.trim() || isSendingChat}
                 className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all"
               >
-                <FiSend className="text-white text-sm" />
+                {isSendingChat ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                ) : (
+                  <FiSend className="text-white text-sm" />
+                )}
               </button>
             </div>
           </motion.div>

@@ -1,26 +1,97 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { GameContext, INITIAL, type GameState } from "./GameContext";
 import { connectSocket } from "../lib/socket";
-import type { RoomStateResponse } from "../types/game.types";
+import type { PlayerCard, RoomStateResponse } from "../types/game.types";
 
 interface SocketAck {
+  success?: boolean;
   error?: {
     message?: string;
   };
 }
 
-export function GameProvider({ roomId, children }: { roomId: string; children: ReactNode }) {
-  const [state, setState] = useState<GameState>(INITIAL);
+const SOCKET_ACK_TIMEOUT_MS = 5000;
+type ParticipationMode = "player" | "spectator";
+
+const toMarkedMap = (cards: PlayerCard[]) =>
+  Object.fromEntries(
+    cards.map((card) => [card.id, new Set([0, ...card.markedNums])]),
+  ) as Record<string, Set<number>>;
+
+export function GameProvider({
+  roomId,
+  children,
+  initialCards = [],
+  initialActiveCardId = null,
+  participationMode = "player",
+}: {
+  roomId: string;
+  children: ReactNode;
+  initialCards?: PlayerCard[];
+  initialActiveCardId?: string | null;
+  participationMode?: ParticipationMode;
+}) {
+  const [state, setState] = useState<GameState>({
+    ...INITIAL,
+    cards: initialCards,
+    activeCardId: initialActiveCardId ?? initialCards[0]?.id ?? null,
+    markedNumsByCardId: toMarkedMap(initialCards),
+  });
   const socketRef = useRef(connectSocket());
 
   const set = useCallback((patch: Partial<GameState>) => {
     setState((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const emitWithAck = useCallback(
+    <T extends SocketAck>(event: string, payload: object, fallbackMessage: string) =>
+      new Promise<T>((resolve, reject) => {
+        const socket = socketRef.current;
+
+        if (!socket.connected) {
+          const message = "Socket is disconnected";
+          set({ error: message });
+          reject(new Error(message));
+          return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+          set({ error: fallbackMessage });
+          reject(new Error(fallbackMessage));
+        }, SOCKET_ACK_TIMEOUT_MS);
+
+        socket.emit(event, payload, (res?: T) => {
+          window.clearTimeout(timeoutId);
+
+          if (res?.error?.message) {
+            set({ error: res.error.message });
+            reject(new Error(res.error.message));
+            return;
+          }
+
+          resolve((res ?? { success: true }) as T);
+        });
+      }),
+    [set],
+  );
+
   useEffect(() => {
     const s = socketRef.current;
+    const joinEvent =
+      participationMode === "spectator" ? "spectator:join" : "room:join";
+    const leaveEvent =
+      participationMode === "spectator" ? "spectator:leave" : "room:leave";
 
-    const onCard         = ({ card }: { card: { board: number[][] } }) => set({ card: card.board });
+    const onCards        = ({ cards }: { cards: PlayerCard[] }) =>
+      setState((prev) => ({
+        ...prev,
+        cards,
+        activeCardId:
+          prev.activeCardId && cards.some((card) => card.id === prev.activeCardId)
+            ? prev.activeCardId
+            : (cards[0]?.id ?? null),
+        markedNumsByCardId: toMarkedMap(cards),
+      }));
     const onState        = (data: { calledNums: number[]; current: number | null; remaining: number }) =>
       set({ calledNums: data.calledNums, currentNum: data.current, remaining: data.remaining, isStarted: true });
     const onStarted      = () => set({ isStarted: true, isPaused: false });
@@ -28,10 +99,22 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     const onResumed      = () => set({ isPaused: false });
     const onNumCalled    = (data: { number: number; calledNums: number[]; remaining: number }) =>
       set({ currentNum: data.number, calledNums: data.calledNums, remaining: data.remaining });
-    const onMarked       = (data: { number: number; markedNums: number[] }) =>
-      setState((prev) => ({ ...prev, markedNums: new Set([...data.markedNums, 0]) }));
+    const onMarked       = (data: { cardId: string; number: number; markedNums: number[] }) =>
+      setState((prev) => ({
+        ...prev,
+        markedNumsByCardId: {
+          ...prev.markedNumsByCardId,
+          [data.cardId]: new Set([0, ...data.markedNums]),
+        },
+      }));
     const onWinner       = (data: { userId: string; prize: number }) => set({ winner: data, isFinished: true });
     const onAllCalled    = () => set({ isFinished: true });
+    const onCancelled    = (data?: { message?: string }) =>
+      set({
+        isFinished: true,
+        isStarted: false,
+        error: data?.message ?? "Game was cancelled",
+      });
     const onPlayerJoined = ({ count }: { count: number }) => set({ playerCount: count });
     const onException    = ({ message }: { message: string }) => {
       set({ error: message });
@@ -44,7 +127,7 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     };
     s.on("connect_error", onConnectError);
 
-    s.on("player:card",        onCard);
+    s.on("player:cards",       onCards);
     s.on("game:state",         onState);
     s.on("game:started",       onStarted);
     s.on("game:paused",        onPaused);
@@ -53,14 +136,20 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     s.on("player:marked",      onMarked);
     s.on("game:winner",        onWinner);
     s.on("game:all_called",    onAllCalled);
+    s.on("game:cancelled",     onCancelled);
     s.on("room:player_joined", onPlayerJoined);
     s.on("exception",          onException);
 
     const joinRoom = () => {
-      s.emit("room:join", { roomId }, (_res: SocketAck) => {
-        // after joining, request current room state to get accurate player count
+      s.emit(joinEvent, { roomId }, (res?: SocketAck) => {
+        if (res?.error?.message) {
+          set({ error: res.error.message });
+          return;
+        }
+
+        // After joining, request current room state to get accurate player count.
         s.emit("room:state", { roomId }, (roomState: RoomStateResponse) => {
-          if (roomState?.room?._count?.players) {
+          if (roomState?.room?._count?.players !== undefined) {
             set({ playerCount: roomState.room._count.players });
           }
         });
@@ -70,9 +159,12 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     if (s.connected) joinRoom();
 
     return () => {
+      if (s.connected) {
+        s.emit(leaveEvent, { roomId });
+      }
       s.off("connect",           joinRoom);
       s.off("connect_error",      onConnectError);
-      s.off("player:card",        onCard);
+      s.off("player:cards",       onCards);
       s.off("game:state",         onState);
       s.off("game:started",       onStarted);
       s.off("game:paused",        onPaused);
@@ -81,10 +173,11 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
       s.off("player:marked",      onMarked);
       s.off("game:winner",        onWinner);
       s.off("game:all_called",    onAllCalled);
+      s.off("game:cancelled",     onCancelled);
       s.off("room:player_joined", onPlayerJoined);
       s.off("exception",          onException);
     };
-  }, [roomId, set]);
+  }, [participationMode, roomId, set]);
 
   const startGame  = useCallback(() => {
     socketRef.current.emit("game:start", { roomId }, (res: SocketAck) => {
@@ -92,13 +185,32 @@ export function GameProvider({ roomId, children }: { roomId: string; children: R
     });
   }, [roomId, set]);
   const callNext   = useCallback(() => socketRef.current.emit("game:call_next", { roomId }), [roomId]);
-  const markNumber = useCallback((number: number) => socketRef.current.emit("player:mark", { roomId, number }), [roomId]);
-  const claimBingo = useCallback(() => socketRef.current.emit("game:bingo",    { roomId }), [roomId]);
+  const markNumber = useCallback(async (number: number, cardId?: string) => {
+    const resolvedCardId = cardId ?? state.activeCardId;
+    if (!resolvedCardId) return;
+    await emitWithAck(
+      "player:mark",
+      { roomId, cardId: resolvedCardId, number },
+      "Failed to mark number",
+    );
+  }, [emitWithAck, roomId, state.activeCardId]);
+  const claimBingo = useCallback(async (cardId?: string) => {
+    const resolvedCardId = cardId ?? state.activeCardId;
+    if (!resolvedCardId) return;
+    await emitWithAck(
+      "game:bingo",
+      { roomId, cardId: resolvedCardId },
+      "BINGO claim timed out. Please try again.",
+    );
+  }, [emitWithAck, roomId, state.activeCardId]);
   const pauseGame  = useCallback(() => socketRef.current.emit("game:pause",    { roomId }), [roomId]);
   const resumeGame = useCallback(() => socketRef.current.emit("game:resume",   { roomId }), [roomId]);
+  const setActiveCard = useCallback((cardId: string) => {
+    set({ activeCardId: cardId });
+  }, [set]);
 
   return (
-    <GameContext.Provider value={{ state, startGame, callNext, markNumber, claimBingo, pauseGame, resumeGame }}>
+    <GameContext.Provider value={{ state, startGame, callNext, markNumber, claimBingo, pauseGame, resumeGame, setActiveCard }}>
       {children}
     </GameContext.Provider>
   );

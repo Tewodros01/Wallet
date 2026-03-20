@@ -37,8 +37,7 @@ export const paymentsApi = {
     api.get("/payments/withdrawals").then((r) => r.data),
   transfer: (payload: TransferPayload) =>
     api.post("/payments/transfer", payload).then((r) => r.data),
-  claimDailyBonus: (coins: number) =>
-    api.post("/payments/daily-bonus", { coins }).then((r) => r.data),
+  claimDailyBonus: () => api.post("/payments/daily-bonus").then((r) => r.data),
   playKeno: (bet: number, picks: number[]): Promise<{ matches: number; payout: number; bet: number; net: number; drawn: number[]; newBalance: number }> =>
     api.post("/payments/keno/play", { bet, picks }).then((r) => r.data),
   getKenoHistory: (): Promise<{ id: string; title: string; amount: number; type: string; createdAt: string }[]> =>

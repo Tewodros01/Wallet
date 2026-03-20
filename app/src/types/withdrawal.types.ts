@@ -23,7 +23,7 @@ export interface ApiAnalyticsPoint {
 export interface ApiErrorResponse {
   response?: {
     data?: {
-      message?: string;
+      message?: string | string[];
     };
   };
 }

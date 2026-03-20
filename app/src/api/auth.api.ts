@@ -31,5 +31,5 @@ export const authApi = {
     api.post("/auth/change-password", { currentPassword, newPassword }).then((r) => r.data),
 
   revokeSession: (sessionId: string) =>
-    api.post("/auth/sessions/:id/revoke", { sessionId }).then((r) => r.data),
+    api.post(`/auth/sessions/${sessionId}/revoke`).then((r) => r.data),
 };

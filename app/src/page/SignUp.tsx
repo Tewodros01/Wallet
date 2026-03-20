@@ -8,6 +8,8 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useUseCode } from "../hooks/useAgents";
 import { useRegister } from "../hooks/useAuth";
+import { getErrorMessage } from "../lib/errors";
+import { toast } from "../store/toast.store";
 
 const schema = z
   .object({
@@ -40,7 +42,7 @@ export default function SignUp() {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const { mutate: registerUser, isPending, error } = useRegister();
-  const { mutate: applyCode } = useUseCode();
+  const { mutateAsync: applyCode } = useUseCode();
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
 
@@ -62,15 +64,26 @@ export default function SignUp() {
         password: data.password,
       },
       {
-        onSuccess: () => {
-          if (refCode) applyCode(refCode);
+        onSuccess: async () => {
+          if (refCode) {
+            try {
+              await applyCode(refCode);
+              toast.success("Referral code applied successfully.");
+            } catch (inviteApplyError) {
+              const message = getErrorMessage(
+                inviteApplyError,
+                "Account created, but the referral code could not be applied.",
+              );
+              toast.warning(message);
+            }
+          }
+
           navigate("/onboarding");
         },
       },
     );
 
-  const errMsg = (error as { response?: { data?: { message?: string } } })
-    ?.response?.data?.message;
+  const errMsg = error ? getErrorMessage(error, "Failed to create account") : "";
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-5 py-12">

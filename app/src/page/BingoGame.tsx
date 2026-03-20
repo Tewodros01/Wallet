@@ -1,354 +1,33 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { FaCoins, FaGamepad, FaLock } from "react-icons/fa";
-import {
-  FiArrowLeft,
-  FiCheck,
-  FiGrid,
-  FiHash,
-  FiRadio,
-  FiSearch,
-  FiUser,
-  FiUsers,
-  FiX,
-  FiZap,
-} from "react-icons/fi";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { roomsApi } from "../api/rooms.api";
-import CreateRoomModal from "../components/CreateRoomModal";
-import EmptyState from "../components/ui/EmptyState";
-import Input from "../components/ui/Input";
-import { BottomNav } from "../components/ui/Layout";
-import { SkeletonRoomCard } from "../components/ui/Skeletons";
-import { GameProvider } from "../hooks/GameProvider";
-import { roomKeys, useJoinRoom, useRooms } from "../hooks/useRooms";
+import { roomKeys, useRooms } from "../hooks/useRooms";
 import { getErrorMessage } from "../lib/errors";
-import { haptic } from "../lib/haptic";
-import { connectSocket } from "../lib/socket";
 import { useAuthStore } from "../store/auth.store";
 import { useWalletStore } from "../store/wallet.store";
-import { GameSpeed, RoomStatus } from "../types/enums";
+import { RoomStatus } from "../types/enums";
 import type {
+  AvailableRoomCard,
   GameRoomDetail,
   GameRoomPlayer,
-  JoinRoomResponse,
+  PlayerCard,
 } from "../types/game.types";
-import CalledDashboard from "./bingo/CalledDashboard";
-import CallerDashboard from "./bingo/CallerDashboard";
+import BingoLobby from "./bingo/BingoLobby";
+import BingoRoomScreen from "./bingo/BingoRoomScreen";
 import CardSelector from "./bingo/CardSelector";
 
 type GameView = "player" | "caller";
 type Filter = "all" | "waiting" | "playing";
-
-// ─── Payment Modal ────────────────────────────────────────────────────────────
-function PaymentModal({
-  room,
-  onConfirm,
-  onClose,
-}: {
-  room: GameRoomDetail;
-  onConfirm: (card: number[][]) => void;
-  onClose: () => void;
-}) {
-  const balance = useWalletStore((s) => s.balance);
-  const { mutate: joinRoom, isPending } = useJoinRoom();
-  const [error, setError] = useState<string | null>(null);
-  const canAfford = balance >= room.entryFee;
-
-  const handlePay = () => {
-    setError(null);
-    joinRoom(
-      { id: room.id },
-      {
-        onSuccess: (data: JoinRoomResponse) => {
-          const board = data.card?.board as number[][] | undefined;
-          onConfirm(board ?? []);
-        },
-        onError: (err: unknown) => {
-          setError(getErrorMessage(err, "Failed to join room"));
-        },
-      },
-    );
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end justify-center">
-      <div className="w-full max-w-md bg-gray-900 border border-white/10 rounded-t-3xl p-5 flex flex-col gap-5">
-        <div className="flex justify-center">
-          <div className="w-10 h-1 bg-white/20 rounded-full" />
-        </div>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-white">Join Room</h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
-          >
-            <FiX className="text-gray-400 text-sm" />
-          </button>
-        </div>
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3">
-          <img
-            src={
-              room.host?.avatar ?? `https://i.pravatar.cc/40?u=${room.host?.id}`
-            }
-            alt={room.host?.username}
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white">{room.name}</p>
-            <p className="text-xs text-gray-500">
-              Hosted by {room.host?.username} ·{" "}
-              {room.id.slice(-8).toUpperCase()}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="flex items-center gap-1 text-xs text-gray-400">
-                <FiUsers className="text-[10px]" />
-                {room._count?.players ?? 0}/{room.maxPlayers}
-              </span>
-              <span className="text-xs text-gray-600">·</span>
-              <span className="text-xs text-gray-400">{room.speed} speed</span>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
-          {[
-            {
-              label: "Entry Fee",
-              value: room.entryFee === 0 ? "Free" : `${room.entryFee} coins`,
-              highlight: false,
-            },
-            {
-              label: "Prize Pool",
-              value:
-                room.prizePool === 0
-                  ? "—"
-                  : `${room.prizePool.toLocaleString()} coins`,
-              highlight: true,
-            },
-            {
-              label: "Your Balance",
-              value: `${balance.toLocaleString()} coins`,
-              highlight: false,
-            },
-            {
-              label: "After Joining",
-              value:
-                room.entryFee === 0
-                  ? `${balance.toLocaleString()} coins`
-                  : `${(balance - room.entryFee).toLocaleString()} coins`,
-              highlight: false,
-            },
-          ].map(({ label, value, highlight }, i) => (
-            <div
-              key={label}
-              className={`flex items-center justify-between px-4 py-3 ${i < 3 ? "border-b border-white/[0.05]" : ""}`}
-            >
-              <span className="text-xs text-gray-500">{label}</span>
-              <span
-                className={`text-xs font-black ${highlight ? "text-yellow-300" : "text-white"}`}
-              >
-                {value}
-              </span>
-            </div>
-          ))}
-        </div>
-        {!canAfford && (
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">
-            Insufficient balance — you need {room.entryFee - balance} more coins
-          </div>
-        )}
-        {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">
-            {error}
-          </div>
-        )}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={!canAfford || isPending}
-            className="flex-1 py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
-          >
-            {isPending ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <FiCheck />
-                {room.entryFee === 0
-                  ? "Join Free"
-                  : `Pay ${room.entryFee} & Join`}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Room Card ────────────────────────────────────────────────────────────────
-const statusStyle: Record<string, string> = {
-  WAITING: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  PLAYING: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  FINISHED: "bg-rose-500/15 text-rose-400 border-rose-500/30",
-};
-
-function RoomCard({
-  room,
-  onJoin,
-  isJoined,
-  onRejoin,
-  onSpectate,
-  rejoining,
-}: {
-  room: GameRoomDetail;
-  onJoin: (r: GameRoomDetail) => void;
-  isJoined: boolean;
-  onRejoin: (r: GameRoomDetail) => void;
-  onSpectate: (r: GameRoomDetail) => void;
-  rejoining: string | null;
-}) {
-  const canJoin = room.status === "WAITING" && !isJoined;
-  const canRejoin =
-    isJoined && (room.status === "WAITING" || room.status === "PLAYING");
-  return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <img
-            src={
-              room.host?.avatar ?? `https://i.pravatar.cc/40?u=${room.host?.id}`
-            }
-            alt={room.host?.username}
-            className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10"
-          />
-          {room.isPrivate && (
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
-              <FaLock className="text-white text-[8px]" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-black text-white truncate">
-              {room.name}
-            </p>
-            <span className="text-[10px] text-gray-600 font-mono shrink-0">
-              {room.id.slice(-8).toUpperCase()}
-            </span>
-            {isJoined && (
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 shrink-0">
-                YOU'RE IN
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-gray-500">by {room.host?.username}</p>
-        </div>
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${statusStyle[room.status] ?? "bg-gray-500/15 text-gray-400 border-gray-500/30"}`}
-        >
-          {room.status}
-        </span>
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        {[
-          {
-            icon: <FiUsers className="text-blue-400" />,
-            value: `${room._count?.players ?? 0}/${room.maxPlayers}`,
-            label: "Players",
-          },
-          {
-            icon: <FaCoins className="text-yellow-400" />,
-            value: room.entryFee === 0 ? "Free" : `${room.entryFee}`,
-            label: "Entry",
-          },
-          {
-            icon: <FiZap className="text-orange-400" />,
-            value: room.speed,
-            label: "Speed",
-          },
-          {
-            icon: <FiGrid className="text-violet-400" />,
-            value: `${room.cardsPerPlayer}`,
-            label: "Cards",
-          },
-        ].map(({ icon, value, label }) => (
-          <div
-            key={label}
-            className="bg-white/[0.04] rounded-xl py-2 flex flex-col items-center gap-0.5"
-          >
-            <span className="text-xs">{icon}</span>
-            <span className="text-[10px] font-bold text-white">{value}</span>
-            <span className="text-[9px] text-gray-600">{label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-lg">🏆</span>
-          <div>
-            <p className="text-[10px] text-gray-500">Prize Pool</p>
-            <p className="text-sm font-black text-yellow-300">
-              {room.prizePool === 0
-                ? "No prize"
-                : `${room.prizePool.toLocaleString()} coins`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {room.status === "PLAYING" && !isJoined && (
-            <button
-              type="button"
-              onClick={() => onSpectate(room)}
-              className="px-3 py-2.5 rounded-xl text-xs font-bold bg-violet-500/15 border border-violet-500/25 text-violet-400 hover:bg-violet-500/25 transition-colors"
-            >
-              👁 Watch
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={(!canJoin && !canRejoin) || rejoining === room.id}
-            onClick={() => (canRejoin ? onRejoin(room) : onJoin(room))}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-              canRejoin
-                ? "bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)]"
-                : canJoin
-                  ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-600 cursor-not-allowed"
-            }`}
-          >
-            {rejoining === room.id ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-            ) : canRejoin ? (
-              "Rejoin →"
-            ) : room.status === "FINISHED" ? (
-              "Ended"
-            ) : room.status === "PLAYING" ? (
-              "In Progress"
-            ) : (
-              "Join →"
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 type Screen = "lobby" | "card-select" | "game";
 
 export default function BingoGame() {
   const { id: roomIdParam } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const roomIdFromQuery = searchParams.get("room")?.trim() ?? "";
+  const roomEntryId = roomIdParam ?? roomIdFromQuery;
   const balance = useWalletStore((s) => s.balance);
   const user = useAuthStore((s) => s.user);
 
@@ -360,9 +39,21 @@ export default function BingoGame() {
   const [payRoom, setPayRoom] = useState<GameRoomDetail | null>(null);
   const [code, setCode] = useState("");
   const [activeRoom, setActiveRoom] = useState<GameRoomDetail | null>(null);
-  const [playerCard, setPlayerCard] = useState<number[][] | null>(null);
+  const [playerCards, setPlayerCards] = useState<PlayerCard[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [availableCards, setAvailableCards] = useState<AvailableRoomCard[]>([]);
+  const [pendingCardIds, setPendingCardIds] = useState<string[]>([]);
+  const [maxCardsToSelect, setMaxCardsToSelect] = useState(1);
+  const [claimingCards, setClaimingCards] = useState(false);
+  const [cardSelectionError, setCardSelectionError] = useState<string | null>(
+    null,
+  );
   const [rejoining, setRejoining] = useState<string | null>(null);
   const [roomCount, setRoomCount] = useState(0);
+  const [entryError, setEntryError] = useState<string | null>(null);
+  const [isSpectator, setIsSpectator] = useState(false);
+  const handledRouteRoomId = useRef<string | null>(null);
+  const routeEntryInFlight = useRef<string | null>(null);
 
   const { data: roomsData = [], isLoading } = useRooms({
     status: filter === "all" ? undefined : filter,
@@ -373,11 +64,52 @@ export default function BingoGame() {
   const seedRoom = (room: GameRoomDetail) =>
     qc.setQueryData(roomKeys.one(room.id), room);
 
-  useEffect(() => {
-    if (!roomIdParam || screen !== "lobby" || isLoading) return;
-    const room = roomsData.find((r: GameRoomDetail) => r.id === roomIdParam);
-    if (room) handleRejoin(room);
-  }, [roomIdParam, isLoading, roomsData]);
+  const normalizeLookupValue = (value: string) => value.trim().toUpperCase();
+
+  const matchRoomLookup = (room: GameRoomDetail, value: string) => {
+    const normalized = normalizeLookupValue(value);
+    return (
+      room.id.toUpperCase() === normalized ||
+      room.id.slice(-8).toUpperCase() === normalized
+    );
+  };
+
+  const resolveRoom = async (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return null;
+
+    const localRoom = roomsData.find((room: GameRoomDetail) =>
+      matchRoomLookup(room, normalized),
+    );
+    if (localRoom) return localRoom;
+
+    try {
+      return await roomsApi.getOne(normalized);
+    } catch {
+      const matchingRooms = await roomsApi.getAll({ search: normalized });
+      return (
+        matchingRooms.find((room: GameRoomDetail) =>
+          matchRoomLookup(room, normalized),
+        ) ?? null
+      );
+    }
+  };
+
+  const openCardSelection = async (room: GameRoomDetail, maxCount: number) => {
+    try {
+      const cards = await roomsApi.getAvailableCards(room.id);
+      setAvailableCards(cards);
+      setCardSelectionError(null);
+    } catch (error) {
+      setAvailableCards([]);
+      setCardSelectionError(
+        getErrorMessage(error, "Failed to load available cards"),
+      );
+    }
+    setPendingCardIds([]);
+    setMaxCardsToSelect(maxCount);
+    setScreen("card-select");
+  };
 
   const waiting = roomsData.filter(
     (r: GameRoomDetail) => r.status === "WAITING",
@@ -387,44 +119,206 @@ export default function BingoGame() {
   ).length;
   const isHost = activeRoom?.host?.id === user?.id;
 
+  const openRoomFromLookup = async (room: GameRoomDetail) => {
+    if (room.status === RoomStatus.PLAYING && !room.isPrivate) {
+      handleSpectate(room);
+      return;
+    }
+
+    if (room.status !== RoomStatus.WAITING) {
+      setEntryError("That room is not open for new players right now.");
+      return;
+    }
+
+    setPayRoom(room);
+  };
+
   const handleRejoin = async (room: GameRoomDetail) => {
+    setEntryError(null);
     setRejoining(room.id);
     try {
       const player = await roomsApi.getMyPlayer(room.id);
       seedRoom(room);
       setActiveRoom(room);
-      setPlayerCard(player.card?.board ?? null);
+      setIsSpectator(false);
+      setPlayerCards(player.cards ?? []);
+      setSelectedCardId(player.cards?.[0]?.id ?? null);
       setRoomCount(room._count?.players ?? room.players?.length ?? 0);
-      setScreen("game");
-    } catch {
-      seedRoom(room);
-      setActiveRoom(room);
-      setPlayerCard(null);
-      setRoomCount(room._count?.players ?? room.players?.length ?? 0);
-      setScreen("game");
+      if ((player.cards?.length ?? 0) > 0) {
+        setScreen("game");
+      } else {
+        await openCardSelection(room, room.cardsPerPlayer);
+      }
+    } catch (error) {
+      const message = getErrorMessage(error, "Unable to enter this room");
+      if (room.status === "WAITING") {
+        setPayRoom(room);
+        setEntryError(message);
+        setScreen("lobby");
+      } else if (room.status === "PLAYING" && !room.isPrivate) {
+        handleSpectate(room);
+      } else {
+        setEntryError(message);
+        setScreen("lobby");
+      }
     } finally {
       setRejoining(null);
     }
   };
 
   const handleSpectate = (room: GameRoomDetail) => {
+    setEntryError(null);
     seedRoom(room);
     setActiveRoom(room);
-    setPlayerCard(null);
+    setIsSpectator(true);
+    setGameView("caller");
+    setPlayerCards([]);
+    setSelectedCardId(null);
     setRoomCount(room._count?.players ?? room.players?.length ?? 0);
-    const socket = connectSocket();
-    if (!socket.connected) socket.connect();
-    socket.emit("spectator:join", { roomId: room.id });
     setScreen("game");
   };
+
+  useEffect(() => {
+    if (!roomEntryId) return;
+    if (activeRoom?.id === roomEntryId || payRoom?.id === roomEntryId) {
+      handledRouteRoomId.current = roomEntryId;
+      return;
+    }
+    if (routeEntryInFlight.current === roomEntryId) return;
+    if (handledRouteRoomId.current === roomEntryId && entryError) return;
+
+    let isCancelled = false;
+
+    const enterFromRoute = async () => {
+      routeEntryInFlight.current = roomEntryId;
+      setEntryError(null);
+
+      try {
+        const room = await resolveRoom(roomEntryId);
+        if (isCancelled) return;
+
+        if (!room) {
+          handledRouteRoomId.current = roomEntryId;
+          setEntryError(
+            "This room link is invalid or the room no longer exists.",
+          );
+          return;
+        }
+
+        const isJoined =
+          room.players?.some(
+            (player: GameRoomPlayer) => player.user?.id === user?.id,
+          ) ?? false;
+
+        if (isJoined) {
+          handledRouteRoomId.current = roomEntryId;
+          await handleRejoin(room);
+          return;
+        }
+
+        seedRoom(room);
+
+        if (room.status === RoomStatus.WAITING) {
+          handledRouteRoomId.current = roomEntryId;
+          setPayRoom(room);
+          return;
+        }
+
+        if (room.status === RoomStatus.PLAYING && !room.isPrivate) {
+          handledRouteRoomId.current = roomEntryId;
+          handleSpectate(room);
+          return;
+        }
+
+        handledRouteRoomId.current = roomEntryId;
+        setEntryError(
+          room.isPrivate
+            ? "This private room is not available unless you have already joined it."
+            : "This room is no longer available to join.",
+        );
+      } catch (error) {
+        if (!isCancelled) {
+          setEntryError(getErrorMessage(error, "Failed to open this room"));
+        }
+      } finally {
+        if (routeEntryInFlight.current === roomEntryId) {
+          routeEntryInFlight.current = null;
+        }
+      }
+    };
+
+    void enterFromRoute();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    roomEntryId,
+    roomsData,
+    user?.id,
+    activeRoom?.id,
+    payRoom?.id,
+    entryError,
+  ]);
 
   // ── Card select screen ──
   if (screen === "card-select") {
     return (
       <CardSelector
-        card={playerCard}
-        onConfirm={() => setScreen("game")}
-        onBack={() => setScreen("lobby")}
+        cards={availableCards}
+        selectedCardIds={pendingCardIds}
+        maxCount={maxCardsToSelect}
+        entryFee={activeRoom?.entryFee ?? 0}
+        balance={balance}
+        loading={claimingCards}
+        error={cardSelectionError}
+        onToggle={(cardId) =>
+          setPendingCardIds((prev) => {
+            if (prev.includes(cardId)) {
+              return prev.filter((id) => id !== cardId);
+            }
+            if (prev.length >= maxCardsToSelect) return prev;
+            return [...prev, cardId];
+          })
+        }
+        onConfirm={async () => {
+          if (!activeRoom) return;
+          setClaimingCards(true);
+          setCardSelectionError(null);
+          try {
+            const result = await roomsApi.selectCards(
+              activeRoom.id,
+              pendingCardIds,
+            );
+            setPlayerCards(result.cards);
+            setSelectedCardId(result.cards[0]?.id ?? null);
+            setAvailableCards([]);
+            setPendingCardIds([]);
+            await qc.invalidateQueries({ queryKey: ["rooms"] });
+            await qc.invalidateQueries({
+              queryKey: roomKeys.one(activeRoom.id),
+            });
+            setScreen("game");
+          } catch (error) {
+            setCardSelectionError(
+              getErrorMessage(error, "Failed to claim selected cards"),
+            );
+            try {
+              const cards = await roomsApi.getAvailableCards(activeRoom.id);
+              setAvailableCards(cards);
+              setPendingCardIds([]);
+            } catch {
+              // Keep existing UI state if the refresh call also fails.
+            }
+          } finally {
+            setClaimingCards(false);
+          }
+        }}
+        onBack={() => {
+          setPendingCardIds([]);
+          setCardSelectionError(null);
+          setScreen("lobby");
+        }}
       />
     );
   }
@@ -432,309 +326,85 @@ export default function BingoGame() {
   // ── Game screen ──
   if (screen === "game" && activeRoom) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col">
-        <div className="sticky top-0 z-50 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07]">
-          <div className="flex items-center gap-3 px-4 pt-3.5 pb-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => setScreen("lobby")}
-              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors shrink-0"
-            >
-              <FiArrowLeft className="text-white text-sm" />
-            </button>
-            <span className="text-base font-black text-white">Bingo Game</span>
-            <span className="ml-auto text-[10px] text-gray-500 font-mono">
-              {activeRoom.id.slice(-8).toUpperCase()}
-            </span>
-          </div>
-          {/* Tabs — both visible to everyone */}
-          <div className="flex gap-2 px-4 pb-3">
-            {[
-              { id: "player" as GameView, label: "Player", Icon: FiUser },
-              { id: "caller" as GameView, label: "Caller", Icon: FiRadio },
-            ].map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setGameView(id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  gameView === id
-                    ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-                    : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
-                }`}
-              >
-                <Icon className="text-sm" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1">
-          <GameProvider roomId={activeRoom.id}>
-            {gameView === "player" && (
-              <CalledDashboard
-                card={playerCard}
-                roomId={activeRoom.id}
-                playerCount={roomCount}
-                roomData={activeRoom}
-              />
-            )}
-            {gameView === "caller" && (
-              <CallerDashboard roomId={activeRoom.id} isHost={isHost} />
-            )}
-          </GameProvider>
-        </div>
-      </div>
+      <BingoRoomScreen
+        activeRoom={activeRoom}
+        gameView={gameView}
+        isHost={isHost}
+        isSpectator={isSpectator}
+        playerCards={playerCards}
+        selectedCardId={selectedCardId}
+        roomCount={roomCount}
+        onBack={() => {
+          setIsSpectator(false);
+          setScreen("lobby");
+        }}
+        onChangeView={setGameView}
+        onSelectCard={setSelectedCardId}
+      />
     );
   }
 
-  // ── Lobby screen ──
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col text-white">
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] px-5 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
-            <FaGamepad className="text-emerald-400 text-sm" />
-          </div>
-          <div>
-            <span className="text-base font-black text-white">Play Bingo</span>
-            <p className="text-[10px] text-gray-500">
-              {waiting} waiting · {playing} in progress
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
-          <FaCoins className="text-yellow-400 text-xs" />
-          <span className="text-yellow-300 text-xs font-black">
-            {balance.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 px-5 py-4 pb-28">
-        <button
-          type="button"
-          onClick={() => {
-            haptic.light();
-            setShowCreate(true);
-          }}
-          className="w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
-        >
-          <div className="w-12 h-12 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center shrink-0">
-            <FaGamepad className="text-emerald-400 text-xl" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-black text-white">Create Your Room</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Set entry fee, cards, speed & more
-            </p>
-          </div>
-          <span className="text-emerald-400 text-lg">→</span>
-        </button>
-
-        {/* Join by code */}
-        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-            Join with Room Code
-          </p>
-          <Input
-            placeholder="Enter room ID or code"
-            leftIcon={<FiHash />}
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-          />
-          <button
-            type="button"
-            disabled={
-              !roomsData.find(
-                (r: GameRoomDetail) =>
-                  r.id.slice(-8).toUpperCase() === code || r.id === code,
-              )
-            }
-            onClick={() => {
-              const found = roomsData.find(
-                (r: GameRoomDetail) =>
-                  r.id.slice(-8).toUpperCase() === code || r.id === code,
-              );
-              if (found) setPayRoom(found);
-            }}
-            className="w-full py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
-          >
-            <FaGamepad />
-            {(() => {
-              const found = roomsData.find(
-                (r: GameRoomDetail) =>
-                  r.id.slice(-8).toUpperCase() === code || r.id === code,
-              );
-              return found ? `Join "${found.name}"` : "Find & Join Room";
-            })()}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
-          <FiSearch className="text-gray-500 shrink-0" />
-          <input
-            type="text"
-            aria-label="Search rooms"
-            placeholder="Search rooms, hosts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-600"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          {(["all", "waiting", "playing"] as Filter[]).map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => {
-                setFilter(f);
-                haptic.light();
-              }}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
-                filter === f
-                  ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
-              }`}
-            >
-              {f === "all"
-                ? `All (${roomsData.length})`
-                : f === "waiting"
-                  ? `Waiting (${waiting})`
-                  : `Playing (${playing})`}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: "Open Rooms", value: waiting, color: "text-emerald-400" },
-            {
-              label: "Total Players",
-              value: roomsData.reduce(
-                (s: number, r: GameRoomDetail) => s + (r._count?.players ?? 0),
-                0,
-              ),
-              color: "text-blue-400",
-            },
-            {
-              label: "Biggest Prize",
-              value: roomsData.length
-                ? Math.max(
-                    ...roomsData.map((r: GameRoomDetail) => r.prizePool),
-                  ).toLocaleString()
-                : "0",
-              color: "text-yellow-400",
-            },
-          ].map(({ label, value, color }) => (
-            <div
-              key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-0.5"
-            >
-              <span className={`text-sm font-black ${color}`}>{value}</span>
-              <span className="text-[9px] text-gray-500 uppercase tracking-wide text-center">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-            {roomsData.length} Room{roomsData.length !== 1 ? "s" : ""} Found
-          </p>
-          {isLoading ? (
-            [1, 2, 3].map((i) => <SkeletonRoomCard key={i} />)
-          ) : roomsData.length === 0 ? (
-            <EmptyState
-              type="rooms"
-              title="No rooms found"
-              subtitle="Be the first to create one!"
-              action={{
-                label: "Create Room",
-                onClick: () => setShowCreate(true),
-              }}
-            />
-          ) : (
-            roomsData.map((room: GameRoomDetail) => (
-              <RoomCard
-                key={room.id}
-                room={room}
-                isJoined={
-                  room.players?.some(
-                    (p: GameRoomPlayer) => p.user?.id === user?.id,
-                  ) ?? false
-                }
-                onJoin={(r) => setPayRoom(r)}
-                onRejoin={handleRejoin}
-                onSpectate={handleSpectate}
-                rejoining={rejoining}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
-      {showCreate && (
-        <CreateRoomModal
-          onClose={() => setShowCreate(false)}
-          onEnter={async (roomId) => {
-            const created = roomsData.find(
-              (r: GameRoomDetail) => r.id === roomId,
-            );
-            const roomObj: GameRoomDetail = created ?? {
-              id: roomId,
-              host: user ?? undefined,
-              name: "My Room",
-              hostId: user?.id ?? "",
-              status: RoomStatus.WAITING,
-              speed: GameSpeed.NORMAL,
-              entryFee: 0,
-              prizePool: 0,
-              maxPlayers: 1,
-              cardsPerPlayer: 1,
-              isPrivate: false,
-              password: null,
-              winnerId: null,
-              startedAt: null,
-              finishedAt: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            seedRoom(roomObj);
-            setActiveRoom(roomObj);
-            setRoomCount(
-              roomObj._count?.players ?? roomObj.players?.length ?? 1,
-            );
-            try {
-              const player = await roomsApi.getMyPlayer(roomId);
-              setPlayerCard(player.card?.board ?? null);
-            } catch {
-              setPlayerCard(null);
-            }
+    <BingoLobby
+      balance={balance}
+      search={search}
+      filter={filter}
+      code={code}
+      showCreate={showCreate}
+      payRoom={payRoom}
+      entryError={entryError}
+      roomsData={roomsData}
+      waiting={waiting}
+      playing={playing}
+      isLoading={isLoading}
+      rejoining={rejoining}
+      userId={user?.id}
+      onSearchChange={setSearch}
+      onFilterChange={setFilter}
+      onCodeChange={setCode}
+      onCreateOpen={() => setShowCreate(true)}
+      onCreateClose={() => setShowCreate(false)}
+      onEnterCreatedRoom={async (roomObj) => {
+        seedRoom(roomObj);
+        setActiveRoom(roomObj);
+        setIsSpectator(false);
+        setRoomCount(roomObj._count?.players ?? roomObj.players?.length ?? 1);
+        try {
+          const player = await roomsApi.getMyPlayer(roomObj.id);
+          setPlayerCards(player.cards ?? []);
+          setSelectedCardId(player.cards?.[0]?.id ?? null);
+          if ((player.cards?.length ?? 0) > 0) {
             setScreen("game");
-          }}
-        />
-      )}
-      {payRoom && (
-        <PaymentModal
-          room={payRoom}
-          onClose={() => setPayRoom(null)}
-          onConfirm={(card) => {
-            seedRoom(payRoom);
-            setActiveRoom(payRoom);
-            setRoomCount(
-              (payRoom._count?.players ?? payRoom.players?.length ?? 0) + 1,
-            );
-            setPlayerCard(card);
-            setPayRoom(null);
-            setScreen("card-select");
-          }}
-        />
-      )}
-      <BottomNav />
-    </div>
+          } else {
+            await openCardSelection(roomObj, roomObj.cardsPerPlayer);
+          }
+        } catch {
+          setPlayerCards([]);
+          setSelectedCardId(null);
+          await openCardSelection(roomObj, roomObj.cardsPerPlayer);
+        }
+      }}
+      onJoinRoom={setPayRoom}
+      onRejoinRoom={handleRejoin}
+      onSpectateRoom={handleSpectate}
+      onResolveRoomCode={resolveRoom}
+      onCodeResolved={openRoomFromLookup}
+      onPaymentClose={() => setPayRoom(null)}
+      onPaymentConfirm={async () => {
+        if (!payRoom) return;
+        setEntryError(null);
+        seedRoom(payRoom);
+        setActiveRoom(payRoom);
+        setIsSpectator(false);
+        setRoomCount(
+          (payRoom._count?.players ?? payRoom.players?.length ?? 0) + 1,
+        );
+        setPlayerCards([]);
+        setSelectedCardId(null);
+        setPayRoom(null);
+        await openCardSelection(payRoom, payRoom.cardsPerPlayer);
+      }}
+      onEntryErrorChange={setEntryError}
+    />
   );
 }

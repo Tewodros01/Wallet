@@ -14,6 +14,8 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AppBar, BottomNav } from "../components/ui/Layout";
+import { useMe } from "../hooks/useUser";
+import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import { useSoundStore } from "../store/sound.store";
 import type { SettingsSection } from "../types/settings.types";
@@ -35,9 +37,10 @@ const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
 export default function Settings() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const clear = useAuthStore((s) => s.clear);
+  const { data: me } = useMe();
+  const profile = me ?? user;
   const handleSignOut = () => {
-    clear();
+    clearClientSession();
     navigate("/signin", { replace: true });
   };
   const [notifications, setNotifications] = useState(true);
@@ -159,23 +162,23 @@ export default function Settings() {
           onClick={() => navigate("/profile")}
           className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.07] transition-colors active:scale-[0.98] text-left"
         >
-          {user?.avatar ? (
+          {profile?.avatar ? (
             <img
-              src={user.avatar}
+              src={profile.avatar}
               alt="avatar"
               className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/40 shrink-0"
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-emerald-500/20 ring-2 ring-emerald-500/40 shrink-0 flex items-center justify-center text-emerald-400 font-black text-lg">
-              {user?.firstName?.[0]?.toUpperCase() ?? "?"}
+              {profile?.firstName?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-black text-white">
-              {user ? `${user.firstName} ${user.lastName}` : "—"}
+              {profile ? `${profile.firstName} ${profile.lastName}` : "—"}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {user?.email ?? "—"}
+              {profile?.email ?? "—"}
             </p>
           </div>
           <FiChevronRight className="text-gray-600 shrink-0" />

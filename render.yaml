@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: wallet-api
+    runtime: node
+    rootDir: api
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm run start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22

@@ -8,7 +8,7 @@ import { GameSpeed } from "../types/enums";
 import type { GameRoomDetail } from "../types/game.types";
 import Button from "./ui/Button";
 
-type Props = { onClose: () => void; onEnter?: (roomId: string) => void };
+type Props = { onClose: () => void; onEnter?: (room: GameRoomDetail) => void | Promise<void> };
 
 type Step = "settings" | "created";
 
@@ -86,6 +86,8 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
   const [cardLimit, setCardLimit] = useState("2");
   const [callSpeed, setCallSpeed] = useState<GameSpeed>(GameSpeed.NORMAL);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [password, setPassword] = useState("");
+  const [createdRoom, setCreatedRoom] = useState<GameRoomDetail | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +100,12 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
 
   const handleCreate = () => {
     setError(null);
+
+    if (isPrivate && password.trim().length < 4) {
+      setError("Private rooms need a password with at least 4 characters");
+      return;
+    }
+
     createRoom(
       {
         name:
@@ -107,9 +115,11 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
         maxPlayers: Number(maxPlayers),
         cardsPerPlayer: Number(cardLimit),
         isPrivate,
+        password: isPrivate ? password.trim() : undefined,
       },
       {
         onSuccess: (data: GameRoomDetail) => {
+          setCreatedRoom(data);
           setCreatedId(data.id);
           setStep("created");
         },
@@ -272,6 +282,22 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                 ))}
               </div>
 
+              {isPrivate && (
+                <div className="flex flex-col gap-2">
+                  <SectionLabel>Room Password</SectionLabel>
+                  <input
+                    type="password"
+                    aria-label="Room password"
+                    placeholder="Enter a private room password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={4}
+                    maxLength={50}
+                    className="w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              )}
+
               <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 grid grid-cols-2 gap-3">
                 {[
                   {
@@ -398,7 +424,8 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                 <Button
                   icon={<FaGamepad />}
                   onClick={() => {
-                    onEnter?.(createdId!);
+                    if (!createdRoom) return;
+                    void onEnter?.(createdRoom);
                     onClose();
                   }}
                 >

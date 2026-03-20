@@ -4,7 +4,14 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { AgentStatus, TransactionType } from 'generated/prisma/client';
+import { ConfigService } from '@nestjs/config';
+import {
+  AgentStatus,
+  MissionCategory,
+  TransactionType,
+} from 'generated/prisma/client';
+import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
+import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const COMMISSION_PER_INVITE = 50; // coins on signup
@@ -12,7 +19,11 @@ const DEPOSIT_COMMISSION_PCT = 0.02; // 2% of deposit amount credited to inviter
 
 @Injectable()
 export class AgentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly missionsService: MissionsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async getMyInvite(userId: string) {
     try {
@@ -54,7 +65,13 @@ export class AgentsService {
         });
       }
 
-      return invite;
+      return normalizeAvatarUrls(
+        invite,
+        this.configService.get<string>(
+          'publicApiUrl',
+          `http://localhost:${this.configService.get<number>('port', 3000)}`,
+        ),
+      );
     } catch {
       throw new InternalServerErrorException('Failed to fetch invite');
     }
@@ -62,22 +79,31 @@ export class AgentsService {
 
   async useInviteCode(code: string, newUserId: string) {
     try {
-      const invite = await this.prisma.agentInvite.findUnique({
-        where: { code },
-        include: { invitedUsers: { select: { id: true } } },
-      });
+      const result = await this.prisma.$transaction(async (tx) => {
+        const [invite, user] = await Promise.all([
+          tx.agentInvite.findUnique({
+            where: { code },
+            include: { invitedUsers: { select: { id: true } } },
+          }),
+          tx.user.findUnique({
+            where: { id: newUserId },
+            select: { id: true, referredById: true },
+          }),
+        ]);
 
-      if (!invite) throw new NotFoundException('Invalid invite code');
-      if (invite.status !== AgentStatus.ACTIVE)
-        throw new BadRequestException('Invite code is no longer active');
-      if (invite.expiresAt && invite.expiresAt < new Date())
-        throw new BadRequestException('Invite code has expired');
-      if (invite.invitedUsers.some((u) => u.id === newUserId))
-        throw new BadRequestException('Already used this code');
-      if (invite.inviterId === newUserId)
-        throw new BadRequestException('Cannot use your own invite code');
+        if (!invite) throw new NotFoundException('Invalid invite code');
+        if (!user) throw new NotFoundException('User not found');
+        if (invite.status !== AgentStatus.ACTIVE)
+          throw new BadRequestException('Invite code is no longer active');
+        if (invite.expiresAt && invite.expiresAt < new Date())
+          throw new BadRequestException('Invite code has expired');
+        if (invite.invitedUsers.some((u) => u.id === newUserId))
+          throw new BadRequestException('Already used this code');
+        if (invite.inviterId === newUserId)
+          throw new BadRequestException('Cannot use your own invite code');
+        if (user.referredById)
+          throw new BadRequestException('Referral code already applied');
 
-      return await this.prisma.$transaction(async (tx) => {
         // link user to invite
         await tx.user.update({
           where: { id: newUserId },
@@ -113,10 +139,27 @@ export class AgentsService {
               walletId: wallet.id,
             },
           });
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { increment: COMMISSION_PER_INVITE } },
+          });
         }
 
-        return { success: true, commission: COMMISSION_PER_INVITE };
+        return {
+          success: true,
+          commission: COMMISSION_PER_INVITE,
+          inviterId: invite.inviterId,
+        };
       });
+
+      void this.missionsService
+        .incrementCategoryProgress(result.inviterId, MissionCategory.INVITE)
+        .catch(() => {});
+
+      return {
+        success: true,
+        commission: result.commission,
+      };
     } catch (error) {
       if (
         error instanceof NotFoundException ||

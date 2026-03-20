@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AppBar, BottomNav } from "../components/ui/Layout";
 import { useMe, useMyStats } from "../hooks/useUser";
+import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import { useWalletStore } from "../store/wallet.store";
 
@@ -62,7 +63,6 @@ const moreItems = [
 
 export default function Profile() {
   const navigate = useNavigate();
-  const clear = useAuthStore((s) => s.clear);
   const user = useAuthStore((s) => s.user);
   const isAgent = user?.role === "AGENT";
   const { syncFromUser } = useWalletStore();
@@ -75,7 +75,7 @@ export default function Profile() {
   }, [me?.coinsBalance, syncFromUser]);
 
   const handleSignOut = () => {
-    clear();
+    clearClientSession();
     navigate("/signin", { replace: true });
   };
 

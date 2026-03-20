@@ -8,8 +8,6 @@ datasource db {
   provider = "mysql"
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
 enum Role {
   USER
   AGENT
@@ -127,8 +125,6 @@ enum NotificationType {
   WITHDRAWAL
   TRANSFER
 }
-
-// ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
   id           String    @id @default(cuid())
@@ -265,8 +261,6 @@ model Transaction {
   @@index([deletedAt])
 }
 
-// ─── Game ─────────────────────────────────────────────────────────────────────
-
 model GameRoom {
   id           String      @id @default(cuid())
   name         String
@@ -284,6 +278,7 @@ model GameRoom {
 
   players      RoomPlayer[]
   rounds       GameRound[]
+  bingoCards   BingoCard[]
   transactions Transaction[]
 
   startedAt    DateTime?
@@ -303,9 +298,7 @@ model RoomPlayer {
   userId     String
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   status     PlayerStatus @default(JOINED)
-  cardId     String?
-  card       BingoCard?   @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  markedNums Json         @default("[]")  // array of marked numbers
+  cards      RoomPlayerCard[]
   hasBingo   Boolean      @default(false)
   prize      Int          @default(0)
   joinedAt   DateTime     @default(now())
@@ -317,14 +310,32 @@ model RoomPlayer {
 }
 
 model BingoCard {
-  id      String       @id @default(cuid())
-  userId  String
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  board   Json         // 5x5 number matrix
-  players RoomPlayer[]
-  createdAt DateTime   @default(now())
+  id         String          @id @default(cuid())
+  userId     String?
+  user       User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId     String
+  room       GameRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  board      Json            // 5x5 number matrix
+  boardHash  String
+  playerCard RoomPlayerCard?
+  createdAt  DateTime        @default(now())
 
+  @@index([roomId])
   @@index([userId])
+  @@unique([roomId, boardHash])
+}
+
+model RoomPlayerCard {
+  id           String     @id @default(cuid())
+  roomPlayerId String
+  roomPlayer   RoomPlayer @relation(fields: [roomPlayerId], references: [id], onDelete: Cascade)
+  cardId       String     @unique
+  card         BingoCard  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  markedNums   Json       @default("[]")
+  createdAt    DateTime   @default(now())
+
+  @@index([roomPlayerId])
+  @@index([cardId])
 }
 
 model GameRound {
@@ -339,8 +350,6 @@ model GameRound {
 
   @@index([roomId])
 }
-
-// ─── Payments ─────────────────────────────────────────────────────────────────
 
 model Deposit {
   id            String        @id @default(cuid())
@@ -380,7 +389,6 @@ model Withdrawal {
   @@index([createdAt])
 }
 
-// ─── Agent / Referral ─────────────────────────────────────────────────────────
 model AgentInvite {
   id           String      @id @default(cuid())
   inviterId    String
@@ -396,8 +404,6 @@ model AgentInvite {
   @@index([inviterId])
   @@index([code])
 }
-
-// ─── Tournament ───────────────────────────────────────────────────────────────
 
 model Tournament {
   id          String           @id @default(cuid())
@@ -430,8 +436,6 @@ model TournamentPlayer {
   @@index([tournamentId])
   @@index([userId])
 }
-
-// ─── Missions ─────────────────────────────────────────────────────────────────
 
 model Mission {
   id       String          @id @default(cuid())
@@ -467,8 +471,6 @@ model UserMission {
   @@index([userId])
   @@index([missionId])
 }
-
-// ─── Notifications ────────────────────────────────────────────────────────────
 
 model Notification {
   id        String           @id @default(cuid())

@@ -3,13 +3,17 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   DepositStatus,
+  MissionCategory,
   NotificationType,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
 import { AgentsService } from '../agents/agents.service';
+import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
+import { MissionsService } from '../missions/missions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
@@ -18,6 +22,7 @@ const MIN_DEPOSIT = 10;
 const MAX_DEPOSIT = 1_000_000;
 const MIN_WITHDRAWAL = 50;
 const MAX_WITHDRAWAL = 500_000;
+const DAILY_BONUS_PRIZES = [25, 50, 75, 100, 200, 300, 500, 1000] as const;
 
 const KENO_PAYOUTS: Record<number, Record<number, number>> = {
   1: { 1: 3 },
@@ -37,7 +42,9 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly agentsService: AgentsService,
+    private readonly missionsService: MissionsService,
     private readonly notifGateway: NotificationsGateway,
+    private readonly configService: ConfigService,
   ) {}
 
   // ── Deposits ──────────────────────────────────────────────────────────────
@@ -67,7 +74,7 @@ export class PaymentsService {
   }
 
   async getAgents() {
-    return this.prisma.user.findMany({
+    const agents = await this.prisma.user.findMany({
       where: { role: 'AGENT' },
       select: {
         id: true,
@@ -78,6 +85,14 @@ export class PaymentsService {
         phone: true,
       },
     });
+
+    return normalizeAvatarUrls(
+      agents,
+      this.configService.get<string>(
+        'publicApiUrl',
+        `http://localhost:${this.configService.get<number>('port', 3000)}`,
+      ),
+    );
   }
 
   async transferCoins(
@@ -175,7 +190,7 @@ export class PaymentsService {
         `Maximum withdrawal is ${MAX_WITHDRAWAL.toLocaleString()} coins`,
       );
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { coinsBalance: true },
@@ -227,6 +242,8 @@ export class PaymentsService {
 
         return { ...withdrawal, status: WithdrawalStatus.PROCESSING };
       });
+
+      return result;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to process withdrawal');
@@ -242,9 +259,14 @@ export class PaymentsService {
 
   // ── Daily Bonus ───────────────────────────────────────────────────────────
 
-  async claimDailyBonus(userId: string, coins: number) {
+  async claimDailyBonus(userId: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const coins =
+          DAILY_BONUS_PRIZES[
+            Math.floor(Math.random() * DAILY_BONUS_PRIZES.length)
+          ];
+
         // enforce 24-hour cooldown
         const lastBonus = await tx.transaction.findFirst({
           where: { userId, title: 'Daily Bonus Spin' },
@@ -293,6 +315,8 @@ export class PaymentsService {
         });
         return { coins, newBalance: updated?.coinsBalance ?? 0 };
       });
+
+      return result;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to claim daily bonus');
@@ -320,7 +344,7 @@ export class PaymentsService {
     const drawn = pool.slice(0, 20);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { coinsBalance: true },
@@ -388,6 +412,12 @@ export class PaymentsService {
           newBalance: updated?.coinsBalance ?? 0,
         };
       });
+
+      void this.missionsService
+        .incrementCategoryProgress(userId, MissionCategory.KENO)
+        .catch(() => {});
+
+      return result;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to process Keno round');
@@ -453,6 +483,9 @@ export class PaymentsService {
         deposit.userId,
         deposit.amount,
       );
+      void this.missionsService
+        .incrementCategoryProgress(deposit.userId, MissionCategory.DEPOSIT)
+        .catch(() => {});
       // push real-time notification to user
       const notif = {
         type: NotificationType.DEPOSIT,
@@ -543,7 +576,7 @@ export class PaymentsService {
       await this.prisma.$transaction(async (tx) => {
         await tx.withdrawal.update({
           where: { id: withdrawalId },
-          data: { status: WithdrawalStatus.FAILED },
+          data: { status: WithdrawalStatus.REJECTED },
         });
         await tx.user.update({
           where: { id: w.userId },
@@ -552,11 +585,22 @@ export class PaymentsService {
         const wallet = await tx.wallet.findFirst({
           where: { userId: w.userId, isDefault: true, deletedAt: null },
         });
-        if (wallet)
+        if (wallet) {
+          await tx.transaction.create({
+            data: {
+              title: `Withdrawal refund: ${w.method}`,
+              amount: w.amount,
+              type: TransactionType.INCOME,
+              date: new Date(),
+              userId: w.userId,
+              walletId: wallet.id,
+            },
+          });
           await tx.wallet.update({
             where: { id: wallet.id },
             data: { balance: { increment: w.amount } },
           });
+        }
       });
       const notif = {
         type: NotificationType.WITHDRAWAL,
@@ -609,6 +653,12 @@ export class PaymentsService {
         },
       }),
     ]);
-    return { deposits, withdrawals };
+    return normalizeAvatarUrls(
+      { deposits, withdrawals },
+      this.configService.get<string>(
+        'publicApiUrl',
+        `http://localhost:${this.configService.get<number>('port', 3000)}`,
+      ),
+    );
   }
 }

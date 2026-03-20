@@ -4,7 +4,11 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { MissionType, TransactionType } from 'generated/prisma/client';
+import {
+  MissionCategory,
+  MissionType,
+  TransactionType,
+} from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -12,6 +16,8 @@ export class MissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMissions(userId: string, type?: MissionType) {
+    await this.ensureMissionResets(type);
+
     const missions = await this.prisma.mission.findMany({
       where: { isActive: true, ...(type ? { type } : {}) },
       include: {
@@ -46,6 +52,8 @@ export class MissionsService {
       where: { id: missionId },
     });
     if (!mission) throw new NotFoundException('Mission not found');
+
+    await this.ensureMissionResets(mission.type);
 
     const um = await this.prisma.userMission.findUnique({
       where: { userId_missionId: { userId, missionId } },
@@ -112,13 +120,30 @@ export class MissionsService {
     });
     if (!mission) throw new NotFoundException('Mission not found');
 
-    const um = await this.prisma.userMission.upsert({
+    await this.ensureMissionResets(mission.type);
+
+    const previous = await this.prisma.userMission.findUnique({
       where: { userId_missionId: { userId, missionId } },
-      create: { userId, missionId, progress: Math.min(amount, mission.total) },
-      update: { progress: { increment: amount } },
+      select: { progress: true, claimed: true },
     });
 
-    if (um.progress >= mission.total && !um.claimed) {
+    const nextProgress = Math.min(
+      (previous?.progress ?? 0) + amount,
+      mission.total,
+    );
+
+    const um = await this.prisma.userMission.upsert({
+      where: { userId_missionId: { userId, missionId } },
+      create: { userId, missionId, progress: nextProgress },
+      update: { progress: nextProgress },
+    });
+
+    const justCompleted =
+      (previous?.progress ?? 0) < mission.total &&
+      nextProgress >= mission.total &&
+      !(previous?.claimed ?? false);
+
+    if (justCompleted) {
       await this.prisma.notification.create({
         data: {
           userId,
@@ -129,6 +154,27 @@ export class MissionsService {
       });
     }
     return um;
+  }
+
+  async incrementCategoryProgress(
+    userId: string,
+    category: MissionCategory,
+    amount = 1,
+  ) {
+    await this.ensureMissionResets();
+
+    const missions = await this.prisma.mission.findMany({
+      where: { isActive: true, category },
+      select: { id: true },
+    });
+
+    if (missions.length === 0) return [];
+
+    return Promise.all(
+      missions.map((mission) =>
+        this.incrementProgress(userId, mission.id, amount),
+      ),
+    );
   }
 
   async getStreak(userId: string) {
@@ -174,6 +220,7 @@ export class MissionsService {
         type: dto.type as MissionType,
         category: dto.category as any,
         icon: dto.icon ?? '🎯',
+        resetAt: this.getNextResetAt(dto.type as MissionType),
       },
     });
   }
@@ -214,6 +261,7 @@ export class MissionsService {
         type: MissionType.DAILY,
         category: 'PLAY_GAMES' as const,
         icon: '🎮',
+        resetAt: this.getNextResetAt(MissionType.DAILY),
       },
       {
         title: 'Win a Game',
@@ -223,6 +271,7 @@ export class MissionsService {
         type: MissionType.DAILY,
         category: 'WIN_GAMES' as const,
         icon: '🏆',
+        resetAt: this.getNextResetAt(MissionType.DAILY),
       },
       {
         title: 'Play 3 Games',
@@ -232,6 +281,7 @@ export class MissionsService {
         type: MissionType.DAILY,
         category: 'PLAY_GAMES' as const,
         icon: '🎯',
+        resetAt: this.getNextResetAt(MissionType.DAILY),
       },
       {
         title: 'Invite a Friend',
@@ -241,6 +291,7 @@ export class MissionsService {
         type: MissionType.DAILY,
         category: 'INVITE' as const,
         icon: '👥',
+        resetAt: this.getNextResetAt(MissionType.DAILY),
       },
       {
         title: 'Top Up Coins',
@@ -250,6 +301,7 @@ export class MissionsService {
         type: MissionType.DAILY,
         category: 'DEPOSIT' as const,
         icon: '💳',
+        resetAt: this.getNextResetAt(MissionType.DAILY),
       },
       {
         title: 'Win 5 Games',
@@ -259,6 +311,7 @@ export class MissionsService {
         type: MissionType.WEEKLY,
         category: 'WIN_GAMES' as const,
         icon: '🥇',
+        resetAt: this.getNextResetAt(MissionType.WEEKLY),
       },
       {
         title: 'Play 20 Games',
@@ -268,6 +321,7 @@ export class MissionsService {
         type: MissionType.WEEKLY,
         category: 'PLAY_GAMES' as const,
         icon: '🎲',
+        resetAt: this.getNextResetAt(MissionType.WEEKLY),
       },
       {
         title: 'Join Tournament',
@@ -277,6 +331,7 @@ export class MissionsService {
         type: MissionType.WEEKLY,
         category: 'TOURNAMENT' as const,
         icon: '🏟️',
+        resetAt: this.getNextResetAt(MissionType.WEEKLY),
       },
       {
         title: 'Invite 3 Friends',
@@ -286,6 +341,7 @@ export class MissionsService {
         type: MissionType.WEEKLY,
         category: 'INVITE' as const,
         icon: '🤝',
+        resetAt: this.getNextResetAt(MissionType.WEEKLY),
       },
       {
         title: 'Play Keno',
@@ -295,10 +351,58 @@ export class MissionsService {
         type: MissionType.WEEKLY,
         category: 'KENO' as const,
         icon: '🎰',
+        resetAt: this.getNextResetAt(MissionType.WEEKLY),
       },
     ];
 
     await this.prisma.mission.createMany({ data: missions });
     return { message: 'Seeded successfully', count: missions.length };
+  }
+
+  private async ensureMissionResets(type?: MissionType) {
+    const now = new Date();
+    const types = type ? [type] : [MissionType.DAILY, MissionType.WEEKLY];
+
+    for (const missionType of types) {
+      const expiredMissions = await this.prisma.mission.findMany({
+        where: {
+          isActive: true,
+          type: missionType,
+          OR: [{ resetAt: null }, { resetAt: { lte: now } }],
+        },
+        select: { id: true },
+      });
+
+      if (expiredMissions.length === 0) continue;
+
+      const missionIds = expiredMissions.map((mission) => mission.id);
+      const nextResetAt = this.getNextResetAt(missionType, now);
+
+      await this.prisma.$transaction([
+        this.prisma.userMission.updateMany({
+          where: { missionId: { in: missionIds } },
+          data: { progress: 0, claimed: false, claimedAt: null },
+        }),
+        this.prisma.mission.updateMany({
+          where: { id: { in: missionIds } },
+          data: { resetAt: nextResetAt },
+        }),
+      ]);
+    }
+  }
+
+  private getNextResetAt(type: MissionType, from = new Date()) {
+    const next = new Date(from);
+    next.setHours(0, 0, 0, 0);
+
+    if (type === MissionType.DAILY) {
+      next.setDate(next.getDate() + 1);
+      return next;
+    }
+
+    const day = next.getDay();
+    const daysUntilNextWeek = day === 0 ? 1 : 8 - day;
+    next.setDate(next.getDate() + daysUntilNextWeek);
+    return next;
   }
 }

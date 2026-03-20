@@ -25,10 +25,24 @@ export interface LeaderboardUserEntry {
   user?: User;
 }
 
+export interface UploadAvatarResponse {
+  avatarUrl: string;
+  user: User;
+}
+
 export const usersApi = {
   getMe: () => api.get<User>("/users/me").then((r) => r.data),
   updateMe: (payload: UpdateUserPayload) =>
     api.patch<User>("/users/me", payload).then((r) => r.data),
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api
+      .post<UploadAvatarResponse>("/users/me/avatar", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data);
+  },
   getMyStats: (): Promise<GameStats> =>
     api.get("/users/me/stats").then((r) => r.data),
   getLeaderboard: (limit = 10) =>

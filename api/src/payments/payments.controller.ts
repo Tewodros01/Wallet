@@ -1,11 +1,16 @@
 import { Body, Controller, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Role } from 'generated/prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import {
+  PROOF_UPLOAD_MIME_TYPES,
+  storeUploadedFile,
+  validateUploadMimeType,
+} from '../common/utils/upload.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
 import { PaymentsService } from './payments.service';
@@ -31,21 +36,29 @@ export class PaymentsController {
   @UseInterceptors(FileInterceptor('file', {
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     fileFilter: (_req, file, cb) => {
-      if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
-        return cb(new Error('Only images and PDFs are allowed'), false);
+      try {
+        validateUploadMimeType(
+          file.mimetype,
+          PROOF_UPLOAD_MIME_TYPES,
+          'Only JPG, PNG, WEBP, GIF, and PDF files are allowed',
+        );
+        cb(null, true);
+      } catch (error) {
+        return cb(error as Error, false);
       }
-      cb(null, true);
     },
   }))
   @Post('proof/upload')
   uploadProof(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new Error('No file provided');
-    const uploadsDir = path.join(process.cwd(), 'public', 'proofs');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const ext = path.extname(file.originalname) || '.jpg';
-    const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-    fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
-    return { proofUrl: `/public/proofs/${filename}` };
+    return {
+      proofUrl: storeUploadedFile({
+        file,
+        subdirectory: 'proofs',
+        allowedMimeTypes: PROOF_UPLOAD_MIME_TYPES,
+        fallbackExtension: '.bin',
+        errorMessage: 'Only JPG, PNG, WEBP, GIF, and PDF files are allowed',
+      }),
+    };
   }
 
   @ApiOperation({ summary: 'Create a deposit (add money)' })
@@ -90,11 +103,8 @@ export class PaymentsController {
 
   @ApiOperation({ summary: 'Claim daily bonus' })
   @Post('daily-bonus')
-  claimDailyBonus(
-    @Body() dto: { coins: number },
-    @GetUser('sub') userId: string,
-  ) {
-    return this.paymentsService.claimDailyBonus(userId, dto.coins);
+  claimDailyBonus(@GetUser('sub') userId: string) {
+    return this.paymentsService.claimDailyBonus(userId);
   }
 
   @ApiOperation({ summary: 'Play Keno round' })
@@ -113,30 +123,40 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Agent: get all deposit/withdrawal requests' })
+  @Roles(Role.AGENT, Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Get('agent/requests')
   getAgentRequests() {
     return this.paymentsService.getAgentRequests();
   }
 
   @ApiOperation({ summary: 'Agent: approve deposit' })
+  @Roles(Role.AGENT, Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('agent/deposits/:id/approve')
   approveDeposit(@Param('id') id: string) {
     return this.paymentsService.agentApproveDeposit(id);
   }
 
   @ApiOperation({ summary: 'Agent: reject deposit' })
+  @Roles(Role.AGENT, Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('agent/deposits/:id/reject')
   rejectDeposit(@Param('id') id: string) {
     return this.paymentsService.agentRejectDeposit(id);
   }
 
   @ApiOperation({ summary: 'Agent: approve withdrawal' })
+  @Roles(Role.AGENT, Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('agent/withdrawals/:id/approve')
   approveWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentApproveWithdrawal(id);
   }
 
   @ApiOperation({ summary: 'Agent: reject withdrawal' })
+  @Roles(Role.AGENT, Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('agent/withdrawals/:id/reject')
   rejectWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentRejectWithdrawal(id);
@@ -145,6 +165,8 @@ export class PaymentsController {
   // ── Admin endpoints ──────────────────────────────────────────────────────
 
   @ApiOperation({ summary: 'Admin: get all deposits' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Get('admin/deposits')
   adminGetAllDeposits() {
     return this.prisma.deposit.findMany({
@@ -165,6 +187,8 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Admin: analytics — daily deposit/withdrawal totals for last 30 days' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Get('admin/analytics')
   async adminAnalytics() {
     const since = new Date();
@@ -212,6 +236,8 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Admin: get all withdrawals' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Get('admin/withdrawals')
   adminGetAllWithdrawals() {
     return this.prisma.withdrawal.findMany({
@@ -232,24 +258,32 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Admin: approve deposit' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('admin/deposits/:id/approve')
   adminApproveDeposit(@Param('id') id: string) {
     return this.paymentsService.agentApproveDeposit(id);
   }
 
   @ApiOperation({ summary: 'Admin: reject deposit' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('admin/deposits/:id/reject')
   adminRejectDeposit(@Param('id') id: string) {
     return this.paymentsService.agentRejectDeposit(id);
   }
 
   @ApiOperation({ summary: 'Admin: approve withdrawal' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('admin/withdrawals/:id/approve')
   adminApproveWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentApproveWithdrawal(id);
   }
 
   @ApiOperation({ summary: 'Admin: reject withdrawal' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
   @Post('admin/withdrawals/:id/reject')
   adminRejectWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentRejectWithdrawal(id);

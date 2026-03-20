@@ -18,6 +18,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from 'generated/prisma/client';
+import {
+  IMAGE_UPLOAD_MIME_TYPES,
+  validateUploadMimeType,
+} from '../common/utils/upload.util';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -87,10 +91,16 @@ export class UsersController {
     FileInterceptor('file', {
       limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
       fileFilter: (_req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new Error('Only image files are allowed'), false);
+        try {
+          validateUploadMimeType(
+            file.mimetype,
+            IMAGE_UPLOAD_MIME_TYPES,
+            'Only JPG, PNG, WEBP, and GIF files are allowed',
+          );
+          cb(null, true);
+        } catch (error) {
+          return cb(error as Error, false);
         }
-        cb(null, true);
       },
     }),
   )

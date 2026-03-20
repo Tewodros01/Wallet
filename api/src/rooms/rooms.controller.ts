@@ -1,8 +1,22 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/get-user.decorators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateRoomDto, JoinRoomDto, QueryRoomsDto } from './dto/room.dto';
+import {
+  ClaimBingoDto,
+  CreateRoomDto,
+  JoinRoomDto,
+  QueryRoomsDto,
+  SelectRoomCardsDto,
+} from './dto/room.dto';
 import { RoomsService } from './rooms.service';
 
 @ApiTags('rooms')
@@ -38,7 +52,11 @@ export class RoomsController {
 
   @ApiOperation({ summary: 'Join a room' })
   @Post(':id/join')
-  join(@Param('id') id: string, @Body() dto: JoinRoomDto, @GetUser('sub') userId: string) {
+  join(
+    @Param('id') id: string,
+    @Body() dto: JoinRoomDto,
+    @GetUser('sub') userId: string,
+  ) {
     return this.roomsService.join(id, userId, dto);
   }
 
@@ -46,6 +64,22 @@ export class RoomsController {
   @Get(':id/my-player')
   getMyPlayer(@Param('id') id: string, @GetUser('sub') userId: string) {
     return this.roomsService.getMyPlayer(id, userId);
+  }
+
+  @ApiOperation({ summary: 'Get available cards for this room' })
+  @Get(':id/cards/available')
+  getAvailableCards(@Param('id') id: string, @GetUser('sub') userId: string) {
+    return this.roomsService.getAvailableCards(id, userId);
+  }
+
+  @ApiOperation({ summary: 'Select cards for this room' })
+  @Post(':id/cards/select')
+  selectCards(
+    @Param('id') id: string,
+    @Body() dto: SelectRoomCardsDto,
+    @GetUser('sub') userId: string,
+  ) {
+    return this.roomsService.selectCards(id, userId, dto.cardIds);
   }
 
   @ApiOperation({ summary: 'Start the game (host only)' })
@@ -56,7 +90,11 @@ export class RoomsController {
 
   @ApiOperation({ summary: 'Claim BINGO' })
   @Post(':id/bingo')
-  claimBingo(@Param('id') id: string, @GetUser('sub') userId: string) {
-    return this.roomsService.claimBingo(id, userId);
+  claimBingo(
+    @Param('id') id: string,
+    @Body() dto: ClaimBingoDto,
+    @GetUser('sub') userId: string,
+  ) {
+    return this.roomsService.claimBingo(id, userId, dto.cardId);
   }
 }

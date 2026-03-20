@@ -7,6 +7,7 @@ import { z } from "zod";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useLogin } from "../hooks/useAuth";
+import { getErrorMessage } from "../lib/errors";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -30,8 +31,7 @@ export default function SignIn() {
   const onSubmit = (data: FormData) =>
     login(data, { onSuccess: () => navigate("/dashboard") });
 
-  const errMsg = (error as { response?: { data?: { message?: string } } })
-    ?.response?.data?.message;
+  const errMsg = error ? getErrorMessage(error, "Failed to sign in") : "";
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-5 py-12">
