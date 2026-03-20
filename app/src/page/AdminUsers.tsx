@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaCoins, FaCrown } from "react-icons/fa";
 import {
   FiArrowLeft,
@@ -43,6 +43,7 @@ const CONFIRM_COLOR: Record<Role, string> = {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
+  const roleMenuRef = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RoleFilter>("all");
   const [openRoleMenuId, setOpenRoleMenuId] = useState<string | null>(null);
@@ -70,6 +71,32 @@ export default function AdminUsers() {
     name: string;
     banned: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    if (!openRoleMenuId) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!roleMenuRef.current?.contains(event.target as Node)) {
+        setOpenRoleMenuId(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenRoleMenuId(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openRoleMenuId]);
+
+  useEffect(() => {
+    setOpenRoleMenuId(null);
+  }, [filter, search]);
 
   const filtered = (users as User[]).filter((u) => {
     const matchRole = filter === "all" || u.role === filter;
@@ -344,6 +371,24 @@ export default function AdminUsers() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setOpenRoleMenuId(null);
+                            setCoinsDialog({
+                              id: u.id,
+                              name: `${u.firstName} ${u.lastName}`,
+                              avatar: u.avatar ?? null,
+                            });
+                          }}
+                          aria-label={`Adjust coins for ${u.firstName} ${u.lastName}`}
+                          className="flex items-center gap-1 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-2 py-1 text-[10px] font-bold text-yellow-400 transition-colors hover:bg-yellow-500/20"
+                        >
+                          <FaCoins className="text-[11px]" />
+                          Coins
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenRoleMenuId(null);
                             setBanConfirm({
                               id: u.id,
                               name: `${u.firstName} ${u.lastName}`,
@@ -363,7 +408,10 @@ export default function AdminUsers() {
                         >
                           {u.deletedAt ? "Unban" : "Ban"}
                         </button>
-                        <div className="relative">
+                        <div
+                          ref={openRoleMenuId === u.id ? roleMenuRef : null}
+                          className="relative"
+                        >
                           <button
                             type="button"
                             onClick={(e) => {

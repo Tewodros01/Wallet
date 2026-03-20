@@ -13,13 +13,14 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
   const httpAdapter = app.getHttpAdapter().getInstance();
+  const nodeEnv = configService.get<string>('nodeEnv', 'development');
 
   httpAdapter.get('/', (_req, res) => {
     res.status(200).json({
       status: 'ok',
       message: 'Wallet API is running',
-      docs: '/docs',
       api: '/api/v1',
+      ...(nodeEnv !== 'production' ? { docs: '/docs' } : {}),
     });
   });
 
@@ -64,7 +65,6 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const nodeEnv = configService.get<string>('nodeEnv', 'development');
   if (nodeEnv !== 'production') {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, document);

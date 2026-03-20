@@ -451,15 +451,19 @@ export class AuthService {
         },
       });
 
-      // In production you would email rawToken. We return it here for
-      // demo/dev purposes — replace with your email provider.
-      return process.env.NODE_ENV === 'production'
+      const canReturnResetToken =
+        process.env.NODE_ENV !== 'production' &&
+        process.env.EXPOSE_RESET_TOKEN === 'true';
+
+      // In production you would email rawToken. Only expose it when
+      // development explicitly opts into that behavior.
+      return canReturnResetToken
         ? {
             message: 'If that email exists, a reset link has been sent.',
+            resetToken: rawToken,
           }
         : {
             message: 'If that email exists, a reset link has been sent.',
-            resetToken: rawToken,
           };
     } catch {
       throw new InternalServerErrorException('Failed to process password reset');
