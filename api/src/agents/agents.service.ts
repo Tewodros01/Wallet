@@ -13,6 +13,7 @@ import {
 import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
 import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 const COMMISSION_PER_INVITE = 50; // coins on signup
 const DEPOSIT_COMMISSION_PCT = 0.02; // 2% of deposit amount credited to inviter
@@ -23,6 +24,7 @@ export class AgentsService {
     private readonly prisma: PrismaService,
     private readonly missionsService: MissionsService,
     private readonly configService: ConfigService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async getMyInvite(userId: string) {
@@ -153,6 +155,10 @@ export class AgentsService {
       void this.missionsService
         .incrementCategoryProgress(result.inviterId, MissionCategory.INVITE)
         .catch(() => {});
+      void this.telegramService.trySendMessageToUser(
+        result.inviterId,
+        `Referral bonus unlocked. You earned ${result.commission.toLocaleString()} coins from a new signup.`,
+      );
 
       return {
         success: true,
@@ -217,6 +223,10 @@ export class AgentsService {
           });
         }
       });
+      void this.telegramService.trySendMessageToUser(
+        invite.inviterId,
+        `Agent commission received. You earned ${commission.toLocaleString()} coins from a referred user's deposit.`,
+      );
     } catch {
       // commission is non-critical — never fail the main deposit flow
     }

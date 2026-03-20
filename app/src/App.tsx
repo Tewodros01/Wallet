@@ -35,6 +35,7 @@ import GameHistory from "./page/GameHistory";
 import GetMoney from "./page/GetMoney";
 import Invite from "./page/Invite";
 import Keno from "./page/Keno";
+import KenoStyles from "./page/KenoDashboard";
 import KenoHistory from "./page/KenoHistory";
 import Language from "./page/Language";
 import Leaderboard from "./page/Leaderboard";
@@ -402,6 +403,14 @@ const App = () => {
         />
         <Route
           path={APP_ROUTES.keno}
+          element={
+            <RequireAuth>
+              <KenoStyles />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={`${APP_ROUTES.kenoPlay}/:style`}
           element={
             <RequireAuth>
               <Keno />

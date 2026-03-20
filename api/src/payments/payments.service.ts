@@ -16,6 +16,7 @@ import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
 import { MissionsService } from '../missions/missions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
 
 const MIN_DEPOSIT = 10;
@@ -45,6 +46,7 @@ export class PaymentsService {
     private readonly missionsService: MissionsService,
     private readonly notifGateway: NotificationsGateway,
     private readonly configService: ConfigService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   // ── Deposits ──────────────────────────────────────────────────────────────
@@ -240,6 +242,11 @@ export class PaymentsService {
 
         return { ...withdrawal, status: WithdrawalStatus.PROCESSING };
       });
+
+      void this.telegramService.trySendMessageToUser(
+        userId,
+        `Your daily bonus is in. You received ${result.coins.toLocaleString()} coins and your new balance is ${result.newBalance.toLocaleString()} coins.`,
+      );
 
       return result;
     } catch (error) {
@@ -494,6 +501,10 @@ export class PaymentsService {
         .create({ data: { userId: deposit.userId, ...notif } })
         .catch(() => {});
       this.notifGateway.pushToUser(deposit.userId, notif);
+      void this.telegramService.trySendMessageToUser(
+        deposit.userId,
+        `Deposit approved. ${Number(deposit.amount).toLocaleString()} coins were credited to your wallet.`,
+      );
       return { success: true };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -522,6 +533,10 @@ export class PaymentsService {
         .create({ data: { userId: deposit.userId, ...notif } })
         .catch(() => {});
       this.notifGateway.pushToUser(deposit.userId, notif);
+      void this.telegramService.trySendMessageToUser(
+        deposit.userId,
+        `Deposit rejected. Your request for ${Number(deposit.amount).toLocaleString()} coins was not approved. Please contact support if needed.`,
+      );
       return { success: true };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -553,6 +568,10 @@ export class PaymentsService {
         .create({ data: { userId: w.userId, ...notif } })
         .catch(() => {});
       this.notifGateway.pushToUser(w.userId, notif);
+      void this.telegramService.trySendMessageToUser(
+        w.userId,
+        `Withdrawal approved. ${Number(w.amount).toLocaleString()} coins will be sent to your ${w.method} account shortly.`,
+      );
       return { success: true };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -609,6 +628,10 @@ export class PaymentsService {
         .create({ data: { userId: w.userId, ...notif } })
         .catch(() => {});
       this.notifGateway.pushToUser(w.userId, notif);
+      void this.telegramService.trySendMessageToUser(
+        w.userId,
+        `Withdrawal rejected. ${Number(w.amount).toLocaleString()} coins were returned to your wallet.`,
+      );
       return { success: true };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;

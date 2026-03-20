@@ -1,20 +1,26 @@
 import { useState } from "react";
 import {
+  FiCheckCircle,
+  FiArrowLeft,
   FiBell,
   FiChevronRight,
   FiGlobe,
   FiLock,
   FiLogOut,
   FiMoon,
+  FiSend,
   FiSettings,
   FiShield,
+  FiSmartphone,
   FiUser,
   FiVolume2,
   FiVolumeX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { AppBar, BottomNav } from "../components/ui/Layout";
+import { AppBar } from "../components/ui/Layout";
+import { useSendTelegramMessage, useTelegramStatus } from "../hooks/useAuth";
 import { useMe } from "../hooks/useUser";
+import { getErrorMessage } from "../lib/errors";
 import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import { useSoundStore } from "../store/sound.store";
@@ -46,7 +52,25 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
+  const [telegramSuccess, setTelegramSuccess] = useState("");
   const { muted, toggle: toggleSound } = useSoundStore();
+  const { data: telegramStatus, isLoading: telegramLoading } = useTelegramStatus();
+  const {
+    mutate: sendTelegramMessage,
+    isPending: isSendingTelegram,
+    error: telegramSendError,
+  } = useSendTelegramMessage();
+
+  const handleSendTelegramTest = () => {
+    setTelegramSuccess("");
+    sendTelegramMessage({
+      text: "Your Telegram connection is working. Bingo Wallet can now send you important updates here.",
+    }, {
+      onSuccess: () => {
+        setTelegramSuccess("Test message sent to your Telegram chat.");
+      },
+    });
+  };
 
   const sections: SettingsSection[] = [
     {
@@ -105,6 +129,33 @@ export default function Settings() {
       ],
     },
     {
+      title: "Telegram",
+      items: [
+        {
+          icon: <FiSmartphone />,
+          label: "Telegram Status",
+          sub: telegramLoading
+            ? "Checking Telegram link..."
+            : telegramStatus?.linked
+              ? telegramStatus.telegramUsername
+                ? `Connected as @${telegramStatus.telegramUsername}`
+                : "Connected and ready for Mini App login"
+              : "Open the app from Telegram Mini App to link your account",
+        },
+        {
+          icon: telegramStatus?.linked ? <FiSend /> : <FiCheckCircle />,
+          label: "Send Test Message",
+          sub: telegramStatus?.linked
+            ? isSendingTelegram
+              ? "Sending test message to Telegram..."
+              : "Verify that your bot notifications arrive instantly"
+            : "Link Telegram first to enable bot messages",
+          action: telegramStatus?.linked ? handleSendTelegramTest : undefined,
+          chevron: Boolean(telegramStatus?.linked),
+        },
+      ],
+    },
+    {
       title: "Security",
       items: [
         {
@@ -146,11 +197,22 @@ export default function Settings() {
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
         left={
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gray-500/15 border border-gray-500/25 flex items-center justify-center">
-              <FiSettings className="text-gray-400 text-sm" />
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => navigate(-1)}
+              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+            >
+              <FiArrowLeft className="text-white text-sm" />
+            </button>
             <span className="text-base font-black">Settings</span>
+          </div>
+        }
+        right={
+          <div className="w-8 h-8 rounded-xl bg-gray-500/15 border border-gray-500/25 flex items-center justify-center">
+            <FiSettings className="text-gray-400 text-sm" />
           </div>
         }
       />
@@ -239,6 +301,16 @@ export default function Settings() {
                 );
               })}
             </div>
+            {section.title === "Telegram" && telegramSendError && (
+              <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2">
+                {getErrorMessage(telegramSendError, "Failed to send Telegram test message")}
+              </p>
+            )}
+            {section.title === "Telegram" && telegramSuccess && (
+              <p className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+                {telegramSuccess}
+              </p>
+            )}
           </div>
         ))}
 
@@ -256,7 +328,6 @@ export default function Settings() {
           Version 1.0.0 · Bingo Game
         </p>
       </div>
-      <BottomNav />
     </div>
   );
 }

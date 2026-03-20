@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { FaCoins } from "react-icons/fa";
-import { FiGrid, FiHome, FiSettings, FiUser, FiUsers } from "react-icons/fi";
+import { FiGrid, FiHome, FiUser, FiUsers, FiZap } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "../../lib/haptic";
 
@@ -101,10 +101,10 @@ export const SocialBtn = ({
 
 const NAV_ITEMS = [
   { path: "/dashboard", label: "Home", Icon: FiHome },
+  { path: "/game", label: "Bingo", Icon: FiUsers },
+  { path: "/keno", label: "Keno", Icon: FiZap },
   { path: "/wallet", label: "Wallet", Icon: FiGrid },
-  { path: "/game", label: "Play Game", Icon: FiUsers },
   { path: "/profile", label: "Profile", Icon: FiUser },
-  { path: "/settings", label: "More", Icon: FiSettings },
 ];
 
 export const BottomNav = () => {
@@ -116,7 +116,8 @@ export const BottomNav = () => {
         {NAV_ITEMS.map(({ path, label, Icon }) => {
           const active =
             pathname === path ||
-            (path === "/game" && pathname.startsWith("/game"));
+            (path === "/game" && pathname.startsWith("/game")) ||
+            (path === "/keno" && pathname.startsWith("/keno"));
           return (
             <button
               key={path}

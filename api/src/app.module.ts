@@ -15,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { TelegramModule } from './telegram/telegram.module';
 import { UsersModule } from './users/users.module';
 import { WalletsModule } from './wallets/wallets.module';
 
@@ -30,6 +31,7 @@ import { WalletsModule } from './wallets/wallets.module';
     UsersModule,
     WalletsModule,
     TransactionsModule,
+    TelegramModule,
     PaymentsModule,
     RoomsModule,
     GameModule,

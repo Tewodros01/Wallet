@@ -33,6 +33,7 @@ export const APP_ROUTES = {
   walletHistory: "/wallet-history",
   withdrawalStatus: "/withdrawal-status",
   keno: "/keno",
+  kenoPlay: "/keno/play",
   kenoHistory: "/keno/history",
   transaction: "/transaction",
   admin: {

@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { FaCoins, FaTrophy } from "react-icons/fa";
 import { FiArrowLeft, FiRefreshCw, FiZap } from "react-icons/fi";
 import { GiCoins } from "react-icons/gi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CoinCounter from "../components/ui/CoinCounter";
+import { AppBar } from "../components/ui/Layout";
+import { APP_ROUTES } from "../config/routes";
 import { usePlayKeno } from "../hooks/usePayments";
 import { useGameSound } from "../hooks/useSound";
 import { fireConfetti } from "../lib/confetti";
@@ -17,6 +19,34 @@ const MAX_PICK = 10;
 const TOTAL = 80;
 const DRAW_SIZE = 20;
 const BETS = [10, 25, 50, 100, 200, 500];
+
+const KENO_STYLES = {
+  classic: {
+    label: "Classic",
+    sub: "Balanced picks and standard pace",
+    picks: 5,
+    bet: 50,
+    accent: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+  },
+  quick: {
+    label: "Quick 3",
+    sub: "Low-risk, fast rounds",
+    picks: 3,
+    bet: 25,
+    accent: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  },
+  highRoller: {
+    label: "High Roller",
+    sub: "More picks, bigger upside",
+    picks: 8,
+    bet: 100,
+    accent: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  },
+} as const;
+
+type KenoStyle = keyof typeof KENO_STYLES;
+
+const DEFAULT_STYLE: KenoStyle = "classic";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -44,12 +74,26 @@ type Phase = "pick" | "drawing" | "result";
 
 export default function Keno() {
   const navigate = useNavigate();
+  const { style: styleParam } = useParams<{ style?: string }>();
   const balance = useWalletStore((s) => s.balance);
   const { mutate: playKeno, isPending } = usePlayKeno();
   const { play } = useGameSound();
+  const activeRouteStyle =
+    styleParam && styleParam in KENO_STYLES
+      ? (styleParam as KenoStyle)
+      : DEFAULT_STYLE;
 
-  const [picked, setPicked] = useState<Set<number>>(new Set());
-  const [bet, setBet] = useState(50);
+  const [style, setStyle] = useState<KenoStyle>(activeRouteStyle);
+  const [picked, setPicked] = useState<Set<number>>(
+    () =>
+      new Set(
+        shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(
+          0,
+          KENO_STYLES[activeRouteStyle].picks,
+        ),
+      ),
+  );
+  const [bet, setBet] = useState(KENO_STYLES[activeRouteStyle].bet);
   const [phase, setPhase] = useState<Phase>("pick");
   const [drawn, setDrawn] = useState<number[]>([]);
   const [revealed, setRevealed] = useState<number[]>([]);
@@ -64,6 +108,25 @@ export default function Keno() {
     timerRef.current = [];
   };
   useEffect(() => () => clearTimers(), []);
+
+  useEffect(() => {
+    const config = KENO_STYLES[activeRouteStyle];
+    setStyle(activeRouteStyle);
+    setBet(config.bet);
+    setPicked(
+      new Set(
+        shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(
+          0,
+          config.picks,
+        ),
+      ),
+    );
+    setDrawn([]);
+    setRevealed([]);
+    setResult(null);
+    setPhase("pick");
+    clearTimers();
+  }, [activeRouteStyle]);
 
   const toggle = (n: number) => {
     if (phase !== "pick") return;
@@ -83,7 +146,7 @@ export default function Keno() {
 
   const quickPick = () => {
     if (phase !== "pick") return;
-    const count = Math.min(MAX_PICK, 5);
+    const count = Math.min(MAX_PICK, KENO_STYLES[style].picks);
     const picks = shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(
       0,
       count,
@@ -143,7 +206,15 @@ export default function Keno() {
 
   const reset = () => {
     clearTimers();
-    setPicked(new Set());
+    setPicked(
+      new Set(
+        shuffle(Array.from({ length: TOTAL }, (_, i) => i + 1)).slice(
+          0,
+          KENO_STYLES[style].picks,
+        ),
+      ),
+    );
+    setBet(KENO_STYLES[style].bet);
     setDrawn([]);
     setRevealed([]);
     setResult(null);
@@ -153,43 +224,50 @@ export default function Keno() {
 
   const nums = Array.from({ length: 80 }, (_, i) => i + 1);
   const isWin = (result?.payout ?? 0) > 0;
+  const activeStyle = KENO_STYLES[style];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.06] px-5 pt-4 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Go back"
-            title="Go back"
-            onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
-          >
-            <FiArrowLeft className="text-white text-sm" />
-          </button>
-          <div>
-            <p className="text-base font-black text-white">Keno</p>
-            <p className="text-[10px] text-gray-500">
-              Pick up to 10 · Draw 20 of 80
-            </p>
+      <AppBar
+        left={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => navigate(APP_ROUTES.keno)}
+              className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+            >
+              <FiArrowLeft className="text-white text-sm" />
+            </button>
+            <div>
+              <p className="text-base font-black text-white">Keno</p>
+              <p className="text-[10px] text-gray-500">
+                {activeStyle.label} mode · Draw 20 of 80
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate("/keno/history")}
-            className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
-          >
-            History
-          </button>
-          <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
-            <CoinCounter value={balance} />
+        }
+        right={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(APP_ROUTES.kenoHistory)}
+              className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              History
+            </button>
+            <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
+              <CoinCounter value={balance} />
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center">
+              <FiZap className="text-cyan-300 text-sm" />
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-8">
+      <div className="flex flex-col gap-4 px-4 py-4 pb-28">
         {/* Result banner */}
         <AnimatePresence>
           {phase === "result" && result && (
@@ -223,8 +301,27 @@ export default function Keno() {
                 </div>
               )}
             </motion.div>
-          )}
+        )}
         </AnimatePresence>
+
+        <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Active Style
+            </p>
+            <p className="mt-2 text-lg font-black text-white">{activeStyle.label}</p>
+            <p className="mt-1 text-[11px] text-gray-500">
+              {activeStyle.sub} Starts with {activeStyle.picks} picks and a {activeStyle.bet}-coin bet.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(APP_ROUTES.keno)}
+            className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-black text-cyan-300"
+          >
+            Change Style
+          </button>
+        </div>
 
         {/* Number grid */}
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-3">
@@ -302,7 +399,7 @@ export default function Keno() {
                 onClick={quickPick}
                 className="flex items-center gap-1 bg-violet-500/15 border border-violet-500/30 text-violet-400 text-[10px] font-black px-2.5 py-1.5 rounded-xl active:scale-95 transition-all"
               >
-                <FiZap className="text-[10px]" /> Quick Pick
+                <FiZap className="text-[10px]" /> Re-roll Picks
               </button>
             )}
           </div>
@@ -415,6 +512,7 @@ export default function Keno() {
           </button>
         ) : null}
       </div>
+
     </div>
   );
 }

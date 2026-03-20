@@ -16,6 +16,7 @@ import {
   toPublicAssetUrl,
 } from '../common/utils/avatar-url.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './strategies/jwt-strategy';
 
@@ -74,6 +75,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly telegramService: TelegramService,
   ) {
     this.refreshTtlDays =
       this.configService.get<number>('REFRESH_TTL_DAYS') ?? 30;
@@ -369,23 +371,7 @@ export class AuthService {
   }
 
   async getTelegramStatus(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId, deletedAt: null },
-      select: {
-        id: true,
-        telegramId: true,
-        telegramUsername: true,
-        telegramPhotoUrl: true,
-      },
-    });
-    if (!user) throw new UnauthorizedException('User not found');
-
-    return {
-      linked: Boolean(user.telegramId),
-      telegramId: user.telegramId,
-      telegramUsername: user.telegramUsername,
-      telegramPhotoUrl: user.telegramPhotoUrl,
-    };
+    return this.telegramService.getUserTelegramStatus(userId);
   }
 
   async sendTelegramMessage(
@@ -393,40 +379,7 @@ export class AuthService {
     text: string,
     parseMode?: 'HTML' | 'MarkdownV2',
   ) {
-    const botToken = this.configService.get<string>('telegram.botToken');
-    if (!botToken) {
-      throw new InternalServerErrorException('Telegram bot is not configured');
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId, deletedAt: null },
-      select: { telegramId: true },
-    });
-    if (!user) throw new UnauthorizedException('User not found');
-    if (!user.telegramId) {
-      throw new BadRequestException('Telegram is not linked for this user');
-    }
-
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: user.telegramId,
-        text,
-        parse_mode: parseMode,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new BadRequestException('Failed to send Telegram message');
-    }
-
-    const payload = (await response.json()) as { ok?: boolean; result?: { message_id?: number } };
-    if (!payload.ok) {
-      throw new BadRequestException('Telegram Bot API rejected the message');
-    }
-
-    return { success: true, messageId: payload.result?.message_id ?? null };
+    return this.telegramService.sendMessageToUser(userId, text, { parseMode });
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
