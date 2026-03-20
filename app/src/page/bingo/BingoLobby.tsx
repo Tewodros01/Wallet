@@ -176,6 +176,99 @@ function PaymentModal({
   );
 }
 
+function JoinRoomCodeModal({
+  code,
+  onCodeChange,
+  onClose,
+  onEntryErrorChange,
+  onResolveRoomCode,
+  onCodeResolved,
+}: {
+  code: string;
+  onCodeChange: (value: string) => void;
+  onClose: () => void;
+  onEntryErrorChange: (value: string | null) => void;
+  onResolveRoomCode: (value: string) => Promise<GameRoomDetail | null>;
+  onCodeResolved: (room: GameRoomDetail) => Promise<void>;
+}) {
+  const [isFinding, setIsFinding] = useState(false);
+
+  const handleFind = async () => {
+    if (!code.trim() || isFinding) return;
+
+    setIsFinding(true);
+    try {
+      const found = await onResolveRoomCode(code);
+      if (!found) {
+        onEntryErrorChange("No room matched that code or room ID.");
+        return;
+      }
+
+      onEntryErrorChange(null);
+      onCodeChange(found.id.slice(-8).toUpperCase());
+      await onCodeResolved(found);
+      onClose();
+    } finally {
+      setIsFinding(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-t-3xl border border-white/10 bg-gray-900 p-5 flex flex-col gap-5">
+        <div className="flex justify-center">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-black text-white">Join Room</h2>
+            <p className="text-xs text-gray-500">
+              Enter the room ID or invite code to continue.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+          >
+            <FiX className="text-gray-400 text-sm" />
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4 flex flex-col gap-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            Room ID
+          </p>
+          <Input
+            placeholder="Enter room ID or code"
+            leftIcon={<FiHash />}
+            value={code}
+            onChange={(e) => onCodeChange(e.target.value.toUpperCase())}
+          />
+          <button
+            type="button"
+            disabled={!code.trim() || isFinding}
+            onClick={() => {
+              void handleFind();
+            }}
+            className="w-full py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
+          >
+            {isFinding ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <FaGamepad />
+                Find & Join Room
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RoomCard({
   room,
   onJoin,
@@ -380,6 +473,7 @@ export default function BingoLobby({
 }: BingoLobbyProps) {
   const navigate = useNavigate();
   const { data: unreadCount } = useUnreadCount();
+  const [showJoinCode, setShowJoinCode] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
@@ -443,36 +537,25 @@ export default function BingoLobby({
           <span className="text-emerald-400 text-lg">→</span>
         </button>
 
-        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-            Join with Room Code
-          </p>
-          <Input
-            placeholder="Enter room ID or code"
-            leftIcon={<FiHash />}
-            value={code}
-            onChange={(e) => onCodeChange(e.target.value.toUpperCase())}
-          />
-          <button
-            type="button"
-            disabled={!code.trim()}
-            onClick={async () => {
-              const found = await onResolveRoomCode(code);
-              if (!found) {
-                onEntryErrorChange("No room matched that code or room ID.");
-                return;
-              }
-
-              onEntryErrorChange(null);
-              onCodeChange(found.id.slice(-8).toUpperCase());
-              await onCodeResolved(found);
-            }}
-            className="w-full py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.97] transition-all"
-          >
-            <FaGamepad />
-            {code.trim() ? `Find "${code.trim()}"` : "Find & Join Room"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.light();
+            setShowJoinCode(true);
+          }}
+          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
+        >
+          <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/25 rounded-2xl flex items-center justify-center shrink-0">
+            <FiHash className="text-cyan-300 text-xl" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-white">Join with Room ID</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Open a room instantly using its invite code
+            </p>
+          </div>
+          <span className="text-cyan-300 text-lg">→</span>
+        </button>
 
         <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
           <FiSearch className="text-gray-500 shrink-0" />
@@ -582,6 +665,16 @@ export default function BingoLobby({
 
       {showCreate && (
         <CreateRoomModal onClose={onCreateClose} onEnter={onEnterCreatedRoom} />
+      )}
+      {showJoinCode && (
+        <JoinRoomCodeModal
+          code={code}
+          onCodeChange={onCodeChange}
+          onClose={() => setShowJoinCode(false)}
+          onEntryErrorChange={onEntryErrorChange}
+          onResolveRoomCode={onResolveRoomCode}
+          onCodeResolved={onCodeResolved}
+        />
       )}
       {payRoom && (
         <PaymentModal
