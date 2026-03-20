@@ -3,14 +3,7 @@ import type { User } from "./user.types";
 // ─── Withdrawal Types ────────────────────────────────────────────────────────
 
 export interface Agent extends User {
-  phone?: string;
-}
-
-export interface AgentRequestSummary {
-  id: string;
-  amount: number;
-  status: string;
-  createdAt: string;
+  phone: string | null;
 }
 
 export interface ApiAnalyticsPoint {

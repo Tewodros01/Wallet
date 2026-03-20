@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '../api/notifications.api';
-import { connectNotifSocket, disconnectNotifSocket } from '../lib/socket';
+import { connectNotifSocket } from '../lib/socket';
 import { useAuthStore } from '../store/auth.store';
 
 export const notificationKeys = {

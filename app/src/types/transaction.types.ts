@@ -43,6 +43,35 @@ export interface UpdateTransactionRequest {
   categoryId?: string;
 }
 
+export type CreateTransactionPayload = CreateTransactionRequest;
+export type UpdateTransactionPayload = UpdateTransactionRequest;
+
+export interface TransactionQuery {
+  page?: number;
+  limit?: number;
+  walletId?: string;
+  type?: TransactionType;
+  status?: TransactionStatus;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}
+
+export interface PaginatedTransactions {
+  data: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface TransactionSummary {
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  count: number;
+}
+
 // ─── Wallet Types ─────────────────────────────────────────────────────────────
 
 export interface Wallet {

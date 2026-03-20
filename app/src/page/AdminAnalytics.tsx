@@ -19,7 +19,7 @@ import {
   useAdminWithdrawals,
 } from "../hooks/usePayments";
 import { useAllUsers } from "../hooks/useUser";
-import type { Deposit, Withdrawal } from "../types/payment.types";
+import type { AdminDeposit, AdminWithdrawal } from "../types/admin.types";
 import type { ApiAnalyticsPoint } from "../types/withdrawal.types";
 
 interface ChartTooltipEntry {
@@ -71,16 +71,17 @@ export default function AdminAnalytics() {
   }));
 
   const totalDeposits = deposits
-    .filter((d: Deposit) => d.status === "COMPLETED")
-    .reduce((s: number, d: Deposit) => s + Number(d.amount), 0);
+    .filter((d: AdminDeposit) => d.status === "COMPLETED")
+    .reduce((s: number, d: AdminDeposit) => s + Number(d.amount), 0);
   const totalWithdrawals = withdrawals
-    .filter((w: Withdrawal) => w.status === "COMPLETED")
-    .reduce((s: number, w: Withdrawal) => s + Number(w.amount), 0);
+    .filter((w: AdminWithdrawal) => w.status === "COMPLETED")
+    .reduce((s: number, w: AdminWithdrawal) => s + Number(w.amount), 0);
   const pendingDeposits = deposits.filter(
-    (d: Deposit) => d.status === "PENDING",
+    (d: AdminDeposit) => d.status === "PENDING",
   ).length;
   const pendingWds = withdrawals.filter(
-    (w: Withdrawal) => w.status === "PENDING" || w.status === "PROCESSING",
+    (w: AdminWithdrawal) =>
+      w.status === "PENDING" || w.status === "PROCESSING",
   ).length;
 
   return (

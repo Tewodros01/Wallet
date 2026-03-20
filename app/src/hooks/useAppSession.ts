@@ -6,7 +6,7 @@ export const useAppSession = () => {
   const user = useAuthStore((state) => state.user);
 
   const needsOnboarding =
-    Boolean(user) &&
+    user != null &&
     !user.onboardingDone &&
     !localStorage.getItem(STORAGE_KEYS.onboardingDone);
 

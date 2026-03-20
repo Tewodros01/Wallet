@@ -21,8 +21,9 @@ import Button from "../components/ui/Button";
 import { AppBar } from "../components/ui/Layout";
 import { APP_ROUTES } from "../config/routes";
 import { useAgents, useDeposit } from "../hooks/usePayments";
+import { getErrorMessage } from "../lib/errors";
 import { PaymentMethod } from "../types/enums";
-import type { Agent, ApiErrorResponse } from "../types/withdrawal.types";
+import type { Agent } from "../types/withdrawal.types";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000", "10000"];
 
@@ -70,11 +71,7 @@ export default function DepositMoney() {
       { amount: numAmount, method, proofUrl: finalProofUrl },
       {
         onSuccess: () => setStep("pending"),
-        onError: (err: Error) =>
-          setError(
-            (err as Error & ApiErrorResponse)?.response?.data?.message ??
-              "Deposit failed",
-          ),
+        onError: (err: Error) => setError(getErrorMessage(err, "Deposit failed")),
       },
     );
   };

@@ -2,9 +2,13 @@ import { api } from "../lib/axios";
 import { PaymentMethod } from "../types/enums";
 import type {
   Agent,
-  AgentRequestSummary,
   ApiAnalyticsPoint,
 } from "../types/withdrawal.types";
+import type {
+  AdminDeposit,
+  AdminWithdrawal,
+} from "../types/admin.types";
+import type { AgentRequests } from "../types/agent-requests.types";
 import type { Deposit, Withdrawal } from "../types/payment.types";
 
 export interface DepositPayload {
@@ -42,8 +46,8 @@ export const paymentsApi = {
     api.post("/payments/keno/play", { bet, picks }).then((r) => r.data),
   getKenoHistory: (): Promise<{ id: string; title: string; amount: number; type: string; createdAt: string }[]> =>
     api.get("/payments/keno/history").then((r) => r.data),
-  getAgentRequests: () =>
-    api.get<AgentRequestSummary[]>("/payments/agent/requests").then((r) => r.data),
+  getAgentRequests: (): Promise<AgentRequests> =>
+    api.get("/payments/agent/requests").then((r) => r.data),
   uploadProof: (file: File): Promise<{ proofUrl: string }> => {
     const form = new FormData();
     form.append("file", file);
@@ -54,9 +58,9 @@ export const paymentsApi = {
   agentApproveWithdrawal: (id: string) => api.post(`/payments/agent/withdrawals/${id}/approve`).then((r) => r.data),
   agentRejectWithdrawal:  (id: string) => api.post(`/payments/agent/withdrawals/${id}/reject`).then((r) => r.data),
   // admin
-  adminGetAllDeposits: (): Promise<Deposit[]> =>
+  adminGetAllDeposits: (): Promise<AdminDeposit[]> =>
     api.get("/payments/admin/deposits").then((r) => r.data),
-  adminGetAllWithdrawals: (): Promise<Withdrawal[]> =>
+  adminGetAllWithdrawals: (): Promise<AdminWithdrawal[]> =>
     api.get("/payments/admin/withdrawals").then((r) => r.data),
   adminGetAnalytics: (): Promise<ApiAnalyticsPoint[]> =>
     api.get("/payments/admin/analytics").then((r) => r.data),

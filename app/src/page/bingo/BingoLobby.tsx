@@ -9,7 +9,6 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
-import { roomsApi } from "../../api/rooms.api";
 import CreateRoomModal from "../../components/CreateRoomModal";
 import EmptyState from "../../components/ui/EmptyState";
 import Input from "../../components/ui/Input";

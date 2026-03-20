@@ -19,9 +19,10 @@ import Button from "../components/ui/Button";
 import { AppBar } from "../components/ui/Layout";
 import { APP_ROUTES } from "../config/routes";
 import { useAgents, useWithdraw } from "../hooks/usePayments";
+import { getErrorMessage } from "../lib/errors";
 import { useWalletStore } from "../store/wallet.store";
 import { PaymentMethod } from "../types/enums";
-import type { Agent, ApiErrorResponse } from "../types/withdrawal.types";
+import type { Agent } from "../types/withdrawal.types";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000"];
 
@@ -91,9 +92,7 @@ export default function GetMoney() {
           setStep("pending");
         },
         onError: (err: Error) => {
-          const errorMessage =
-            (err as Error & ApiErrorResponse)?.response?.data?.message ??
-            "Withdrawal failed";
+          const errorMessage = getErrorMessage(err, "Withdrawal failed");
           setError(errorMessage);
         },
       },

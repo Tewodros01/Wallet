@@ -10,6 +10,7 @@ import { useWalletStore } from "../store/wallet.store";
 import type {
   ActivityItem,
   Deposit,
+  WalletActivityStatus,
   StatusBadgeProps,
   Transaction,
   WalletTab,
@@ -143,7 +144,7 @@ export default function MyWallet() {
         date: t.date,
         amount: Number(t.amount),
         isIncome: INCOME_TYPES.has(t.type),
-        status: t.status ?? "COMPLETED",
+        status: (t.status ?? "COMPLETED") as WalletActivityStatus,
         icon: TYPE_ICON[t.type] ?? "💱",
         color: TYPE_COLOR[t.type] ?? "text-gray-400",
       })),
@@ -156,7 +157,7 @@ export default function MyWallet() {
       date: d.createdAt,
       amount: d.amount,
       isIncome: true,
-      status: d.status,
+      status: d.status as WalletActivityStatus,
       icon: "💳",
       color: "text-emerald-400",
     })),
@@ -169,7 +170,7 @@ export default function MyWallet() {
       date: w.createdAt,
       amount: w.amount,
       isIncome: false,
-      status: w.status,
+      status: w.status as WalletActivityStatus,
       icon: "💸",
       color: "text-rose-400",
     })),
@@ -359,7 +360,7 @@ export default function MyWallet() {
                           <FaCoins className="text-xs text-yellow-400" />
                           {d.amount.toLocaleString()}
                         </span>
-                        <StatusBadge status={d.status} />
+                        <StatusBadge status={d.status as WalletActivityStatus} />
                       </div>
                     </div>
                   ))}
@@ -408,7 +409,7 @@ export default function MyWallet() {
                           <FaCoins className="text-xs text-yellow-400" />
                           {w.amount.toLocaleString()}
                         </span>
-                        <StatusBadge status={w.status} />
+                        <StatusBadge status={w.status as WalletActivityStatus} />
                       </div>
                     </div>
                   ))}

@@ -16,12 +16,13 @@ import { AppBar } from "../components/ui/Layout";
 import { useAdminDeposits, useAdminWithdrawals } from "../hooks/usePayments";
 import { useAllUsers } from "../hooks/useUser";
 import type {
+  AdminDeposit,
+  AdminWithdrawal,
   AdminQuickAction,
   AdminStatCard,
   AdminUserBreakdown,
   User,
 } from "../types";
-import type { Deposit, Withdrawal } from "../types/payment.types";
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.06 } },
@@ -45,18 +46,19 @@ export default function AdminPanel() {
   const regular = users.filter((u: User) => u.role === "USER");
 
   const pendingDeposits = deposits.filter(
-    (d: Deposit) => d.status === "PENDING",
+    (d: AdminDeposit) => d.status === "PENDING",
   );
   const pendingWithdrawals = withdrawals.filter(
-    (w: Withdrawal) => w.status === "PENDING" || w.status === "PROCESSING",
+    (w: AdminWithdrawal) =>
+      w.status === "PENDING" || w.status === "PROCESSING",
   );
 
   const totalDepositCoins = deposits
-    .filter((d: Deposit) => d.status === "COMPLETED")
-    .reduce((s: number, d: Deposit) => s + Number(d.amount), 0);
+    .filter((d: AdminDeposit) => d.status === "COMPLETED")
+    .reduce((s: number, d: AdminDeposit) => s + Number(d.amount), 0);
   const totalWithdrawalCoins = withdrawals
-    .filter((w: Withdrawal) => w.status === "COMPLETED")
-    .reduce((s: number, w: Withdrawal) => s + Number(w.amount), 0);
+    .filter((w: AdminWithdrawal) => w.status === "COMPLETED")
+    .reduce((s: number, w: AdminWithdrawal) => s + Number(w.amount), 0);
   const netFlow = totalDepositCoins - totalWithdrawalCoins;
 
   const totalPending = pendingDeposits.length + pendingWithdrawals.length;

@@ -6,9 +6,9 @@ export interface AdminDeposit {
   id: string;
   status: string;
   amount: number;
-  method?: string;
-  reference?: string;
-  proofUrl?: string;
+  method?: string | null;
+  reference?: string | null;
+  proofUrl?: string | null;
   createdAt: string;
   user?: User;
 }
@@ -17,8 +17,8 @@ export interface AdminWithdrawal {
   id: string;
   status: string;
   amount: number;
-  method?: string;
-  accountNumber?: string;
+  method?: string | null;
+  accountNumber?: string | null;
   createdAt: string;
   user?: User;
 }
