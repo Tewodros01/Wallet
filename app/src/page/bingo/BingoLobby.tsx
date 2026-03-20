@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaCoins, FaGamepad, FaLock } from "react-icons/fa";
 import {
+  FiBell,
   FiCheck,
   FiGrid,
   FiHash,
@@ -9,11 +10,13 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import CreateRoomModal from "../../components/CreateRoomModal";
 import EmptyState from "../../components/ui/EmptyState";
 import Input from "../../components/ui/Input";
 import { BottomNav } from "../../components/ui/Layout";
 import { SkeletonRoomCard } from "../../components/ui/Skeletons";
+import { useUnreadCount } from "../../hooks/useNotifications";
 import { useJoinRoom } from "../../hooks/useRooms";
 import { getErrorMessage } from "../../lib/errors";
 import { haptic } from "../../lib/haptic";
@@ -375,6 +378,9 @@ export default function BingoLobby({
   onPaymentConfirm,
   onEntryErrorChange,
 }: BingoLobbyProps) {
+  const navigate = useNavigate();
+  const { data: unreadCount } = useUnreadCount();
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] px-5 py-3.5 flex items-center justify-between">
@@ -389,11 +395,25 @@ export default function BingoLobby({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
-          <FaCoins className="text-yellow-400 text-xs" />
-          <span className="text-yellow-300 text-xs font-black">
-            {balance.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
+            <FaCoins className="text-yellow-400 text-xs" />
+            <span className="text-yellow-300 text-xs font-black">
+              {balance.toLocaleString()}
+            </span>
+          </div>
+          <button
+            type="button"
+            aria-label="Notifications"
+            title="View notifications"
+            onClick={() => navigate("/notifications")}
+            className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center relative"
+          >
+            <FiBell className="text-gray-400 text-sm" aria-hidden="true" />
+            {(unreadCount?.count ?? 0) > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-gray-950 animate-pulse" />
+            )}
+          </button>
         </div>
       </div>
 

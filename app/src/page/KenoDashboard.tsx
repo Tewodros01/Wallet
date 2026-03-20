@@ -50,7 +50,7 @@ const KENO_TABLES = [
 export default function KenoDashboard() {
   const navigate = useNavigate();
   const { balance, syncFromUser } = useWalletStore();
-  const { data: me, isLoading: meLoading } = useMe();
+  const { data: me } = useMe();
   const { data: stats, isLoading: statsLoading } = useMyStats();
   const { data: unreadCount } = useUnreadCount();
 
@@ -67,35 +67,20 @@ export default function KenoDashboard() {
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            {meLoading ? (
-              <div className="w-11 h-11 rounded-full bg-white/[0.07] animate-pulse" />
-            ) : (
-              <img
-                src={me?.avatar ?? "https://i.pravatar.cc/40"}
-                alt="avatar"
-                className="w-11 h-11 rounded-full object-cover ring-2 ring-cyan-400"
-              />
-            )}
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-cyan-400 border-2 border-gray-950 rounded-full" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-500/10">
+            <FiZap className="text-cyan-300 text-lg" />
           </div>
           <div>
             <p className="text-[11px] text-gray-500 font-semibold">
-              Ready for a round?
+              Keno lobby
             </p>
             <p className="text-base font-black text-white leading-tight">
-              {meLoading ? (
-                <span className="inline-block w-24 h-4 bg-white/[0.07] rounded animate-pulse" />
-              ) : me ? (
-                `${me.firstName} ${me.lastName}`
-              ) : (
-                "—"
-              )}
+              Play Keno
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5">
             <CoinCounter value={balance} />
           </div>
           <button

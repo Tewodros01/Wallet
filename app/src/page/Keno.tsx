@@ -93,7 +93,7 @@ export default function Keno() {
         ),
       ),
   );
-  const [bet, setBet] = useState(KENO_STYLES[activeRouteStyle].bet);
+  const [bet, setBet] = useState<number>(KENO_STYLES[activeRouteStyle].bet);
   const [phase, setPhase] = useState<Phase>("pick");
   const [drawn, setDrawn] = useState<number[]>([]);
   const [revealed, setRevealed] = useState<number[]>([]);
