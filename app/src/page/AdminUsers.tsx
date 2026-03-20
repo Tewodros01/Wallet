@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FaCoins, FaCrown } from "react-icons/fa";
 import {
   FiArrowLeft,
+  FiChevronDown,
   FiMinus,
   FiPlus,
   FiSearch,
@@ -44,6 +45,7 @@ export default function AdminUsers() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RoleFilter>("all");
+  const [openRoleMenuId, setOpenRoleMenuId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{
     id: string;
     name: string;
@@ -92,6 +94,7 @@ export default function AdminUsers() {
   ).length;
 
   const handleRoleChange = (u: User, newRole: Role) => {
+    setOpenRoleMenuId(null);
     if (u.role === newRole) return;
     setConfirm({
       id: u.id,
@@ -289,34 +292,39 @@ export default function AdminUsers() {
                 {filtered.map((u: User) => (
                   <div
                     key={u.id}
-                    className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/[0.07] transition-all cursor-pointer ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/[0.07]"}`}
-                    onClick={() => {
-                      if (u.role === "AGENT") {
-                        navigate(`/admin/agents/${u.id}`);
-                      } else {
-                        navigate(`/admin/users/${u.id}`);
-                      }
-                    }}
+                    className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/[0.07] transition-all ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/[0.07]"}`}
                   >
-                    {u.avatar ? (
-                      <img
-                        src={u.avatar}
-                        alt=""
-                        className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0"
-                      />
-                    ) : (
-                      <div className="w-11 h-11 rounded-full bg-emerald-500/20 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-emerald-400 font-black text-base">
-                        {u.firstName?.[0]?.toUpperCase()}
+                    <button
+                      type="button"
+                      className="flex flex-1 items-center gap-3 min-w-0 text-left"
+                      onClick={() => {
+                        if (u.role === "AGENT") {
+                          navigate(`/admin/agents/${u.id}`);
+                        } else {
+                          navigate(`/admin/users/${u.id}`);
+                        }
+                      }}
+                    >
+                      {u.avatar ? (
+                        <img
+                          src={u.avatar}
+                          alt=""
+                          className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-emerald-500/20 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-emerald-400 font-black text-base">
+                          {u.firstName?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate">
+                          {u.firstName} {u.lastName}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          @{u.username}
+                        </p>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">
-                        {u.firstName} {u.lastName}
-                      </p>
-                      <p className="text-[11px] text-gray-500 truncate">
-                        @{u.username}
-                      </p>
-                    </div>
+                    </button>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span
                         className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${ROLE_BADGE[u.role] ?? ""}`}
@@ -329,7 +337,7 @@ export default function AdminUsers() {
                         </span>
                       )}
                       <div
-                        className="flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 relative"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -355,21 +363,62 @@ export default function AdminUsers() {
                         >
                           {u.deletedAt ? "Unban" : "Ban"}
                         </button>
-                        <select
-                          value={u.role}
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleRoleChange(u, e.target.value as Role);
-                          }}
-                          aria-label={`Change role for ${u.firstName} ${u.lastName}`}
-                          className="bg-white/[0.06] border border-white/10 text-gray-400 text-[10px] font-bold rounded-lg px-2 py-0.5 outline-none cursor-pointer"
-                        >
-                          <option value={Role.USER}>{Role.USER}</option>
-                          <option value={Role.AGENT}>{Role.AGENT}</option>
-                          <option value={Role.ADMIN}>{Role.ADMIN}</option>
-                        </select>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenRoleMenuId((current) =>
+                                current === u.id ? null : u.id,
+                              );
+                            }}
+                            aria-haspopup="menu"
+                            aria-expanded={openRoleMenuId === u.id}
+                            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors backdrop-blur-sm ${ROLE_BADGE[u.role] ?? "bg-white/[0.06] border-white/10 text-gray-300"}`}
+                          >
+                            {ROLE_ICON[u.role]}
+                            <span>{u.role}</span>
+                            <FiChevronDown
+                              className={`text-[11px] transition-transform ${openRoleMenuId === u.id ? "rotate-180" : ""}`}
+                            />
+                          </button>
+
+                          {openRoleMenuId === u.id && (
+                            <div
+                              role="menu"
+                              className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[140px] rounded-2xl border border-white/10 bg-gray-900/95 p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                            >
+                              {[Role.USER, Role.AGENT, Role.ADMIN].map(
+                                (role) => (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRoleChange(u, role);
+                                    }}
+                                    className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-colors ${
+                                      u.role === role
+                                        ? `${ROLE_BADGE[role]}`
+                                        : "text-gray-300 hover:bg-white/[0.06]"
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      {ROLE_ICON[role]}
+                                      {role}
+                                    </span>
+                                    {u.role === role && (
+                                      <span className="text-[9px] uppercase tracking-wide">
+                                        Current
+                                      </span>
+                                    )}
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -245,7 +245,7 @@ export class PaymentsService {
 
       void this.telegramService.trySendMessageToUser(
         userId,
-        `Your daily bonus is in. You received ${result.coins.toLocaleString()} coins and your new balance is ${result.newBalance.toLocaleString()} coins.`,
+        `Your withdrawal request for ${dto.amount.toLocaleString()} coins is now processing.`,
       );
 
       return result;

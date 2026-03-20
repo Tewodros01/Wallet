@@ -63,8 +63,12 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+
+  const nodeEnv = configService.get<string>('nodeEnv', 'development');
+  if (nodeEnv !== 'production') {
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
@@ -73,7 +77,9 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}/api/v1`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  if (nodeEnv !== 'production') {
+    logger.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  }
   logger.log(`🎮 WebSocket namespace: ws://localhost:${port}/game`);
 }
 
