@@ -1,5 +1,10 @@
-import { FaCoins } from "react-icons/fa";
-import { FiArrowLeft, FiTrendingUp } from "react-icons/fi";
+import {
+  FiActivity,
+  FiArrowLeft,
+  FiDollarSign,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import {
   Area,
@@ -19,6 +24,7 @@ import {
   useAdminWithdrawals,
 } from "../hooks/usePayments";
 import { useAllUsers } from "../hooks/useUser";
+import type { AdminUserBreakdown } from "../types";
 import type { AdminDeposit, AdminWithdrawal } from "../types/admin.types";
 import type { ApiAnalyticsPoint } from "../types/withdrawal.types";
 
@@ -64,6 +70,9 @@ export default function AdminAnalytics() {
   const { data: deposits = [] } = useAdminDeposits();
   const { data: withdrawals = [] } = useAdminWithdrawals();
   const { data: users = [] } = useAllUsers();
+  const agents = users.filter((user) => user.role === "AGENT");
+  const admins = users.filter((user) => user.role === "ADMIN");
+  const regular = users.filter((user) => user.role === "USER");
 
   const chartData = analytics.map((d: ApiAnalyticsPoint) => ({
     ...d,
@@ -115,51 +124,52 @@ export default function AdminAnalytics() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-12 flex flex-col gap-5">
         {/* KPI cards */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           {[
             {
               label: "Total Deposited",
-              value: `${totalDeposits.toLocaleString()} 🪙`,
+              value: totalDeposits.toLocaleString(),
               sub: `${pendingDeposits} pending`,
-              from: "from-emerald-500",
-              to: "to-teal-500",
+              icon: <FiTrendingUp className="text-emerald-300" />,
+              bg: "bg-emerald-400/10 border-emerald-400/20",
             },
             {
               label: "Total Withdrawn",
-              value: `${totalWithdrawals.toLocaleString()} 🪙`,
+              value: totalWithdrawals.toLocaleString(),
               sub: `${pendingWds} pending`,
-              from: "from-rose-500",
-              to: "to-orange-500",
+              icon: <FiDollarSign className="text-orange-300" />,
+              bg: "bg-orange-400/10 border-orange-400/20",
             },
             {
               label: "Total Users",
               value: users.length,
               sub: "all time",
-              from: "from-blue-500",
-              to: "to-cyan-500",
+              icon: <FiUsers className="text-cyan-300" />,
+              bg: "bg-cyan-400/10 border-cyan-400/20",
             },
             {
               label: "Net Flow",
-              value: `${(totalDeposits - totalWithdrawals).toLocaleString()} 🪙`,
+              value: (totalDeposits - totalWithdrawals).toLocaleString(),
               sub: "deposits − withdrawals",
-              from: "from-violet-500",
-              to: "to-purple-500",
+              icon: <FiActivity className="text-violet-300" />,
+              bg: "bg-violet-400/10 border-violet-400/20",
             },
-          ].map(({ label, value, sub, from, to }) => (
+          ].map(({ label, value, sub, icon, bg }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-3 flex flex-col gap-1"
+              className={`${bg} border rounded-2xl p-3 flex flex-col gap-1.5`}
             >
-              <div
-                className={`w-7 h-7 rounded-lg bg-gradient-to-br ${from} ${to} flex items-center justify-center`}
-              >
-                <FaCoins className="text-white text-xs" />
-              </div>
-              <p className="text-sm font-black text-white leading-tight mt-1">
-                {value}
+              <span className="text-base">{icon}</span>
+              <p className="text-lg font-black text-white leading-none">
+                {String(value)}
+                {label !== "Total Users" && (
+                  <span className="ml-1 text-sm text-yellow-300">🪙</span>
+                )}
               </p>
-              <p className="text-[10px] font-bold text-white/60">{label}</p>
-              <p className="text-[9px] text-gray-600">{sub}</p>
+              <p className="text-[10px] text-gray-400 font-semibold">
+                {label}
+              </p>
+              <p className="text-[9px] text-gray-500">{sub}</p>
             </div>
           ))}
         </div>
@@ -275,6 +285,63 @@ export default function AdminAnalytics() {
                   />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-white mb-1">
+                    User Breakdown
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    Distribution across all platform roles
+                  </p>
+                </div>
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <FiUsers className="text-cyan-300 text-sm" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                {(
+                  [
+                    {
+                      label: "Regular Users",
+                      count: regular.length,
+                      bar: "bg-gradient-to-r from-blue-500 to-cyan-400",
+                      pct: users.length ? (regular.length / users.length) * 100 : 0,
+                    },
+                    {
+                      label: "Agents",
+                      count: agents.length,
+                      bar: "bg-gradient-to-r from-emerald-500 to-teal-400",
+                      pct: users.length ? (agents.length / users.length) * 100 : 0,
+                    },
+                    {
+                      label: "Admins",
+                      count: admins.length,
+                      bar: "bg-gradient-to-r from-yellow-500 to-amber-400",
+                      pct: users.length ? (admins.length / users.length) * 100 : 0,
+                    },
+                  ] as AdminUserBreakdown[]
+                ).map(({ label, count, bar, pct }) => (
+                  <div key={label}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-400 font-semibold">
+                        {label}
+                      </span>
+                      <span className="text-xs font-black text-white">
+                        {count}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${bar} rounded-full transition-all duration-700`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
