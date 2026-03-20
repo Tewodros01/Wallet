@@ -328,7 +328,10 @@ export default function AdminUsers() {
                           BANNED
                         </span>
                       )}
-                      <div className="flex items-center gap-1.5">
+                      <div
+                        className="flex items-center gap-1.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
                           type="button"
                           onClick={(e) => {
@@ -354,6 +357,8 @@ export default function AdminUsers() {
                         </button>
                         <select
                           value={u.role}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
                           onChange={(e) => {
                             e.stopPropagation();
                             handleRoleChange(u, e.target.value as Role);
