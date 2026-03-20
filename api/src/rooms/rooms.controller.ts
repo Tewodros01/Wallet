@@ -64,6 +64,24 @@ export class RoomsController {
     return this.roomsService.remove(id);
   }
 
+  @ApiOperation({ summary: 'Admin: cancel a waiting room' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
+  @Post(':id/cancel')
+  cancel(@Param('id') id: string) {
+    return this.roomsService.cancelByAdmin(id);
+  }
+
+  @ApiOperation({ summary: 'Admin: force end a live room' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
+  @Post(':id/finish')
+  finish(@Param('id') id: string) {
+    return this.roomsService.forceEndByAdmin(id);
+  }
+
   @ApiOperation({ summary: 'Join a room' })
   @Post(':id/join')
   join(

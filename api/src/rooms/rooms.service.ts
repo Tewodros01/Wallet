@@ -261,7 +261,12 @@ export class RoomsService {
 
   async remove(roomId: string): Promise<{ success: true }> {
     try {
-      await this.getRoomSummaryOrThrow(roomId);
+      const room = await this.getRoomSummaryOrThrow(roomId);
+      if (room.status === RoomStatus.WAITING || room.status === RoomStatus.PLAYING) {
+        throw new BadRequestException(
+          'Active rooms cannot be removed. Cancel or force end the room first',
+        );
+      }
 
       await this.prisma.gameRoom.delete({
         where: { id: roomId },
@@ -269,7 +274,10 @@ export class RoomsService {
 
       return { success: true };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
 
@@ -278,6 +286,144 @@ export class RoomsService {
         error instanceof Error ? error.stack : String(error),
       );
       throw new InternalServerErrorException('Failed to remove room');
+    }
+  }
+
+  async cancelByAdmin(roomId: string): Promise<RoomDto> {
+    try {
+      return await this.runSerializableTransaction(async (tx) => {
+        const room = await this.getRoomSummaryOrThrowTx(tx, roomId);
+
+        if (room.status !== RoomStatus.WAITING) {
+          throw new BadRequestException('Only waiting rooms can be cancelled');
+        }
+
+        const finishedAt = new Date();
+        const roomPlayers = await tx.roomPlayer.findMany({
+          where: { roomId },
+          select: {
+            id: true,
+            userId: true,
+            _count: { select: { cards: true } },
+          },
+        });
+
+        for (const player of roomPlayers) {
+          const refundAmount = room.entryFee * player._count.cards;
+          if (refundAmount <= 0) continue;
+
+          await tx.user.update({
+            where: { id: player.userId },
+            data: { coinsBalance: { increment: refundAmount } },
+          });
+
+          const wallet = await tx.wallet.findFirst({
+            where: {
+              userId: player.userId,
+              isDefault: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          });
+
+          if (wallet) {
+            await tx.transaction.create({
+              data: {
+                title: `Room Refund: ${room.name}`,
+                amount: refundAmount,
+                type: TransactionType.INCOME,
+                date: new Date(),
+                userId: player.userId,
+                walletId: wallet.id,
+                gameRoomId: room.id,
+              },
+            });
+
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: {
+                balance: { increment: new Prisma.Decimal(refundAmount) },
+              },
+            });
+          }
+        }
+
+        await tx.roomPlayer.updateMany({
+          where: { roomId },
+          data: {
+            status: PlayerStatus.LEFT,
+            finishedAt,
+          },
+        });
+
+        await tx.gameRoom.update({
+          where: { id: roomId },
+          data: {
+            status: RoomStatus.CANCELLED,
+            finishedAt,
+          },
+        });
+
+        return this.getRoomByIdOrThrowTx(tx, roomId);
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        'Failed to cancel room',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException('Failed to cancel room');
+    }
+  }
+
+  async forceEndByAdmin(roomId: string): Promise<RoomDto> {
+    try {
+      return await this.runSerializableTransaction(async (tx) => {
+        const room = await this.getRoomSummaryOrThrowTx(tx, roomId);
+
+        if (room.status !== RoomStatus.PLAYING) {
+          throw new BadRequestException('Only live rooms can be force ended');
+        }
+
+        const finishedAt = new Date();
+
+        await tx.roomPlayer.updateMany({
+          where: { roomId, hasBingo: false },
+          data: {
+            status: PlayerStatus.LOST,
+            finishedAt,
+          },
+        });
+
+        await tx.gameRoom.update({
+          where: { id: roomId },
+          data: {
+            status: RoomStatus.FINISHED,
+            finishedAt,
+          },
+        });
+
+        return this.getRoomByIdOrThrowTx(tx, roomId);
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        'Failed to force end room',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException('Failed to force end room');
     }
   }
 
@@ -865,9 +1011,11 @@ export class RoomsService {
   }
 
   private buildRoomWhere(query: QueryRoomsDto): Prisma.GameRoomWhereInput {
-    const where: Prisma.GameRoomWhereInput = {
-      status: { not: RoomStatus.CANCELLED },
-    };
+    const where: Prisma.GameRoomWhereInput = query.includeCancelled
+      ? {}
+      : {
+          status: { not: RoomStatus.CANCELLED },
+        };
 
     if (query.status && query.status !== 'all') {
       where.status = query.status.toUpperCase() as RoomStatus;

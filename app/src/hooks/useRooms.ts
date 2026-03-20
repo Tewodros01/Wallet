@@ -46,6 +46,28 @@ export const useRemoveRoom = () => {
   });
 };
 
+export const useCancelRoom = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => roomsApi.cancel(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      qc.invalidateQueries({ queryKey: roomKeys.one(id) });
+    },
+  });
+};
+
+export const useFinishRoom = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => roomsApi.finish(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      qc.invalidateQueries({ queryKey: roomKeys.one(id) });
+    },
+  });
+};
+
 export const useMyPlayer = (id: string) =>
   useQuery({
     queryKey: [...roomKeys.one(id), "my-player"],

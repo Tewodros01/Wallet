@@ -17,6 +17,7 @@ export type CreateRoomPayload = CreateGameRoomRequest;
 export interface RoomQuery {
   status?: "all" | "waiting" | "playing";
   search?: string;
+  includeCancelled?: boolean;
 }
 
 export const roomsApi = {
@@ -29,6 +30,8 @@ export const roomsApi = {
   getOne: (id: string) => api.get<GameRoomDetail>(`/rooms/${id}`).then((r) => r.data),
   create: (payload: CreateRoomPayload) =>
     api.post<GameRoomDetail>("/rooms", payload).then((r) => r.data),
+  cancel: (id: string) => api.post<GameRoomDetail>(`/rooms/${id}/cancel`).then((r) => r.data),
+  finish: (id: string) => api.post<GameRoomDetail>(`/rooms/${id}/finish`).then((r) => r.data),
   remove: (id: string) => api.delete(`/rooms/${id}`).then((r) => r.data),
   join: (id: string, password?: string) =>
     api.post<JoinRoomResponse>(`/rooms/${id}/join`, { password }).then((r) => r.data),

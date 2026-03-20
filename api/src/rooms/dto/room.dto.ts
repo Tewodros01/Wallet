@@ -94,4 +94,9 @@ export class QueryRoomsDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  includeCancelled?: boolean;
 }
