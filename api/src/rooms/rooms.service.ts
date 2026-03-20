@@ -855,9 +855,15 @@ export class RoomsService {
 
     if (query.search) {
       where.OR = [
-        { name: { contains: query.search } },
-        { id: { contains: query.search } },
-        { host: { is: { username: { contains: query.search } } } },
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { id: { contains: query.search, mode: 'insensitive' } },
+        {
+          host: {
+            is: {
+              username: { contains: query.search, mode: 'insensitive' },
+            },
+          },
+        },
       ];
     }
 

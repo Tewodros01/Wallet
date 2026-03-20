@@ -116,7 +116,7 @@ export class TransactionsService {
         ...(categoryId && { categoryId }),
         ...(walletId && { walletId }),
         ...(search && {
-          title: { contains: search },
+          title: { contains: search, mode: 'insensitive' },
         }),
         ...((dateFrom ?? dateTo) && {
           date: {

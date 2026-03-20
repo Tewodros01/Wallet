@@ -356,7 +356,9 @@ export class UsersService {
         },
       });
 
-      const userMap = new Map(users.map((u) => [u.id, u]));
+      const userMap = new Map<string, (typeof users)[number]>(
+        users.map((u) => [u.id, u]),
+      );
 
       return players.map((p, i) => ({
         rank: i + 1,
