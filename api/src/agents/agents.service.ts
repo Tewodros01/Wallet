@@ -80,16 +80,14 @@ export class AgentsService {
   async useInviteCode(code: string, newUserId: string) {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const [invite, user] = await Promise.all([
-          tx.agentInvite.findUnique({
-            where: { code },
-            include: { invitedUsers: { select: { id: true } } },
-          }),
-          tx.user.findUnique({
-            where: { id: newUserId },
-            select: { id: true, referredById: true },
-          }),
-        ]);
+        const invite = await tx.agentInvite.findUnique({
+          where: { code },
+          include: { invitedUsers: { select: { id: true } } },
+        });
+        const user = await tx.user.findUnique({
+          where: { id: newUserId },
+          select: { id: true, referredById: true },
+        });
 
         if (!invite) throw new NotFoundException('Invalid invite code');
         if (!user) throw new NotFoundException('User not found');

@@ -1,0 +1,67 @@
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="24" x2="604" y2="336" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07111F"/>
+      <stop offset="0.55" stop-color="#101A31"/>
+      <stop offset="1" stop-color="#071A18"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="172" y1="236" x2="468" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="pill" x1="0" y1="0" x2="98" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+    <filter id="blurGlow" x="-120" y="-120" width="880" height="600" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="48"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="360" rx="30" fill="url(#bg)"/>
+
+  <g opacity="0.9" filter="url(#blurGlow)">
+    <circle cx="166" cy="285" r="82" fill="#10B981"/>
+    <circle cx="520" cy="72" r="74" fill="#06B6D4"/>
+    <circle cx="360" cy="162" r="56" fill="#8B5CF6"/>
+  </g>
+
+  <rect x="26" y="24" width="588" height="312" rx="28" fill="white" fill-opacity="0.04" stroke="white" stroke-opacity="0.08"/>
+
+  <rect x="42" y="40" width="114" height="34" rx="17" fill="url(#pill)"/>
+  <circle cx="59" cy="57" r="5" fill="#6EE7B7"/>
+  <text x="72" y="61.5" fill="#D1FAE5" font-family="Arial, sans-serif" font-size="13" font-weight="700">LIVE BINGO</text>
+
+  <text x="46" y="142" fill="white" font-family="Arial, sans-serif" font-size="54" font-weight="800">Bingo Wallet</text>
+  <text x="46" y="188" fill="url(#accent)" font-family="Arial, sans-serif" font-size="32" font-weight="800">Play. Win Big. Earn More.</text>
+  <text x="46" y="225" fill="#B6C2D9" font-family="Arial, sans-serif" font-size="22" font-weight="500">Play bingo, track your wallet, and cash out with ease.</text>
+
+  <g>
+    <rect x="46" y="264" width="164" height="50" rx="18" fill="#10B981"/>
+    <text x="128" y="296" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="20" font-weight="800">Play Bingo</text>
+  </g>
+
+  <g>
+    <rect x="224" y="264" width="150" height="50" rx="18" fill="#0F172A" fill-opacity="0.82" stroke="#22D3EE" stroke-opacity="0.45"/>
+    <text x="299" y="296" text-anchor="middle" fill="#CFFAFE" font-family="Arial, sans-serif" font-size="20" font-weight="800">Mini App</text>
+  </g>
+
+  <g transform="translate(438 84)">
+    <circle cx="88" cy="90" r="88" fill="#0B1220" fill-opacity="0.78" stroke="white" stroke-opacity="0.08"/>
+    <circle cx="88" cy="90" r="62" fill="url(#accent)" fill-opacity="0.22" stroke="#6EE7B7" stroke-opacity="0.42"/>
+    <circle cx="88" cy="90" r="38" fill="#FACC15"/>
+    <text x="88" y="99" text-anchor="middle" fill="#111827" font-family="Arial, sans-serif" font-size="34" font-weight="900">B</text>
+
+    <circle cx="20" cy="38" r="16" fill="#EF4444"/>
+    <text x="20" y="44" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="15" font-weight="800">8</text>
+
+    <circle cx="156" cy="32" r="14" fill="#22C55E"/>
+    <text x="156" y="37" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="13" font-weight="800">12</text>
+
+    <circle cx="168" cy="146" r="18" fill="#06B6D4"/>
+    <text x="168" y="152" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="15" font-weight="800">24</text>
+
+    <circle cx="30" cy="158" r="14" fill="#A855F7"/>
+    <text x="30" y="163" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="13" font-weight="800">7</text>
+  </g>
+</svg>

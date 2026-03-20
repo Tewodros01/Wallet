@@ -14,12 +14,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GetUser } from './decorators/get-user.decorators';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { TelegramLoginDto, TelegramSendMessageDto } from './dto/telegram.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
@@ -47,6 +48,15 @@ export class AuthController {
     return this.authService.login(loginDto.email, loginDto.password);
   }
 
+  @ApiOperation({ summary: 'Login or register with Telegram Mini App init data' })
+  @ApiResponse({ status: 200, description: 'Telegram login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid Telegram init data' })
+  @Post('telegram')
+  @HttpCode(HttpStatus.OK)
+  telegramLogin(@Body() dto: TelegramLoginDto) {
+    return this.authService.loginWithTelegram(dto.initData);
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
@@ -55,6 +65,30 @@ export class AuthController {
   @Get('profile')
   getProfile(@GetUser('sub') userId: string) {
     return this.authService.getUserProfile(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Telegram link status for current user' })
+  @Get('telegram/status')
+  getTelegramStatus(@GetUser('sub') userId: string) {
+    return this.authService.getTelegramStatus(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Send a bot message to the current user on Telegram' })
+  @Post('telegram/message')
+  @HttpCode(HttpStatus.OK)
+  sendTelegramMessage(
+    @GetUser('sub') userId: string,
+    @Body() dto: TelegramSendMessageDto,
+  ) {
+    return this.authService.sendTelegramMessage(
+      userId,
+      dto.text,
+      dto.parseMode,
+    );
   }
 
   @ApiOperation({ summary: 'Refresh access token' })

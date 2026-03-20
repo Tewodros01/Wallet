@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { authApi } from "./api/auth.api";
 import {
   AppEntryRedirect,
   DashboardEntryRoute,
@@ -7,6 +9,11 @@ import {
 } from "./components/routing/RouteGuards";
 import { APP_ROUTES } from "./config/routes";
 import { useRealtimeNotifications } from "./hooks/useNotifications";
+import {
+  getTelegramInitData,
+  isTelegramMiniApp,
+  prepareTelegramWebApp,
+} from "./lib/telegram";
 import ActiveSessions from "./page/ActiveSessions";
 import AdminAnalytics from "./page/AdminAnalytics";
 import AdminDeposits from "./page/AdminDeposits";
@@ -46,10 +53,73 @@ import UserDetail from "./page/UserDetail";
 import UserProfile from "./page/UserProfile";
 import WalletHistory from "./page/WalletHistory";
 import WithdrawalStatus from "./page/WithdrawalStatus";
+import { useAuthStore } from "./store/auth.store";
 
 const App = () => {
-  // Connect notification socket only when authenticated
   useRealtimeNotifications();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const telegramMiniApp = useMemo(() => isTelegramMiniApp(), []);
+  const telegramInitData = useMemo(
+    () => (telegramMiniApp ? getTelegramInitData() : ""),
+    [telegramMiniApp],
+  );
+  const [telegramBootstrapStatus, setTelegramBootstrapStatus] = useState<
+    "idle" | "loading" | "done"
+  >(() =>
+    !isAuthenticated && telegramMiniApp && telegramInitData
+      ? "loading"
+      : "done",
+  );
+
+  useEffect(() => {
+    prepareTelegramWebApp();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated || !telegramMiniApp) {
+      return;
+    }
+    if (!telegramInitData) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void authApi
+      .telegramLogin({ initData: telegramInitData })
+      .then((data) => {
+        if (cancelled) return;
+        setAuth(data.user, data.access_token, data.refresh_token);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setTelegramBootstrapStatus("done");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, setAuth, telegramInitData, telegramMiniApp]);
+
+  const isBootstrappingTelegram =
+    telegramBootstrapStatus === "loading" && !isAuthenticated;
+
+  if (isBootstrappingTelegram) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-6">
+        <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-cyan-400/30 bg-cyan-500/10">
+            <span className="text-2xl">📲</span>
+          </div>
+          <h1 className="text-xl font-black">Connecting Telegram</h1>
+          <p className="mt-2 text-sm text-gray-400">
+            We&apos;re signing you in through your Telegram Mini App session.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

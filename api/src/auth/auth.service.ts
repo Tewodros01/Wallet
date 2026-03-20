@@ -22,6 +22,7 @@ import { JwtPayload } from './strategies/jwt-strategy';
 const DUMMY_HASH =
   '$2b$10$invalidhashfortimingprotectionXXXXXXXXXXXXXXXXXXXXXXX';
 const MAX_SESSIONS = 5;
+const TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = 60 * 60;
 
 const userSelect = {
   id: true,
@@ -31,8 +32,12 @@ const userSelect = {
   lastName: true,
   avatar: true,
   phone: true,
+  telegramId: true,
+  telegramUsername: true,
+  telegramPhotoUrl: true,
   role: true,
   isVerified: true,
+  onboardingDone: true,
   createdAt: true,
 } as const;
 
@@ -44,9 +49,21 @@ type SafeUser = {
   lastName: string;
   avatar: string | null;
   phone: string | null;
+  telegramId: string | null;
+  telegramUsername: string | null;
+  telegramPhotoUrl: string | null;
   role: Role;
   isVerified: boolean;
+  onboardingDone: boolean;
   createdAt: Date;
+};
+
+type TelegramMiniAppUser = {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
 };
 
 @Injectable()
@@ -172,6 +189,106 @@ export class AuthService {
     }
   }
 
+  async loginWithTelegram(initData: string) {
+    try {
+      const telegramUser = this.validateTelegramInitData(initData);
+      const telegramId = String(telegramUser.id);
+      const existingUser = await this.prisma.user.findUnique({
+        where: { telegramId },
+        select: userSelect,
+      });
+
+      const user =
+        existingUser ??
+        (await this.prisma.$transaction(async (tx) => {
+          const username = await this.generateTelegramUsername(
+            tx,
+            telegramUser.username,
+            telegramId,
+          );
+          const email = `tg_${telegramId}@telegram.local`;
+          const password = await bcrypt.hash(
+            crypto.randomBytes(24).toString('hex'),
+            10,
+          );
+          const created = await tx.user.create({
+            data: {
+              username,
+              email,
+              password,
+              firstName: telegramUser.first_name,
+              lastName: telegramUser.last_name?.trim() || 'Telegram',
+              avatar: telegramUser.photo_url,
+              telegramId,
+              telegramUsername: telegramUser.username ?? null,
+              telegramPhotoUrl: telegramUser.photo_url ?? null,
+              isVerified: true,
+            },
+            select: userSelect,
+          });
+          await tx.wallet.create({
+            data: {
+              name: 'Main Wallet',
+              userId: created.id,
+              isDefault: true,
+              isActive: true,
+            },
+          });
+          return created;
+        }));
+
+      if (existingUser) {
+        await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            firstName: telegramUser.first_name,
+            lastName: telegramUser.last_name?.trim() || existingUser.lastName,
+            avatar: telegramUser.photo_url ?? existingUser.avatar,
+            telegramUsername: telegramUser.username ?? existingUser.telegramUsername,
+            telegramPhotoUrl: telegramUser.photo_url ?? existingUser.telegramPhotoUrl,
+            telegramId,
+            isVerified: true,
+          },
+        });
+      }
+
+      const refreshedUser = existingUser
+        ? await this.prisma.user.findUnique({
+            where: { telegramId },
+            select: userSelect,
+          })
+        : user;
+
+      if (!refreshedUser) {
+        throw new InternalServerErrorException('Telegram login failed');
+      }
+
+      const tokens = await this.issueTokens(
+        refreshedUser.id,
+        refreshedUser.email,
+        refreshedUser.role,
+        {
+          userAgent: 'Telegram Mini App',
+          ipAddress: 'telegram',
+        },
+      );
+
+      return {
+        ...tokens,
+        user: this.toSafeUser(refreshedUser),
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Telegram login failed');
+    }
+  }
+
   async refresh(rawToken: string) {
     try {
       const hashed = this.hashToken(rawToken);
@@ -249,6 +366,67 @@ export class AuthService {
 
   async getUserProfile(userId: string) {
     return this.validateUser(userId);
+  }
+
+  async getTelegramStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
+      select: {
+        id: true,
+        telegramId: true,
+        telegramUsername: true,
+        telegramPhotoUrl: true,
+      },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    return {
+      linked: Boolean(user.telegramId),
+      telegramId: user.telegramId,
+      telegramUsername: user.telegramUsername,
+      telegramPhotoUrl: user.telegramPhotoUrl,
+    };
+  }
+
+  async sendTelegramMessage(
+    userId: string,
+    text: string,
+    parseMode?: 'HTML' | 'MarkdownV2',
+  ) {
+    const botToken = this.configService.get<string>('telegram.botToken');
+    if (!botToken) {
+      throw new InternalServerErrorException('Telegram bot is not configured');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
+      select: { telegramId: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!user.telegramId) {
+      throw new BadRequestException('Telegram is not linked for this user');
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: user.telegramId,
+        text,
+        parse_mode: parseMode,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new BadRequestException('Failed to send Telegram message');
+    }
+
+    const payload = (await response.json()) as { ok?: boolean; result?: { message_id?: number } };
+    if (!payload.ok) {
+      throw new BadRequestException('Telegram Bot API rejected the message');
+    }
+
+    return { success: true, messageId: payload.result?.message_id ?? null };
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -421,8 +599,12 @@ export class AuthService {
       lastName: user.lastName,
       avatar: this.toPublicAssetUrl(user.avatar),
       phone: user.phone,
+      telegramId: user.telegramId,
+      telegramUsername: user.telegramUsername,
+      telegramPhotoUrl: user.telegramPhotoUrl,
       role: user.role,
       isVerified: user.isVerified,
+      onboardingDone: user.onboardingDone,
       createdAt: user.createdAt,
     };
   }
@@ -433,5 +615,102 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private validateTelegramInitData(initData: string): TelegramMiniAppUser {
+    const botToken = this.configService.get<string>('telegram.botToken');
+    if (!botToken) {
+      throw new InternalServerErrorException('Telegram bot is not configured');
+    }
+    if (!initData) {
+      throw new BadRequestException('Telegram init data is required');
+    }
+
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    const authDateRaw = params.get('auth_date');
+    const userRaw = params.get('user');
+
+    if (!hash || !authDateRaw || !userRaw) {
+      throw new UnauthorizedException('Invalid Telegram init data');
+    }
+
+    const authDate = Number(authDateRaw);
+    if (!Number.isFinite(authDate)) {
+      throw new UnauthorizedException('Invalid Telegram auth date');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > TELEGRAM_INIT_DATA_MAX_AGE_SECONDS) {
+      throw new UnauthorizedException('Telegram init data has expired');
+    }
+
+    const dataCheckString = Array.from(params.entries())
+      .filter(([key]) => key !== 'hash')
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+
+    const secret = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest();
+    const computedHash = crypto
+      .createHmac('sha256', secret)
+      .update(dataCheckString)
+      .digest('hex');
+
+    if (
+      hash.length !== computedHash.length ||
+      !crypto.timingSafeEqual(
+        Buffer.from(computedHash, 'utf8'),
+        Buffer.from(hash, 'utf8'),
+      )
+    ) {
+      throw new UnauthorizedException('Invalid Telegram signature');
+    }
+
+    let telegramUser: TelegramMiniAppUser;
+    try {
+      telegramUser = JSON.parse(userRaw) as TelegramMiniAppUser;
+    } catch {
+      throw new UnauthorizedException('Invalid Telegram user payload');
+    }
+
+    if (!telegramUser.id || !telegramUser.first_name) {
+      throw new UnauthorizedException('Telegram user payload is incomplete');
+    }
+
+    return telegramUser;
+  }
+
+  private async generateTelegramUsername(
+    tx: Prisma.TransactionClient,
+    preferredUsername: string | undefined,
+    telegramId: string,
+  ) {
+    const base = this.sanitizeUsername(preferredUsername) || `tg_${telegramId}`;
+    let candidate = base.slice(0, 20);
+    let suffix = 1;
+
+    while (true) {
+      const existing = await tx.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
+      if (!existing) return candidate;
+
+      const nextSuffix = String(suffix++);
+      candidate = `${base.slice(0, Math.max(3, 20 - nextSuffix.length))}${nextSuffix}`;
+    }
+  }
+
+  private sanitizeUsername(value?: string) {
+    const sanitized = (value ?? '')
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 20);
+
+    return sanitized.length >= 3 ? sanitized : null;
   }
 }

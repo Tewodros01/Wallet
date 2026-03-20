@@ -127,14 +127,12 @@ export class PaymentsService {
         data: { coinsBalance: { increment: amount } },
       });
 
-      const [sWallet, rWallet] = await Promise.all([
-        tx.wallet.findFirst({
-          where: { userId: senderId, isDefault: true, deletedAt: null },
-        }),
-        tx.wallet.findFirst({
-          where: { userId: recipient.id, isDefault: true, deletedAt: null },
-        }),
-      ]);
+      const sWallet = await tx.wallet.findFirst({
+        where: { userId: senderId, isDefault: true, deletedAt: null },
+      });
+      const rWallet = await tx.wallet.findFirst({
+        where: { userId: recipient.id, isDefault: true, deletedAt: null },
+      });
       if (sWallet) {
         await tx.transaction.create({
           data: {

@@ -12,6 +12,9 @@ export interface User {
   phone: string | null;
   avatar: string | null;
   bio: string | null;
+  telegramId?: string | null;
+  telegramUsername?: string | null;
+  telegramPhotoUrl?: string | null;
   role: Role;
   isVerified: boolean;
   onboardingDone: boolean;

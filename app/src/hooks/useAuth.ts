@@ -29,6 +29,16 @@ export const useRegister = () => {
   });
 };
 
+export const useTelegramLogin = () => {
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  return useMutation({
+    mutationFn: (initData: string) => authApi.telegramLogin({ initData }),
+    onSuccess: (data) =>
+      setAuth(data.user, data.access_token, data.refresh_token),
+  });
+};
+
 export const useLogout = () => {
   const { refreshToken } = useAuthStore();
   const queryClient = useQueryClient();
@@ -53,6 +63,18 @@ export const useSessions = () =>
   useQuery({
     queryKey: authKeys.sessions,
     queryFn: authApi.getSessions,
+  });
+
+export const useTelegramStatus = () =>
+  useQuery({
+    queryKey: ["auth", "telegram", "status"],
+    queryFn: authApi.getTelegramStatus,
+  });
+
+export const useSendTelegramMessage = () =>
+  useMutation({
+    mutationFn: ({ text, parseMode }: { text: string; parseMode?: "HTML" | "MarkdownV2" }) =>
+      authApi.sendTelegramMessage({ text, parseMode }),
   });
 
 export const useChangePassword = () =>

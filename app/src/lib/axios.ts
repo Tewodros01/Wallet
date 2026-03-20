@@ -40,6 +40,7 @@ api.interceptors.response.use(
     const requestUrl = original?.url ?? "";
     const isAuthEndpoint =
       requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/telegram") ||
       requestUrl.includes("/auth/register") ||
       requestUrl.includes("/auth/refresh") ||
       requestUrl.includes("/auth/forgot-password") ||

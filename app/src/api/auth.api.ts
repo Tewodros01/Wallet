@@ -3,6 +3,9 @@ import type {
   AuthResponse,
   LoginPayload,
   RegisterPayload,
+  TelegramLoginPayload,
+  TelegramSendMessagePayload,
+  TelegramStatus,
   User,
 } from "../types/auth.types";
 
@@ -12,6 +15,9 @@ export const authApi = {
 
   login: (payload: LoginPayload) =>
     api.post<AuthResponse>("/auth/login", payload).then((r) => r.data),
+
+  telegramLogin: (payload: TelegramLoginPayload) =>
+    api.post<AuthResponse>("/auth/telegram", payload).then((r) => r.data),
 
   refresh: (refresh_token: string) =>
     api
@@ -24,6 +30,12 @@ export const authApi = {
   logoutAll: () => api.post("/auth/logout-all").then((r) => r.data),
 
   getProfile: () => api.get<User>("/auth/profile").then((r) => r.data),
+
+  getTelegramStatus: () =>
+    api.get<TelegramStatus>("/auth/telegram/status").then((r) => r.data),
+
+  sendTelegramMessage: (payload: TelegramSendMessagePayload) =>
+    api.post("/auth/telegram/message", payload).then((r) => r.data),
 
   getSessions: () => api.get("/auth/sessions").then((r) => r.data),
 

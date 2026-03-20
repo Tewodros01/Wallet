@@ -13,6 +13,22 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface TelegramLoginPayload {
+  initData: string;
+}
+
+export interface TelegramSendMessagePayload {
+  text: string;
+  parseMode?: "HTML" | "MarkdownV2";
+}
+
+export interface TelegramStatus {
+  linked: boolean;
+  telegramId: string | null;
+  telegramUsername: string | null;
+  telegramPhotoUrl: string | null;
+}
+
 export interface RegisterPayload {
   username: string;
   email: string;

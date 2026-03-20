@@ -418,17 +418,15 @@ export class RoomsService {
           await this.chargeEntryFee(tx, room, userId, uniqueCardIds.length);
         }
 
-        await Promise.all(
-          uniqueCardIds.map((cardId) =>
-            tx.roomPlayerCard.create({
-              data: {
-                roomPlayerId: player.id,
-                cardId,
-                markedNums: [],
-              },
-            }),
-          ),
-        );
+        for (const cardId of uniqueCardIds) {
+          await tx.roomPlayerCard.create({
+            data: {
+              roomPlayerId: player.id,
+              cardId,
+              markedNums: [],
+            },
+          });
+        }
 
         await tx.bingoCard.updateMany({
           where: { id: { in: uniqueCardIds } },
@@ -927,12 +925,12 @@ export class RoomsService {
       throw new BadRequestException('Room is not accepting players');
     }
 
-    const [playerCount, existing] = await Promise.all([
-      tx.roomPlayer.count({ where: { roomId: room.id } }),
-      tx.roomPlayer.findUnique({
-        where: { roomId_userId: { roomId: room.id, userId } },
-      }),
-    ]);
+    const playerCount = await tx.roomPlayer.count({
+      where: { roomId: room.id },
+    });
+    const existing = await tx.roomPlayer.findUnique({
+      where: { roomId_userId: { roomId: room.id, userId } },
+    });
 
     if (playerCount >= room.maxPlayers) {
       throw new BadRequestException('Room is full');

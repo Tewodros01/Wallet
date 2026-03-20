@@ -5,6 +5,7 @@ export interface EnvironmentVariables {
   DATABASE_URL: string;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
+  TELEGRAM_BOT_TOKEN: string;
 }
 
 export default () => ({
@@ -19,5 +20,8 @@ export default () => ({
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN,
   },
 });
