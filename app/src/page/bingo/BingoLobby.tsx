@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaCoins, FaGamepad, FaLock } from "react-icons/fa";
 import {
+  FiArrowRightCircle,
   FiBell,
   FiCheck,
   FiGrid,
@@ -472,7 +473,7 @@ export default function BingoLobby({
   onPaymentConfirm,
   onEntryErrorChange,
 }: BingoLobbyProps) {
-      const navigate = useNavigate();
+  const navigate = useNavigate();
   const { data: unreadCount } = useUnreadCount();
   const [showJoinCode, setShowJoinCode] = useState(false);
 
@@ -517,21 +518,88 @@ export default function BingoLobby({
             {entryError}
           </div>
         )}
+
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-emerald-600/35 via-teal-600/18 to-cyan-600/10 p-5 min-h-[180px] flex flex-col justify-between">
+          <div className="absolute -top-8 -right-10 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-cyan-400/15 blur-2xl pointer-events-none" />
+          <span className="absolute top-4 right-5 text-5xl opacity-15 select-none rotate-6">
+            🎱
+          </span>
+
+          <div className="relative z-10">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                Live Bingo
+              </span>
+              <span className="text-[10px] font-semibold text-gray-400">
+                {waiting} open rooms · {playing} active matches
+              </span>
+            </div>
+            <h1 className="text-2xl font-black leading-tight text-white">
+              Join a room.
+              <br />
+              <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
+                Play for the prize.
+              </span>
+            </h1>
+            <p className="mt-2 max-w-[300px] text-xs text-gray-300/80">
+              Create your own table or jump into a live room with friends using
+              an invite code.
+            </p>
+          </div>
+
+          <div className="relative z-10 mt-4 grid grid-cols-3 gap-2">
+            {[
+              { label: "Open", value: waiting, tone: "text-emerald-300" },
+              {
+                label: "Players",
+                value: roomsData.reduce(
+                  (sum: number, room: GameRoomDetail) =>
+                    sum + (room._count?.players ?? 0),
+                  0,
+                ),
+                tone: "text-cyan-300",
+              },
+              {
+                label: "Best Prize",
+                value: roomsData.length
+                  ? Math.max(
+                      ...roomsData.map((room: GameRoomDetail) => room.prizePool),
+                    ).toLocaleString()
+                  : "0",
+                tone: "text-yellow-300",
+              },
+            ].map(({ label, value, tone }) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3 backdrop-blur-sm"
+              >
+                <p className={`text-sm font-black ${tone}`}>{value}</p>
+                <p className="mt-0.5 text-[9px] uppercase tracking-wide text-gray-400">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
           type="button"
           onClick={() => {
             haptic.light();
             onCreateOpen();
           }}
-          className="w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
+          className="w-full rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/18 via-emerald-500/10 to-teal-500/5 p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
         >
-          <div className="w-12 h-12 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_18px_rgba(16,185,129,0.18)]">
             <FaGamepad className="text-emerald-400 text-xl" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-black text-white">Create Your Room</p>
+            <p className="text-sm font-black text-white">Create Room</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              Set entry fee, cards, speed & more
+              Set entry, cards, speed, and invite your players
             </p>
           </div>
           <span className="text-emerald-400 text-lg">→</span>
@@ -543,19 +611,20 @@ export default function BingoLobby({
             haptic.light();
             setShowJoinCode(true);
           }}
-          className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
+          className="w-full rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/16 via-sky-500/8 to-white/[0.02] p-4 flex items-center gap-4 hover:brightness-110 active:scale-[0.98] transition-all text-left"
         >
-          <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/25 rounded-2xl flex items-center justify-center shrink-0">
-            <FiHash className="text-cyan-300 text-xl" />
+          <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/25 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
+            <FiArrowRightCircle className="text-cyan-300 text-xl" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-black text-white">Join with Room ID</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              Open a room instantly using its invite code
+              Enter an invite code and jump straight into the lobby
             </p>
           </div>
           <span className="text-cyan-300 text-lg">→</span>
         </button>
+        </div>
 
         <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
           <FiSearch className="text-gray-500 shrink-0" />
