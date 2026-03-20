@@ -19,12 +19,48 @@ import { useAuthStore } from "../store/auth.store";
 import { useWalletStore } from "../store/wallet.store";
 
 const badges = [
-  { emoji: "🏆", label: "First Win" },
-  { emoji: "🎯", label: "Sharp Eye" },
-  { emoji: "🔥", label: "Hot Streak" },
-  { emoji: "⚡", label: "Speed King" },
-  { emoji: "💎", label: "Diamond" },
-  { emoji: "🎱", label: "Bingo Pro" },
+  {
+    emoji: "🏆",
+    label: "First Win",
+    tone: "from-amber-400/30 via-yellow-400/10 to-transparent",
+    ring: "border-amber-400/25",
+    text: "text-amber-100",
+  },
+  {
+    emoji: "🎯",
+    label: "Sharp Eye",
+    tone: "from-cyan-400/30 via-sky-400/10 to-transparent",
+    ring: "border-cyan-400/25",
+    text: "text-cyan-100",
+  },
+  {
+    emoji: "🔥",
+    label: "Hot Streak",
+    tone: "from-rose-400/30 via-orange-400/10 to-transparent",
+    ring: "border-rose-400/25",
+    text: "text-rose-100",
+  },
+  {
+    emoji: "⚡",
+    label: "Speed King",
+    tone: "from-violet-400/30 via-fuchsia-400/10 to-transparent",
+    ring: "border-violet-400/25",
+    text: "text-violet-100",
+  },
+  {
+    emoji: "💎",
+    label: "Diamond",
+    tone: "from-emerald-400/30 via-teal-400/10 to-transparent",
+    ring: "border-emerald-400/25",
+    text: "text-emerald-100",
+  },
+  {
+    emoji: "🎱",
+    label: "Bingo Pro",
+    tone: "from-slate-200/20 via-white/5 to-transparent",
+    ring: "border-white/15",
+    text: "text-slate-100",
+  },
 ];
 
 const quickActions = [
@@ -85,26 +121,38 @@ export default function Profile() {
       label: "Games",
       value: String(stats?.totalGames ?? "—"),
       color: "text-rose-400",
+      glow: "shadow-[0_16px_40px_rgba(244,63,94,0.14)]",
+      surface: "from-rose-500/16 via-rose-500/6 to-transparent",
     },
     {
       icon: <FaTrophy />,
       label: "Wins",
       value: String(stats?.wins ?? "—"),
       color: "text-yellow-400",
+      glow: "shadow-[0_16px_40px_rgba(251,191,36,0.14)]",
+      surface: "from-amber-500/16 via-amber-500/6 to-transparent",
     },
     {
       icon: <FaMedal />,
       label: "Win Rate",
       value: stats ? `${stats.winRate}%` : "—",
       color: "text-emerald-400",
+      glow: "shadow-[0_16px_40px_rgba(16,185,129,0.14)]",
+      surface: "from-emerald-500/16 via-emerald-500/6 to-transparent",
     },
     {
       icon: <FaCoins />,
       label: "Earned",
       value: stats ? `${(stats.totalEarned / 1000).toFixed(1)}k` : "—",
       color: "text-cyan-400",
+      glow: "shadow-[0_16px_40px_rgba(34,211,238,0.14)]",
+      surface: "from-cyan-500/16 via-cyan-500/6 to-transparent",
     },
   ];
+
+  const badgeUnlocked = stats
+    ? Math.min(badges.length, Math.max(1, stats.wins))
+    : 3;
 
   const fields = [
     {
@@ -142,46 +190,73 @@ export default function Profile() {
 
       <div className="flex flex-col gap-5 px-5 py-5 pb-28">
         {/* Avatar hero */}
-        <div className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/20 rounded-2xl p-6 flex flex-col items-center gap-3">
-          <div className="relative">
-            <img
-              src={me?.avatar ?? "https://i.pravatar.cc/80"}
-              alt="avatar"
-              className="w-20 h-20 rounded-full object-cover ring-4 ring-emerald-500/40"
-            />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-              <span className="text-[10px]">✓</span>
+        <div className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(6,10,18,0.96)_38%,rgba(34,211,238,0.1))] p-5 shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
+          <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-cyan-400/12 blur-3xl" />
+          <div className="absolute -left-8 bottom-0 h-24 w-24 rounded-full bg-emerald-400/10 blur-3xl" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-[24px] bg-emerald-400/20 blur-lg" />
+                <img
+                  src={me?.avatar ?? "https://i.pravatar.cc/80"}
+                  alt="avatar"
+                  className="relative h-[72px] w-[72px] rounded-[24px] object-cover ring-2 ring-white/15"
+                />
+                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-950 bg-emerald-400">
+                  <span className="text-[9px] font-black text-slate-950">
+                    ✓
+                  </span>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-200">
+                    Active
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-slate-300">
+                    Profile
+                  </span>
+                </div>
+                <h2 className="text-[15px] font-black leading-tight tracking-tight text-white break-words">
+                  {me ? `${me.firstName} ${me.lastName}` : "—"}
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-300 break-words">
+                  @{me?.username ?? "—"} · Member since{" "}
+                  {me ? new Date(me.createdAt).getFullYear() : "—"}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="text-center">
-            <h2 className="text-xl font-black text-white">
-              {me ? `${me.firstName} ${me.lastName}` : "—"}
-            </h2>
-            <p className="text-sm text-gray-400 mt-0.5">
-              @{me?.username ?? "—"} · Member since{" "}
-              {me ? new Date(me.createdAt).getFullYear() : "—"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-4 py-1.5">
-            <FaCoins className="text-yellow-400 text-xs" />
-            <span className="text-yellow-300 text-sm font-black">
-              {(me?.coinsBalance ?? 0).toLocaleString()} coins
-            </span>
+
+            <div className="shrink-0 rounded-2xl border border-yellow-400/15 bg-yellow-400/10 px-2.5 py-2 text-right backdrop-blur-sm">
+              <p className="text-[7px] font-bold uppercase tracking-[0.14em] text-yellow-200/70">
+                Coins
+              </p>
+              <div className="mt-1 flex items-center justify-end gap-1 text-yellow-300">
+                <FaCoins className="text-[10px] text-yellow-400" />
+                <span className="text-[12px] font-black">
+                  {(me?.coinsBalance ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-2">
-          {statItems.map(({ icon, label, value, color }) => (
+          {statItems.map(({ icon, label, value, color, glow, surface }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+              className={`relative flex flex-col items-center overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b ${surface} px-2 py-3 text-center ${glow}`}
             >
-              <span className={`text-base ${color}`}>{icon}</span>
-              <span className="text-base font-black text-white leading-none">
+              <div className="absolute inset-x-4 top-0 h-px bg-white/10" />
+              <span className={`mb-1 text-base ${color}`}>{icon}</span>
+              <span className="text-base font-black leading-none text-white">
                 {value}
               </span>
-              <span className="text-[9px] text-gray-500 uppercase tracking-wide">
+              <span className="mt-1 text-[9px] uppercase tracking-[0.18em] text-slate-500">
                 {label}
               </span>
             </div>
@@ -189,22 +264,57 @@ export default function Profile() {
         </div>
 
         {/* Badges */}
-        <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-            Badges
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {badges.map(({ emoji, label }) => (
-              <div
-                key={label}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5"
-              >
-                <span className="text-2xl">{emoji}</span>
-                <span className="text-[10px] text-gray-400 font-semibold">
-                  {label}
-                </span>
-              </div>
-            ))}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-gray-500">
+                Badges
+              </p>
+              <h3 className="mt-0.5 text-[13px] font-black text-white">
+                Gallery
+              </h3>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.1em] text-slate-400">
+              {badgeUnlocked} unlocked
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            {badges.map(({ emoji, label, tone, ring, text }, index) => {
+              const unlocked = index < badgeUnlocked;
+
+              return (
+                <div
+                  key={label}
+                  className={`group relative overflow-hidden rounded-[14px] border p-2 transition-all ${unlocked ? `${ring} bg-white/[0.05] shadow-[0_8px_18px_rgba(0,0,0,0.12)]` : "border-white/[0.07] bg-white/[0.03] opacity-70"}`}
+                >
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${tone} ${unlocked ? "opacity-100" : "opacity-35"}`}
+                  />
+                  <div className="relative flex items-start justify-between gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-slate-950/50 text-sm shadow-inner shadow-black/30">
+                      {emoji}
+                    </div>
+                    <span
+                      className={`rounded-full px-1 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${unlocked ? "bg-white/10 text-white" : "bg-white/5 text-slate-500"}`}
+                    >
+                      {unlocked ? "On" : "Off"}
+                    </span>
+                  </div>
+
+                  <div className="relative mt-2">
+                    <p
+                      className={`text-[10px] font-black leading-tight ${unlocked ? text : "text-slate-300"}`}
+                    >
+                      {label}
+                    </p>
+                    <p className="mt-0.5 text-[8px] leading-snug text-slate-400">
+                      {unlocked ? "Milestone reward." : "Play more to unlock."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
