@@ -30,7 +30,11 @@ export const useAdjustCoins = () => {
   return useMutation({
     mutationFn: ({ id, amount, note }: { id: string; amount: number; note?: string }) =>
       usersApi.adjustCoins(id, amount, note),
-    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: userKeys.all });
+      qc.invalidateQueries({ queryKey: ["users", variables.id] });
+      qc.invalidateQueries({ queryKey: ["users", variables.id, "agent-stats"] });
+    },
   });
 };
 
@@ -39,7 +43,11 @@ export const useUpdateRole = () => {
   return useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
       usersApi.updateRole(id, role),
-    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: userKeys.all });
+      qc.invalidateQueries({ queryKey: ["users", variables.id] });
+      qc.invalidateQueries({ queryKey: ["users", variables.id, "agent-stats"] });
+    },
   });
 };
 
@@ -47,7 +55,11 @@ export const useBanUser = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => usersApi.banUser(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: userKeys.all });
+      qc.invalidateQueries({ queryKey: ["users", id] });
+      qc.invalidateQueries({ queryKey: ["users", id, "agent-stats"] });
+    },
   });
 };
 
@@ -55,7 +67,11 @@ export const useUnbanUser = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => usersApi.unbanUser(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: userKeys.all });
+      qc.invalidateQueries({ queryKey: ["users", id] });
+      qc.invalidateQueries({ queryKey: ["users", id, "agent-stats"] });
+    },
   });
 };
 

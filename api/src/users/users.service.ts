@@ -49,11 +49,22 @@ export class UsersService {
     return users.map((user) => this.serializeUser(user));
   }
 
-  async updateRole(id: string, role: Role) {
+  async updateRole(id: string, role: Role, adminId: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
     });
     if (!user) throw new NotFoundException('User not found');
+    if (id === adminId && role !== Role.ADMIN) {
+      throw new BadRequestException('You cannot change your own admin role');
+    }
+    if (user.role === Role.ADMIN && role !== Role.ADMIN) {
+      const activeAdminCount = await this.prisma.user.count({
+        where: { role: Role.ADMIN, deletedAt: null },
+      });
+      if (activeAdminCount <= 1) {
+        throw new BadRequestException('At least one active admin is required');
+      }
+    }
     const updatedUser = await this.prisma.user.update({
       where: { id },
       data: { role },
@@ -314,11 +325,22 @@ export class UsersService {
     return { newBalance: updated.coinsBalance };
   }
 
-  async banUser(id: string) {
+  async banUser(id: string, adminId: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
     });
     if (!user) throw new NotFoundException('User not found');
+    if (id === adminId) {
+      throw new BadRequestException('You cannot ban your own account');
+    }
+    if (user.role === Role.ADMIN) {
+      const activeAdminCount = await this.prisma.user.count({
+        where: { role: Role.ADMIN, deletedAt: null },
+      });
+      if (activeAdminCount <= 1) {
+        throw new BadRequestException('At least one active admin is required');
+      }
+    }
     return this.prisma.user.update({
       where: { id },
       data: { deletedAt: new Date() },

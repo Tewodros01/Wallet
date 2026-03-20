@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
@@ -12,6 +13,16 @@ import { Role } from 'generated/prisma/client';
 export class UpdateRoleDto {
   @IsEnum(Role)
   role!: Role;
+}
+
+export class AdjustCoinsDto {
+  @IsInt()
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  note?: string;
 }
 
 export class UpdateUserDto {

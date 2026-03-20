@@ -17,6 +17,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Role } from 'generated/prisma/client';
 import {
   IMAGE_UPLOAD_MIME_TYPES,
@@ -26,7 +27,11 @@ import { GetUser } from '../auth/decorators/get-user.decorators';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { UpdateRoleDto, UpdateUserDto } from './dto/update-user.dto';
+import {
+  AdjustCoinsDto,
+  UpdateRoleDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('users')
@@ -39,14 +44,16 @@ export class UsersController {
   @ApiOperation({ summary: 'Admin: ban a user' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Post(':id/ban')
-  banUser(@Param('id') id: string) {
-    return this.usersService.banUser(id);
+  banUser(@Param('id') id: string, @GetUser('sub') adminId: string) {
+    return this.usersService.banUser(id, adminId);
   }
 
   @ApiOperation({ summary: 'Admin: unban a user' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Post(':id/unban')
   unbanUser(@Param('id') id: string) {
     return this.usersService.unbanUser(id);
@@ -55,10 +62,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Admin: adjust user coin balance' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Patch(':id/coins')
   adjustCoins(
     @Param('id') id: string,
-    @Body() dto: { amount: number; note?: string },
+    @Body() dto: AdjustCoinsDto,
   ) {
     return this.usersService.adjustCoins(id, dto.amount, dto.note ?? '');
   }
@@ -74,9 +82,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Admin: change a user role' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Patch(':id/role')
-  updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.usersService.updateRole(id, dto.role);
+  updateRole(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDto,
+    @GetUser('sub') adminId: string,
+  ) {
+    return this.usersService.updateRole(id, dto.role, adminId);
   }
 
   @ApiOperation({ summary: 'Get current user profile' })

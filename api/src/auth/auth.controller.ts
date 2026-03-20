@@ -17,7 +17,12 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GetUser } from './decorators/get-user.decorators';
-import { LoginDto } from './dto/login.dto';
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+  ResetPasswordDto,
+} from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { TelegramLoginDto, TelegramSendMessageDto } from './dto/telegram.dto';
@@ -120,11 +125,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change password' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   changePassword(
     @GetUser('sub') userId: string,
-    @Body() dto: { currentPassword: string; newPassword: string },
+    @Body() dto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
   }
@@ -150,7 +156,7 @@ export class AuthController {
   @Throttle({ short: { ttl: 60000, limit: 3 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  forgotPassword(@Body() dto: { email: string }) {
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }
 
@@ -158,7 +164,7 @@ export class AuthController {
   @Throttle({ short: { ttl: 60000, limit: 5 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  resetPassword(@Body() dto: { token: string; newPassword: string }) {
+  resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }

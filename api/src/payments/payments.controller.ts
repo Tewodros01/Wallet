@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Role } from 'generated/prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorators';
@@ -12,7 +13,12 @@ import {
   validateUploadMimeType,
 } from '../common/utils/upload.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
+import {
+  CreateDepositDto,
+  CreateWithdrawalDto,
+  PlayKenoDto,
+  TransferCoinsDto,
+} from './dto/payment.dto';
 import { PaymentsService } from './payments.service';
 
 @ApiTags('payments')
@@ -62,6 +68,7 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Create a deposit (add money)' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   @Post('deposit')
   createDeposit(@Body() dto: CreateDepositDto, @GetUser('sub') userId: string) {
     return this.paymentsService.createDeposit(dto, userId);
@@ -74,9 +81,10 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Transfer coins to another user' })
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   @Post('transfer')
   transferCoins(
-    @Body() dto: { recipientUsername: string; amount: number },
+    @Body() dto: TransferCoinsDto,
     @GetUser('sub') userId: string,
   ) {
     return this.paymentsService.transferCoins(
@@ -87,6 +95,7 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Create a withdrawal (get money)' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   @Post('withdraw')
   createWithdrawal(
     @Body() dto: CreateWithdrawalDto,
@@ -102,15 +111,17 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Claim daily bonus' })
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   @Post('daily-bonus')
   claimDailyBonus(@GetUser('sub') userId: string) {
     return this.paymentsService.claimDailyBonus(userId);
   }
 
   @ApiOperation({ summary: 'Play Keno round' })
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Post('keno/play')
   playKeno(
-    @Body() dto: { bet: number; picks: number[] },
+    @Body() dto: PlayKenoDto,
     @GetUser('sub') userId: string,
   ) {
     return this.paymentsService.playKeno(userId, dto.bet, dto.picks);
@@ -133,6 +144,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Agent: approve deposit' })
   @Roles(Role.AGENT, Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/deposits/:id/approve')
   approveDeposit(@Param('id') id: string) {
     return this.paymentsService.agentApproveDeposit(id);
@@ -141,6 +153,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Agent: reject deposit' })
   @Roles(Role.AGENT, Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/deposits/:id/reject')
   rejectDeposit(@Param('id') id: string) {
     return this.paymentsService.agentRejectDeposit(id);
@@ -149,6 +162,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Agent: approve withdrawal' })
   @Roles(Role.AGENT, Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/withdrawals/:id/approve')
   approveWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentApproveWithdrawal(id);
@@ -157,6 +171,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Agent: reject withdrawal' })
   @Roles(Role.AGENT, Role.ADMIN)
   @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/withdrawals/:id/reject')
   rejectWithdrawal(@Param('id') id: string) {
     return this.paymentsService.agentRejectWithdrawal(id);
