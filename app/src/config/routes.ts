@@ -39,6 +39,7 @@ export const APP_ROUTES = {
   admin: {
     panel: "/admin/panel",
     users: "/admin/users",
+    rooms: "/admin/rooms",
     deposits: "/admin/deposits",
     withdrawals: "/admin/withdrawals",
     tournaments: "/admin/tournaments",

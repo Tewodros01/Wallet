@@ -29,6 +29,7 @@ export const roomsApi = {
   getOne: (id: string) => api.get<GameRoomDetail>(`/rooms/${id}`).then((r) => r.data),
   create: (payload: CreateRoomPayload) =>
     api.post<GameRoomDetail>("/rooms", payload).then((r) => r.data),
+  remove: (id: string) => api.delete(`/rooms/${id}`).then((r) => r.data),
   join: (id: string, password?: string) =>
     api.post<JoinRoomResponse>(`/rooms/${id}/join`, { password }).then((r) => r.data),
   selectCards: (id: string, cardIds: string[]) =>

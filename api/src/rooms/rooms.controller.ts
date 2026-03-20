@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -8,7 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { Role } from 'generated/prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorators';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   ClaimBingoDto,
@@ -48,6 +53,15 @@ export class RoomsController {
   @Post()
   create(@Body() dto: CreateRoomDto, @GetUser('sub') userId: string) {
     return this.roomsService.create(dto, userId);
+  }
+
+  @ApiOperation({ summary: 'Admin: remove a room' })
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.roomsService.remove(id);
   }
 
   @ApiOperation({ summary: 'Join a room' })

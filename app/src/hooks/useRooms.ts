@@ -35,6 +35,17 @@ export const useCreateRoom = () => {
   });
 };
 
+export const useRemoveRoom = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => roomsApi.remove(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      qc.removeQueries({ queryKey: roomKeys.one(id) });
+    },
+  });
+};
+
 export const useMyPlayer = (id: string) =>
   useQuery({
     queryKey: [...roomKeys.one(id), "my-player"],

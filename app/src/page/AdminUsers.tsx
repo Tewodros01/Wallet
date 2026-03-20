@@ -94,10 +94,6 @@ export default function AdminUsers() {
     };
   }, [openRoleMenuId]);
 
-  useEffect(() => {
-    setOpenRoleMenuId(null);
-  }, [filter, search]);
-
   const filtered = (users as User[]).filter((u) => {
     const matchRole = filter === "all" || u.role === filter;
     const matchSearch =
@@ -257,13 +253,19 @@ export default function AdminUsers() {
               aria-label="Search users"
               placeholder="Search name, username, email…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setOpenRoleMenuId(null);
+                setSearch(e.target.value);
+              }}
               className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-600"
             />
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setOpenRoleMenuId(null);
+                  setSearch("");
+                }}
                 aria-label="Clear search"
                 title="Clear search"
                 className="text-gray-600 hover:text-gray-400 text-xs font-bold transition-colors"
@@ -280,7 +282,10 @@ export default function AdminUsers() {
                 <button
                   key={f}
                   type="button"
-                  onClick={() => setFilter(f)}
+                  onClick={() => {
+                    setOpenRoleMenuId(null);
+                    setFilter(f);
+                  }}
                   className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${
                     filter === f
                       ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
@@ -316,161 +321,169 @@ export default function AdminUsers() {
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {filtered.map((u: User) => (
-                  <div
-                    key={u.id}
-                    className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/[0.07] transition-all ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/[0.07]"}`}
-                  >
-                    <button
-                      type="button"
-                      className="flex flex-1 items-center gap-3 min-w-0 text-left"
-                      onClick={() => {
-                        if (u.role === "AGENT") {
-                          navigate(`/admin/agents/${u.id}`);
-                        } else {
-                          navigate(`/admin/users/${u.id}`);
-                        }
-                      }}
-                    >
-                      {u.avatar ? (
-                        <img
-                          src={u.avatar}
-                          alt=""
-                          className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-11 h-11 rounded-full bg-emerald-500/20 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-emerald-400 font-black text-base">
-                          {u.firstName?.[0]?.toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white truncate">
-                          {u.firstName} {u.lastName}
-                        </p>
-                        <p className="text-[11px] text-gray-500 truncate">
-                          @{u.username}
-                        </p>
-                      </div>
-                    </button>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span
-                        className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${ROLE_BADGE[u.role] ?? ""}`}
-                      >
-                        {ROLE_ICON[u.role]} {u.role}
-                      </span>
-                      {u.deletedAt && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25">
-                          BANNED
-                        </span>
-                      )}
-                      <div
-                        className="flex items-center gap-1.5 relative"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenRoleMenuId(null);
-                            setCoinsDialog({
-                              id: u.id,
-                              name: `${u.firstName} ${u.lastName}`,
-                              avatar: u.avatar ?? null,
-                            });
-                          }}
-                          aria-label={`Adjust coins for ${u.firstName} ${u.lastName}`}
-                          className="flex items-center gap-1 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-2 py-1 text-[10px] font-bold text-yellow-400 transition-colors hover:bg-yellow-500/20"
-                        >
-                          <FaCoins className="text-[11px]" />
-                          Coins
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenRoleMenuId(null);
-                            setBanConfirm({
-                              id: u.id,
-                              name: `${u.firstName} ${u.lastName}`,
-                              banned: !!u.deletedAt,
-                            });
-                          }}
-                          aria-label={
-                            u.deletedAt
-                              ? `Unban ${u.firstName} ${u.lastName}`
-                              : `Ban ${u.firstName} ${u.lastName}`
-                          }
-                          className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors ${
-                            u.deletedAt
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20"
-                              : "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20"
-                          }`}
-                        >
-                          {u.deletedAt ? "Unban" : "Ban"}
-                        </button>
-                        <div
-                          ref={openRoleMenuId === u.id ? roleMenuRef : null}
-                          className="relative"
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenRoleMenuId((current) =>
-                                current === u.id ? null : u.id,
-                              );
-                            }}
-                            aria-haspopup="menu"
-                            aria-expanded={openRoleMenuId === u.id}
-                            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors backdrop-blur-sm ${ROLE_BADGE[u.role] ?? "bg-white/[0.06] border-white/10 text-gray-300"}`}
-                          >
-                            {ROLE_ICON[u.role]}
-                            <span>{u.role}</span>
-                            <FiChevronDown
-                              className={`text-[11px] transition-transform ${openRoleMenuId === u.id ? "rotate-180" : ""}`}
-                            />
-                          </button>
+                {filtered.map((u: User) =>
+                  (() => {
+                    const isRoleMenuOpen = openRoleMenuId === u.id;
+                    const roleMenuId = `role-menu-${u.id}`;
 
-                          {openRoleMenuId === u.id && (
-                            <div
-                              role="menu"
-                              className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[140px] rounded-2xl border border-white/10 bg-gray-900/95 p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
-                            >
-                              {[Role.USER, Role.AGENT, Role.ADMIN].map(
-                                (role) => (
-                                  <button
-                                    key={role}
-                                    type="button"
-                                    role="menuitem"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRoleChange(u, role);
-                                    }}
-                                    className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-colors ${
-                                      u.role === role
-                                        ? `${ROLE_BADGE[role]}`
-                                        : "text-gray-300 hover:bg-white/[0.06]"
-                                    }`}
-                                  >
-                                    <span className="flex items-center gap-2">
-                                      {ROLE_ICON[role]}
-                                      {role}
-                                    </span>
-                                    {u.role === role && (
-                                      <span className="text-[9px] uppercase tracking-wide">
-                                        Current
-                                      </span>
-                                    )}
-                                  </button>
-                                ),
-                              )}
+                    return (
+                      <div
+                        key={u.id}
+                        className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/[0.07] transition-all ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/[0.07]"}`}
+                      >
+                        <button
+                          type="button"
+                          className="flex flex-1 items-center gap-3 min-w-0 text-left"
+                          onClick={() => {
+                            if (u.role === "AGENT") {
+                              navigate(`/admin/agents/${u.id}`);
+                            } else {
+                              navigate(`/admin/users/${u.id}`);
+                            }
+                          }}
+                        >
+                          {u.avatar ? (
+                            <img
+                              src={u.avatar}
+                              alt=""
+                              className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-emerald-500/20 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-emerald-400 font-black text-base">
+                              {u.firstName?.[0]?.toUpperCase()}
                             </div>
                           )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">
+                              {u.firstName} {u.lastName}
+                            </p>
+                            <p className="text-[11px] text-gray-500 truncate">
+                              @{u.username}
+                            </p>
+                          </div>
+                        </button>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span
+                            className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${ROLE_BADGE[u.role] ?? ""}`}
+                          >
+                            {ROLE_ICON[u.role]} {u.role}
+                          </span>
+                          {u.deletedAt && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25">
+                              BANNED
+                            </span>
+                          )}
+                          <div
+                            className="flex items-center gap-1.5 relative"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenRoleMenuId(null);
+                                setCoinsDialog({
+                                  id: u.id,
+                                  name: `${u.firstName} ${u.lastName}`,
+                                  avatar: u.avatar ?? null,
+                                });
+                              }}
+                              aria-label={`Adjust coins for ${u.firstName} ${u.lastName}`}
+                              className="flex items-center gap-1 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-2 py-1 text-[10px] font-bold text-yellow-400 transition-colors hover:bg-yellow-500/20"
+                            >
+                              <FaCoins className="text-[11px]" />
+                              Coins
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenRoleMenuId(null);
+                                setBanConfirm({
+                                  id: u.id,
+                                  name: `${u.firstName} ${u.lastName}`,
+                                  banned: !!u.deletedAt,
+                                });
+                              }}
+                              aria-label={
+                                u.deletedAt
+                                  ? `Unban ${u.firstName} ${u.lastName}`
+                                  : `Ban ${u.firstName} ${u.lastName}`
+                              }
+                              className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors ${
+                                u.deletedAt
+                                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20"
+                                  : "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20"
+                              }`}
+                            >
+                              {u.deletedAt ? "Unban" : "Ban"}
+                            </button>
+                            <div
+                              ref={isRoleMenuOpen ? roleMenuRef : null}
+                              className="relative"
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenRoleMenuId((current) =>
+                                    current === u.id ? null : u.id,
+                                  );
+                                }}
+                                aria-haspopup="menu"
+                                aria-label={`Change role for ${u.firstName} ${u.lastName}`}
+                                className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors backdrop-blur-sm ${ROLE_BADGE[u.role] ?? "bg-white/[0.06] border-white/10 text-gray-300"}`}
+                              >
+                                {ROLE_ICON[u.role]}
+                                <span>{u.role}</span>
+                                <FiChevronDown
+                                  className={`text-[11px] transition-transform ${isRoleMenuOpen ? "rotate-180" : ""}`}
+                                />
+                              </button>
+
+                              {isRoleMenuOpen && (
+                                <div
+                                  id={roleMenuId}
+                                  role="menu"
+                                  className="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[140px] rounded-2xl border border-white/10 bg-gray-900/95 p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                                >
+                                  {[Role.USER, Role.AGENT, Role.ADMIN].map(
+                                    (role) => (
+                                      <button
+                                        key={role}
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRoleChange(u, role);
+                                        }}
+                                        className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-colors ${
+                                          u.role === role
+                                            ? `${ROLE_BADGE[role]}`
+                                            : "text-gray-300 hover:bg-white/[0.06]"
+                                        }`}
+                                      >
+                                        <span className="flex items-center gap-2">
+                                          {ROLE_ICON[role]}
+                                          {role}
+                                        </span>
+                                        {u.role === role && (
+                                          <span className="text-[9px] uppercase tracking-wide">
+                                            Current
+                                          </span>
+                                        )}
+                                      </button>
+                                    ),
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })(),
+                )}
               </div>
             )}
           </div>

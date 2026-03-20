@@ -19,6 +19,7 @@ import AdminAnalytics from "./page/AdminAnalytics";
 import AdminDeposits from "./page/AdminDeposits";
 import AdminMissions from "./page/AdminMissions";
 import AdminPanel from "./page/AdminPanel";
+import AdminRooms from "./page/AdminRooms";
 import AdminTournaments from "./page/AdminTournaments";
 import AdminUserDetail from "./page/AdminUserDetail";
 import AdminUsers from "./page/AdminUsers";
@@ -278,6 +279,14 @@ const App = () => {
           element={
             <RequireAdmin>
               <AdminPanel />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path={APP_ROUTES.admin.rooms}
+          element={
+            <RequireAdmin>
+              <AdminRooms />
             </RequireAdmin>
           }
         />

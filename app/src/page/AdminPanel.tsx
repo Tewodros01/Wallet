@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FaChartLine, FaCoins, FaTrophy } from "react-icons/fa";
+import { FaChartLine, FaCoins, FaGamepad, FaTrophy } from "react-icons/fa";
 import {
   FiActivity,
   FiArrowLeft,
@@ -14,12 +14,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
 import { useAdminDeposits, useAdminWithdrawals } from "../hooks/usePayments";
+import { useRooms } from "../hooks/useRooms";
 import { useAllUsers } from "../hooks/useUser";
 import type {
   AdminDeposit,
   AdminWithdrawal,
   AdminQuickAction,
   AdminStatCard,
+  GameRoom,
   User,
 } from "../types";
 
@@ -39,8 +41,13 @@ export default function AdminPanel() {
     useAdminDeposits();
   const { data: withdrawals = [], isLoading: withdrawalsLoading } =
     useAdminWithdrawals();
+  const { data: rooms = [] } = useRooms({ status: "all" });
 
   const agents = users.filter((u: User) => u.role === "AGENT");
+  const activeRooms = rooms.filter(
+    (room: GameRoom) =>
+      room.status === "WAITING" || room.status === "PLAYING",
+  );
   const pendingDeposits = deposits.filter(
     (d: AdminDeposit) => d.status === "PENDING",
   );
@@ -262,6 +269,13 @@ export default function AdminPanel() {
                     icon: <FaChartLine className="text-violet-400 text-lg" />,
                     bg: "from-violet-500/15 to-purple-500/5 border-violet-500/20",
                     path: "/admin/analytics",
+                  },
+                  {
+                    label: "Manage Rooms",
+                    sub: `${activeRooms.length} active rooms`,
+                    icon: <FaGamepad className="text-cyan-400 text-lg" />,
+                    bg: "from-cyan-500/15 to-sky-500/5 border-cyan-500/20",
+                    path: "/admin/rooms",
                   },
                   {
                     label: "Tournaments",

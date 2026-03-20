@@ -259,6 +259,28 @@ export class RoomsService {
     }
   }
 
+  async remove(roomId: string): Promise<{ success: true }> {
+    try {
+      await this.getRoomSummaryOrThrow(roomId);
+
+      await this.prisma.gameRoom.delete({
+        where: { id: roomId },
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      this.logger.error(
+        'Failed to remove room',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException('Failed to remove room');
+    }
+  }
+
   async join(
     roomId: string,
     userId: string,
