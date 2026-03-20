@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CreateRoomModal from "../../components/CreateRoomModal";
+import CoinCounter from "../../components/ui/CoinCounter";
 import EmptyState from "../../components/ui/EmptyState";
 import Input from "../../components/ui/Input";
 import { BottomNav } from "../../components/ui/Layout";
@@ -471,30 +472,29 @@ export default function BingoLobby({
   onPaymentConfirm,
   onEntryErrorChange,
 }: BingoLobbyProps) {
-  const navigate = useNavigate();
+      const navigate = useNavigate();
   const { data: unreadCount } = useUnreadCount();
   const [showJoinCode, setShowJoinCode] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] px-5 py-3.5 flex items-center justify-between">
+      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
-            <FaGamepad className="text-emerald-400 text-sm" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-500/10">
+            <FaGamepad className="text-emerald-300 text-lg" />
           </div>
           <div>
-            <span className="text-base font-black text-white">Play Bingo</span>
-            <p className="text-[10px] text-gray-500">
-              {waiting} waiting · {playing} in progress
+            <p className="text-[11px] text-gray-500 font-semibold">
+              Bingo lobby
+            </p>
+            <p className="text-base font-black text-white leading-tight">
+              Play Bingo
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-3 py-1.5">
-            <FaCoins className="text-yellow-400 text-xs" />
-            <span className="text-yellow-300 text-xs font-black">
-              {balance.toLocaleString()}
-            </span>
+          <div className="flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5">
+            <CoinCounter value={balance} />
           </div>
           <button
             type="button"
