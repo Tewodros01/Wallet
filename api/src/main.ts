@@ -12,6 +12,20 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
+  const httpAdapter = app.getHttpAdapter().getInstance();
+
+  httpAdapter.get('/', (_req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      message: 'Wallet API is running',
+      docs: '/docs',
+      api: '/api/v1',
+    });
+  });
+
+  httpAdapter.head('/', (_req, res) => {
+    res.sendStatus(200);
+  });
 
   // Serve uploaded avatars as static files
   app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/public' });
@@ -31,8 +45,13 @@ async function bootstrap() {
     'corsOrigin',
     'http://localhost:5173',
   );
+  const allowedOrigins = corsOrigin
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: corsOrigin,
+    origin: allowedOrigins,
     credentials: true,
   });
 
