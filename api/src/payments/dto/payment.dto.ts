@@ -3,12 +3,10 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  MaxLength,
   Max,
   Min,
 } from 'class-validator';
@@ -75,28 +73,4 @@ export class PlayKenoDto {
   @Min(1, { each: true })
   @Max(80, { each: true })
   picks!: number[];
-}
-
-export class CreatePaymentRequestDto {
-  @ApiProperty({ example: 250 })
-  @IsInt()
-  @Min(10)
-  amount!: number;
-
-  @ApiPropertyOptional({ example: 'Abebe Grocery' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(60)
-  merchantLabel?: string;
-
-  @ApiPropertyOptional({ example: 'Milk and bread order' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(240)
-  note?: string;
-
-  @ApiPropertyOptional({ example: '2026-03-23T18:30:00.000Z' })
-  @IsOptional()
-  @IsDateString()
-  expiresAt?: string;
 }

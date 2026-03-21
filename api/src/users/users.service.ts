@@ -15,6 +15,7 @@ import {
   IMAGE_UPLOAD_MIME_TYPES,
   storeUploadedFile,
 } from '../common/utils/upload.util';
+import { LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -39,6 +40,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async findAll() {
@@ -296,31 +298,14 @@ export class UsersService {
       throw new BadRequestException('Adjustment would make balance negative');
     }
     const updated = await this.prisma.$transaction(async (tx) => {
-      const u = await tx.user.update({
-        where: { id },
-        data: { coinsBalance: { increment: amount } },
-        select: { coinsBalance: true },
+      const newBalance = await this.ledgerService.applyEntry(tx, {
+        userId: id,
+        title: note || (amount >= 0 ? 'Admin credit' : 'Admin debit'),
+        amount: Math.abs(amount),
+        balanceDelta: amount,
+        type: amount >= 0 ? 'INCOME' : 'EXPENSE',
       });
-      const wallet = await tx.wallet.findFirst({
-        where: { userId: id, isDefault: true, deletedAt: null },
-      });
-      if (wallet) {
-        await tx.transaction.create({
-          data: {
-            title: note || (amount >= 0 ? 'Admin credit' : 'Admin debit'),
-            amount: Math.abs(amount),
-            type: amount >= 0 ? 'INCOME' : 'EXPENSE',
-            date: new Date(),
-            userId: id,
-            walletId: wallet.id,
-          },
-        });
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: amount } },
-        });
-      }
-      return u;
+      return { coinsBalance: newBalance };
     });
     return { newBalance: updated.coinsBalance };
   }

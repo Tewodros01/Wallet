@@ -11,6 +11,7 @@ import {
   TransactionType,
 } from 'generated/prisma/client';
 import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
+import { LedgerService } from '../ledger/ledger.service';
 import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTournamentDto } from './dto/tournament.dto';
@@ -21,6 +22,7 @@ export class TournamentsService {
     private readonly prisma: PrismaService,
     private readonly missionsService: MissionsService,
     private readonly configService: ConfigService,
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async findAll(userId: string) {
@@ -78,42 +80,19 @@ export class TournamentsService {
     });
     if (existing) throw new BadRequestException('Already joined');
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { coinsBalance: true },
-    });
-    if (!user || user.coinsBalance < t.entryFee)
-      throw new BadRequestException('Insufficient coin balance');
-
     const result = await this.prisma.$transaction(async (tx) => {
       if (t.entryFee > 0) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { coinsBalance: { decrement: t.entryFee } },
+        await this.ledgerService.applyEntry(tx, {
+          userId,
+          title: `Tournament entry: ${t.name}`,
+          amount: t.entryFee,
+          balanceDelta: -t.entryFee,
+          type: TransactionType.GAME_ENTRY,
         });
         await tx.tournament.update({
           where: { id: tournamentId },
           data: { prize: { increment: t.entryFee } },
         });
-        const wallet = await tx.wallet.findFirst({
-          where: { userId, isDefault: true, deletedAt: null },
-        });
-        if (wallet) {
-          await tx.transaction.create({
-            data: {
-              title: `Tournament entry: ${t.name}`,
-              amount: t.entryFee,
-              type: TransactionType.GAME_ENTRY,
-              date: new Date(),
-              userId,
-              walletId: wallet.id,
-            },
-          });
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: t.entryFee } },
-          });
-        }
       }
       await tx.tournamentPlayer.create({ data: { tournamentId, userId } });
 
@@ -127,11 +106,8 @@ export class TournamentsService {
         },
       });
 
-      const updated = await tx.user.findUnique({
-        where: { id: userId },
-        select: { coinsBalance: true },
-      });
-      return { success: true, newBalance: updated?.coinsBalance ?? 0 };
+      const newBalance = await this.ledgerService.getBalance(tx, userId);
+      return { success: true, newBalance };
     });
 
     void this.missionsService
@@ -226,29 +202,13 @@ export class TournamentsService {
       });
 
       if (t.prize > 0) {
-        await tx.user.update({
-          where: { id: winnerUserId },
-          data: { coinsBalance: { increment: t.prize } },
+        await this.ledgerService.applyEntry(tx, {
+          userId: winnerUserId,
+          title: `Tournament win: ${t.name}`,
+          amount: t.prize,
+          balanceDelta: t.prize,
+          type: TransactionType.GAME_WIN,
         });
-        const wallet = await tx.wallet.findFirst({
-          where: { userId: winnerUserId, isDefault: true, deletedAt: null },
-        });
-        if (wallet) {
-          await tx.transaction.create({
-            data: {
-              title: `Tournament win: ${t.name}`,
-              amount: t.prize,
-              type: TransactionType.GAME_WIN,
-              date: new Date(),
-              userId: winnerUserId,
-              walletId: wallet.id,
-            },
-          });
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: t.prize } },
-          });
-        }
         await tx.notification.create({
           data: {
             userId: winnerUserId,

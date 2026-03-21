@@ -28,8 +28,18 @@ export function toPublicAssetUrl(
 }
 
 export function normalizeAvatarUrls<T>(value: T, publicApiUrl: string): T {
+  return normalizePublicAssetFields(value, publicApiUrl, ['avatar']);
+}
+
+export function normalizePublicAssetFields<T>(
+  value: T,
+  publicApiUrl: string,
+  fields: string[],
+): T {
   if (Array.isArray(value)) {
-    return value.map((item) => normalizeAvatarUrls(item, publicApiUrl)) as T;
+    return value.map((item) =>
+      normalizePublicAssetFields(item, publicApiUrl, fields),
+    ) as T;
   }
 
   if (!isPlainObject(value)) {
@@ -38,13 +48,13 @@ export function normalizeAvatarUrls<T>(value: T, publicApiUrl: string): T {
 
   const normalized = Object.entries(value).map(([key, entryValue]) => {
     if (
-      key === 'avatar' &&
+      fields.includes(key) &&
       (typeof entryValue === 'string' || entryValue === null)
     ) {
       return [key, toPublicAssetUrl(entryValue, publicApiUrl)];
     }
 
-    return [key, normalizeAvatarUrls(entryValue, publicApiUrl)];
+    return [key, normalizePublicAssetFields(entryValue, publicApiUrl, fields)];
   });
 
   return Object.fromEntries(normalized) as T;

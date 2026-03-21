@@ -9,11 +9,15 @@ import {
   MissionType,
   TransactionType,
 } from 'generated/prisma/client';
+import { LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MissionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ledgerService: LedgerService,
+  ) {}
 
   async getMissions(userId: string, type?: MissionType) {
     await this.ensureMissionResets(type);
@@ -68,30 +72,13 @@ export class MissionsService {
         where: { userId_missionId: { userId, missionId } },
         data: { claimed: true, claimedAt: new Date() },
       });
-      await tx.user.update({
-        where: { id: userId },
-        data: { coinsBalance: { increment: mission.reward } },
+      const newBalance = await this.ledgerService.applyEntry(tx, {
+        userId,
+        title: `Mission reward: ${mission.title}`,
+        amount: mission.reward,
+        balanceDelta: mission.reward,
+        type: TransactionType.INCOME,
       });
-
-      const wallet = await tx.wallet.findFirst({
-        where: { userId, isDefault: true, deletedAt: null },
-      });
-      if (wallet) {
-        await tx.transaction.create({
-          data: {
-            title: `Mission reward: ${mission.title}`,
-            amount: mission.reward,
-            type: TransactionType.INCOME,
-            date: new Date(),
-            userId,
-            walletId: wallet.id,
-          },
-        });
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: mission.reward } },
-        });
-      }
 
       await tx.notification.create({
         data: {
@@ -102,14 +89,10 @@ export class MissionsService {
         },
       });
 
-      const updated = await tx.user.findUnique({
-        where: { id: userId },
-        select: { coinsBalance: true },
-      });
       return {
         success: true,
         reward: mission.reward,
-        newBalance: updated?.coinsBalance ?? 0,
+        newBalance,
       };
     });
   }

@@ -2,16 +2,16 @@ import { useState } from "react";
 import { FaCoins } from "react-icons/fa";
 import {
   FiArrowLeft,
-  FiCheck,
   FiClock,
-  FiExternalLink,
   FiTrendingUp,
   FiUsers,
-  FiX,
 } from "react-icons/fi";
-import { MdOutlineAccountBalanceWallet, MdPictureAsPdf } from "react-icons/md";
+import { MdOutlineAccountBalanceWallet } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import ProofViewerSheet from "../components/payment/ProofViewerSheet";
 import { AppBar } from "../components/ui/Layout";
+import DepositReviewCard from "../features/payments/components/DepositReviewCard";
+import WithdrawalReviewCard from "../features/payments/components/WithdrawalReviewCard";
 import { useAgentStats } from "../hooks/useAgents";
 import {
   useAgentApproveDeposit,
@@ -26,13 +26,6 @@ import type {
 } from "../types/agent-requests.types";
 
 type Tab = "deposits" | "withdrawals" | "users" | "earnings";
-
-const statusStyle: Record<string, string> = {
-  PENDING: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  COMPLETED: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  FAILED: "bg-rose-500/15 text-rose-400 border-rose-500/30",
-  PROCESSING: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-};
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   {
@@ -50,7 +43,9 @@ export default function AgentDeposit() {
   const [tab, setTab] = useState<Tab>("deposits");
   const [dFilter, setDFilter] = useState<string>("all");
   const [wFilter, setWFilter] = useState<string>("all");
-  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+  const [proofSheet, setProofSheet] = useState<{
+    url: string;
+  } | null>(null);
 
   const { data: requests, isLoading } = useAgentRequests();
   const { data: agentStats } = useAgentStats();
@@ -88,13 +83,6 @@ export default function AgentDeposit() {
       : withdrawals.filter(
           (w: AgentWithdrawalRequest) => w.status === wFilter.toUpperCase(),
         );
-
-  const toProofUrl = (proofUrl?: string) =>
-    !proofUrl
-      ? null
-      : proofUrl.startsWith("http") || proofUrl.startsWith("data:")
-        ? proofUrl
-        : `${apiBase}${proofUrl}`;
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
@@ -217,113 +205,21 @@ export default function AgentDeposit() {
                     </div>
                   ) : (
                     filteredD.map((req: AgentDepositRequest) => {
-                      const proofUrl = toProofUrl(req.proofUrl);
-                      const isInlineImage =
-                        !!proofUrl &&
-                        (proofUrl.startsWith("data:image") ||
-                          /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(proofUrl));
-                      const isPdf =
-                        !!proofUrl &&
-                        (proofUrl.startsWith("data:application/pdf") ||
-                          /\.pdf(\?.*)?$/i.test(proofUrl));
-
                       return (
-                        <div
+                        <DepositReviewCard
                           key={req.id}
-                          className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
-                        >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={
-                              req.user?.avatar ??
-                              `https://i.pravatar.cc/40?u=${req.userId}`
-                            }
-                            alt=""
-                            className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white">
-                              {req.user?.firstName} {req.user?.lastName}
-                            </p>
-                            <p className="text-[11px] text-gray-500">
-                              @{req.user?.username} · {req.method}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className="flex items-center gap-1 text-base font-black text-yellow-300">
-                              <FaCoins className="text-xs text-yellow-400" />
-                              {req.amount.toLocaleString()}
-                            </span>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyle[req.status] ?? ""}`}
-                            >
-                              {req.status}
-                            </span>
-                          </div>
-                        </div>
-                        {/* Payment proof */}
-                        {proofUrl && (
-                          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-2.5 flex flex-col gap-2">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                              Payment Proof
-                            </p>
-                            {isInlineImage ? (
-                              <img
-                                src={proofUrl}
-                                alt="proof"
-                                className="w-full max-h-48 object-contain rounded-lg border border-white/10"
-                              />
-                            ) : isPdf ? (
-                              <div className="flex items-center gap-2 text-rose-400">
-                                <MdPictureAsPdf className="text-2xl shrink-0" />
-                                <span className="text-xs font-semibold">
-                                  PDF Document attached
-                                </span>
-                                <a
-                                  href={proofUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
-                                >
-                                  <FiExternalLink className="shrink-0" />
-                                  Open
-                                </a>
-                              </div>
-                            ) : (
-                              <a
-                                href={proofUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-emerald-400 text-xs font-semibold hover:text-emerald-300 transition-colors truncate"
-                              >
-                                <FiExternalLink className="shrink-0" />
-                                <span className="truncate">{proofUrl}</span>
-                              </a>
-                            )}
-                          </div>
-                        )}
-                        {req.status === "PENDING" && (
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => rejectDeposit(req.id)}
-                              disabled={rejectingD}
-                              className="flex-1 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-rose-500/20 active:scale-95 transition-all disabled:opacity-50"
-                            >
-                              <FiX /> Reject
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => approveDeposit(req.id)}
-                              disabled={approvingD}
-                              className="flex-1 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-500/25 active:scale-95 transition-all disabled:opacity-50"
-                            >
-                              <FiCheck /> Approve
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
+                          deposit={req}
+                          subtitle={`@${req.user?.username ?? "unknown"} · ${req.method}`}
+                          actionLoading={approvingD || rejectingD}
+                          onShowProof={(url) =>
+                            setProofSheet({
+                              url,
+                            })
+                          }
+                          onReject={(id) => rejectDeposit(id)}
+                          onApprove={(id) => approveDeposit(id)}
+                        />
+                      );
                     })
                   )}
                 </div>
@@ -356,42 +252,14 @@ export default function AgentDeposit() {
                     </div>
                   ) : (
                     filteredW.map((req: AgentWithdrawalRequest) => (
-                      <div
+                      <WithdrawalReviewCard
                         key={req.id}
-                        className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={
-                              req.user?.avatar ??
-                              `https://i.pravatar.cc/40?u=${req.userId}`
-                            }
-                            alt=""
-                            className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white">
-                              {req.user?.firstName} {req.user?.lastName}
-                            </p>
-                            <p className="text-[11px] text-gray-500">
-                              {req.method} · {req.accountNumber}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className="flex items-center gap-1 text-base font-black text-yellow-300">
-                              <FaCoins className="text-xs text-yellow-400" />
-                              {req.amount.toLocaleString()}
-                            </span>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyle[req.status] ?? ""}`}
-                            >
-                              {req.status}
-                            </span>
-                          </div>
-                        </div>
-                        {(req.status === "PENDING" ||
-                          req.status === "PROCESSING") && (
-                          <div className="flex flex-col gap-2">
+                        tone="agent"
+                        withdrawal={req}
+                        subtitle={`${req.method} · ${req.accountNumber}`}
+                        details={
+                          (req.status === "PENDING" ||
+                            req.status === "PROCESSING") && (
                             <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-2 text-xs text-orange-300">
                               Send{" "}
                               <span className="font-black">
@@ -405,27 +273,13 @@ export default function AgentDeposit() {
                               <span className="font-black">{req.method}</span> (
                               {req.accountNumber}), then approve.
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => rejectWithdrawal(req.id)}
-                                disabled={rejectingW}
-                                className="flex-1 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-rose-500/20 active:scale-95 transition-all disabled:opacity-50"
-                              >
-                                <FiX /> Reject
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => approveWithdrawal(req.id)}
-                                disabled={approvingW}
-                                className="flex-1 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-500/25 active:scale-95 transition-all disabled:opacity-50"
-                              >
-                                <FiCheck /> Cash Sent & Approve
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                          )
+                        }
+                        actionLoading={approvingW || rejectingW}
+                        onReject={(id) => rejectWithdrawal(id)}
+                        onApprove={(id) => approveWithdrawal(id)}
+                        approveLabel="Cash Sent & Approve"
+                      />
                     ))
                   )}
                 </div>
@@ -486,6 +340,12 @@ export default function AgentDeposit() {
           </>
         )}
       </div>
+
+      <ProofViewerSheet
+        open={!!proofSheet}
+        url={proofSheet?.url ?? null}
+        onClose={() => setProofSheet(null)}
+      />
     </div>
   );
 }

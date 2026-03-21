@@ -1,7 +1,6 @@
 import {
   DepositStatus,
   PaymentMethod,
-  PaymentRequestStatus,
   WithdrawalStatus,
 } from "./enums";
 
@@ -68,38 +67,4 @@ export interface PaymentSummary {
   pendingWithdrawals: number;
   completedDeposits: number;
   completedWithdrawals: number;
-}
-
-export interface PaymentRequestParty {
-  id: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  avatar: string | null;
-}
-
-export interface PaymentRequest {
-  id: string;
-  creatorId: string;
-  payerId: string | null;
-  amount: number;
-  fee: number;
-  status: PaymentRequestStatus;
-  merchantLabel: string | null;
-  note: string | null;
-  reference: string;
-  expiresAt: string | null;
-  paidAt: string | null;
-  cancelledAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  creator: PaymentRequestParty;
-  payer: PaymentRequestParty | null;
-}
-
-export interface CreatePaymentRequestPayload {
-  amount: number;
-  merchantLabel?: string;
-  note?: string;
-  expiresAt?: string;
 }

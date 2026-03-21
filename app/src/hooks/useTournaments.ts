@@ -1,13 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tournamentsApi } from '../api/tournaments.api';
+import { tournamentKeys } from '../features/tournaments/queryKeys';
 import { getErrorMessage } from '../lib/errors';
 import { useWalletStore } from '../store/wallet.store';
 import { toast } from '../store/toast.store';
-
-export const tournamentKeys = {
-  all: ['tournaments'] as const,
-  prizePool: ['tournaments', 'prize-pool'] as const,
-};
 
 export const useTournaments = () =>
   useQuery({ queryKey: tournamentKeys.all, queryFn: tournamentsApi.getAll, staleTime: 30_000 });
@@ -16,7 +12,7 @@ export const usePrizePool = () =>
   useQuery({ queryKey: tournamentKeys.prizePool, queryFn: tournamentsApi.getPrizePool, staleTime: 60_000 });
 
 export const useLeaderboard = () =>
-  useQuery({ queryKey: ['tournaments', 'leaderboard'], queryFn: tournamentsApi.getLeaderboard, staleTime: 60_000 });
+  useQuery({ queryKey: tournamentKeys.leaderboard, queryFn: tournamentsApi.getLeaderboard, staleTime: 60_000 });
 
 export const useJoinTournament = () => {
   const qc = useQueryClient();

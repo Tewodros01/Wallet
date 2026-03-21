@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaArrowDown, FaArrowUp, FaCoins, FaExchangeAlt, FaMoneyCheckAlt } from "react-icons/fa";
+import { FaArrowDown, FaArrowUp, FaCoins, FaExchangeAlt } from "react-icons/fa";
 import { FiClock, FiGrid } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Avatar, BottomNav } from "../components/ui/Layout";
@@ -75,13 +75,6 @@ const quickActions = [
     color: "text-cyan-400",
     bg: "bg-cyan-500/10 border-cyan-500/20",
     path: "/transfer",
-  },
-  {
-    label: "Request",
-    icon: <FaMoneyCheckAlt />,
-    color: "text-violet-400",
-    bg: "bg-violet-500/10 border-violet-500/20",
-    path: "/request-money",
   },
 ];
 
@@ -240,7 +233,7 @@ export default function MyWallet() {
             </span>
             <span className="text-sm text-gray-500 mb-1">coins</span>
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {quickActions.map(({ label, icon, color, bg, path }) => (
               <button
                 key={label}

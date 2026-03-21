@@ -18,7 +18,6 @@ export const APP_ROUTES = {
   depositMoney: "/deposit-money",
   getMoney: "/get-money",
   transfer: "/transfer",
-  requestMoney: "/request-money",
   invite: "/invite",
   agentDeposit: "/agent-deposit",
   history: "/history",

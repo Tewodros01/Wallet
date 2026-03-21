@@ -11,6 +11,7 @@ import {
   TransactionType,
 } from 'generated/prisma/client';
 import { normalizeAvatarUrls } from '../common/utils/avatar-url.util';
+import { LedgerService } from '../ledger/ledger.service';
 import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramService } from '../telegram/telegram.service';
@@ -25,6 +26,7 @@ export class AgentsService {
     private readonly missionsService: MissionsService,
     private readonly configService: ConfigService,
     private readonly telegramService: TelegramService,
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async getMyInvite(userId: string) {
@@ -119,31 +121,13 @@ export class AgentsService {
           },
         });
 
-        await tx.user.update({
-          where: { id: invite.inviterId },
-          data: { coinsBalance: { increment: COMMISSION_PER_INVITE } },
+        await this.ledgerService.applyEntry(tx, {
+          userId: invite.inviterId,
+          title: 'Referral Bonus',
+          amount: COMMISSION_PER_INVITE,
+          balanceDelta: COMMISSION_PER_INVITE,
+          type: TransactionType.REFERRAL_BONUS,
         });
-
-        // record referral bonus transaction
-        const wallet = await tx.wallet.findFirst({
-          where: { userId: invite.inviterId, isDefault: true, deletedAt: null },
-        });
-        if (wallet) {
-          await tx.transaction.create({
-            data: {
-              title: 'Referral Bonus',
-              amount: COMMISSION_PER_INVITE,
-              type: TransactionType.REFERRAL_BONUS,
-              date: new Date(),
-              userId: invite.inviterId,
-              walletId: wallet.id,
-            },
-          });
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: COMMISSION_PER_INVITE } },
-          });
-        }
 
         return {
           success: true,
@@ -199,29 +183,13 @@ export class AgentsService {
           where: { id: invite.id },
           data: { commission: { increment: commission } },
         });
-        await tx.user.update({
-          where: { id: invite.inviterId },
-          data: { coinsBalance: { increment: commission } },
+        await this.ledgerService.applyEntry(tx, {
+          userId: invite.inviterId,
+          title: `Agent commission (2% of deposit)`,
+          amount: commission,
+          balanceDelta: commission,
+          type: TransactionType.AGENT_COMMISSION,
         });
-        const wallet = await tx.wallet.findFirst({
-          where: { userId: invite.inviterId, isDefault: true, deletedAt: null },
-        });
-        if (wallet) {
-          await tx.transaction.create({
-            data: {
-              title: `Agent commission (2% of deposit)`,
-              amount: commission,
-              type: TransactionType.AGENT_COMMISSION,
-              date: new Date(),
-              userId: invite.inviterId,
-              walletId: wallet.id,
-            },
-          });
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: commission } },
-          });
-        }
       });
       void this.telegramService.trySendMessageToUser(
         invite.inviterId,

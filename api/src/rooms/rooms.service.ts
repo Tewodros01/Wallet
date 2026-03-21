@@ -19,6 +19,7 @@ import {
   getPublicApiUrl,
   normalizeAvatarUrls,
 } from '../common/utils/avatar-url.util';
+import { LedgerService } from '../ledger/ledger.service';
 import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -178,6 +179,7 @@ export class RoomsService {
     private readonly prisma: PrismaService,
     private readonly missionsService: MissionsService,
     private readonly configService: ConfigService,
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async findAll(query: QueryRoomsDto): Promise<RoomDto[]> {
@@ -312,40 +314,14 @@ export class RoomsService {
           const refundAmount = room.entryFee * player._count.cards;
           if (refundAmount <= 0) continue;
 
-          await tx.user.update({
-            where: { id: player.userId },
-            data: { coinsBalance: { increment: refundAmount } },
+          await this.ledgerService.applyEntry(tx, {
+            userId: player.userId,
+            title: `Room Refund: ${room.name}`,
+            amount: refundAmount,
+            balanceDelta: refundAmount,
+            type: TransactionType.INCOME,
+            gameRoomId: room.id,
           });
-
-          const wallet = await tx.wallet.findFirst({
-            where: {
-              userId: player.userId,
-              isDefault: true,
-              isActive: true,
-              deletedAt: null,
-            },
-          });
-
-          if (wallet) {
-            await tx.transaction.create({
-              data: {
-                title: `Room Refund: ${room.name}`,
-                amount: refundAmount,
-                type: TransactionType.INCOME,
-                date: new Date(),
-                userId: player.userId,
-                walletId: wallet.id,
-                gameRoomId: room.id,
-              },
-            });
-
-            await tx.wallet.update({
-              where: { id: wallet.id },
-              data: {
-                balance: { increment: new Prisma.Decimal(refundAmount) },
-              },
-            });
-          }
         }
 
         await tx.roomPlayer.updateMany({
@@ -744,31 +720,14 @@ export class RoomsService {
           },
         });
 
-        await tx.user.update({
-          where: { id: userId },
-          data: { coinsBalance: { increment: prize } },
-        });
-
-        const wallet = await tx.wallet.findFirst({
-          where: { userId, isDefault: true, isActive: true, deletedAt: null },
-        });
-
-        if (wallet && prize > 0) {
-          await tx.transaction.create({
-            data: {
-              title: `Bingo Win: ${room.name}`,
-              amount: prize,
-              type: TransactionType.GAME_WIN,
-              date: new Date(),
-              userId,
-              walletId: wallet.id,
-              gameRoomId: roomId,
-            },
-          });
-
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: prize } },
+        if (prize > 0) {
+          await this.ledgerService.applyEntry(tx, {
+            userId,
+            title: `Bingo Win: ${room.name}`,
+            amount: prize,
+            balanceDelta: prize,
+            type: TransactionType.GAME_WIN,
+            gameRoomId: roomId,
           });
         }
 
@@ -851,54 +810,22 @@ export class RoomsService {
   ): Promise<void> {
     const totalEntryFee = room.entryFee * cardCount;
 
-    const updatedUser = await tx.user.updateMany({
-      where: {
-        id: userId,
-        coinsBalance: { gte: totalEntryFee },
-      },
-      data: { coinsBalance: { decrement: totalEntryFee } },
+    await this.ledgerService.applyEntry(tx, {
+      userId,
+      title:
+        cardCount > 1
+          ? `Room Entry x${cardCount}: ${room.name}`
+          : `Room Entry: ${room.name}`,
+      amount: totalEntryFee,
+      balanceDelta: -totalEntryFee,
+      type: TransactionType.GAME_ENTRY,
+      gameRoomId: room.id,
     });
-
-    if (updatedUser.count !== 1) {
-      throw new BadRequestException('Insufficient coin balance');
-    }
 
     await tx.gameRoom.update({
       where: { id: room.id },
       data: { prizePool: { increment: totalEntryFee } },
     });
-
-    const wallet = await tx.wallet.findFirst({
-      where: { userId, isDefault: true, isActive: true, deletedAt: null },
-    });
-
-    if (!wallet) return;
-
-    await tx.transaction.create({
-      data: {
-        title:
-          cardCount > 1
-            ? `Room Entry x${cardCount}: ${room.name}`
-            : `Room Entry: ${room.name}`,
-        amount: totalEntryFee,
-        type: TransactionType.GAME_ENTRY,
-        date: new Date(),
-        userId,
-        walletId: wallet.id,
-        gameRoomId: room.id,
-      },
-    });
-
-    const updatedWallet = await tx.wallet.updateMany({
-      where: {
-        id: wallet.id,
-        balance: { gte: new Prisma.Decimal(totalEntryFee) },
-      },
-      data: { balance: { decrement: new Prisma.Decimal(totalEntryFee) } },
-    });
-    if (updatedWallet.count !== 1) {
-      throw new BadRequestException('Insufficient wallet balance');
-    }
   }
 
   private async runSerializableTransaction<T>(

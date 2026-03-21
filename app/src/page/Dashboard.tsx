@@ -5,7 +5,6 @@ import {
   FaFire,
   FaGamepad,
   FaGift,
-  FaMoneyCheckAlt,
   FaTrophy,
   FaUsers,
   FaWallet,
@@ -17,7 +16,7 @@ import {
   FiTarget,
   FiZap,
 } from "react-icons/fi";
-import { GiCoins, GiPokerHand } from "react-icons/gi";
+import { GiCoins } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import CoinCounter from "../components/ui/CoinCounter";
 import EmptyState from "../components/ui/EmptyState";
@@ -27,6 +26,7 @@ import {
   SkeletonRoomCard,
   SkeletonStatCard,
 } from "../components/ui/Skeletons";
+import LiveRoomCard from "../features/bingo/components/LiveRoomCard";
 import { useUnreadCount } from "../hooks/useNotifications";
 import { useRooms } from "../hooks/useRooms";
 import { useLeaderboard, useMe, useMyStats } from "../hooks/useUser";
@@ -280,51 +280,13 @@ export default function Dashboard() {
             />
           ) : (
             <div className="flex flex-col gap-2.5">
-              {liveRooms.map((room: GameRoom) => {
-                const players = room._count?.players ?? 0;
-                const fill = Math.round((players / room.maxPlayers) * 100);
-                return (
-                  <button
-                    key={room.id}
-                    type="button"
-                    aria-label={`Join ${room.name}`}
-                    onClick={() => nav("/game")}
-                    className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
-                  >
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500/20 to-emerald-500/20 border border-white/[0.08] flex items-center justify-center shrink-0">
-                      <GiPokerHand className="text-violet-400 text-xl" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-white truncate">
-                        {room.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <div className="flex-1 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${fill > 80 ? "bg-rose-400" : "bg-emerald-400"}`}
-                            style={{ width: `${fill}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-gray-500 shrink-0">
-                          {players}/{room.maxPlayers}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span
-                        className={`text-xs font-black ${room.entryFee === 0 ? "text-emerald-400" : "text-yellow-300"}`}
-                      >
-                        {room.entryFee === 0 ? "FREE" : `${room.entryFee} 🪙`}
-                      </span>
-                      {room.prizePool > 0 && (
-                        <span className="text-[10px] text-gray-500">
-                          🏆 {room.prizePool.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+              {liveRooms.map((room: GameRoom) => (
+                <LiveRoomCard
+                  key={room.id}
+                  room={room}
+                  onOpen={(selectedRoom) => nav(`/game/${selectedRoom.id}`)}
+                />
+              ))}
             </div>
           )}
         </motion.div>
@@ -335,13 +297,6 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-2.5">
             {(
               [
-                {
-                  label: "Request Money",
-                  sub: "Collect from customers",
-                  icon: <FaMoneyCheckAlt className="text-cyan-400 text-xl" />,
-                  bg: "from-cyan-500/15 to-sky-500/5 border-cyan-500/20",
-                  path: "/request-money",
-                },
                 {
                   label: "Daily Bonus",
                   sub: "Spin & win coins",

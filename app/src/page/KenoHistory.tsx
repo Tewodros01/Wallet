@@ -3,27 +3,13 @@ import { FiArrowLeft, FiTrendingDown, FiTrendingUp } from "react-icons/fi";
 import { GiCoins } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
-import { useKenoHistory } from "../hooks/usePayments";
-
-function formatDate(d: string) {
-  const date = new Date(d);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-  if (diff === 0)
-    return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  if (diff === 1)
-    return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import KenoStatePanel from "../features/keno/components/KenoStatePanel";
+import { useKenoRoundHistory } from "../features/keno/hooks";
+import { formatKenoHistoryDate } from "../features/keno/utils";
 
 export default function KenoHistory() {
   const navigate = useNavigate();
-  const { data: history = [], isLoading } = useKenoHistory();
+  const { data: history = [], isLoading } = useKenoRoundHistory();
 
   const wins = history.filter((h) => h.type === "GAME_WIN");
   const losses = history.filter((h) => h.type === "GAME_ENTRY");
@@ -128,26 +114,16 @@ export default function KenoHistory() {
         </p>
 
         {isLoading ? (
-          <div className="flex flex-col gap-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
-              />
-            ))}
-          </div>
+          <KenoStatePanel mode="loading" />
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-gray-600">
-            <GiCoins className="text-4xl" />
-            <p className="text-sm font-semibold">No Keno rounds yet</p>
-            <button
-              type="button"
-              onClick={() => navigate("/keno")}
-              className="text-xs text-cyan-400 font-bold hover:text-cyan-300 transition-colors"
-            >
-              Play Keno →
-            </button>
-          </div>
+          <KenoStatePanel
+            mode="empty"
+            title="No Keno rounds yet"
+            action={{
+              label: "Play Keno ->",
+              onClick: () => navigate("/keno"),
+            }}
+          />
         ) : (
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
             {history.map((h, i) => {
@@ -167,7 +143,7 @@ export default function KenoHistory() {
                       {h.title}
                     </p>
                     <p className="text-[10px] text-gray-600 mt-0.5">
-                      {formatDate(h.createdAt)}
+                      {formatKenoHistoryDate(h.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

@@ -1,12 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { roomsApi, type CreateRoomPayload, type RoomQuery } from "../api/rooms.api";
+import { bingoKeys } from "../features/bingo/queryKeys";
 import type { GameRoomDetail } from "../types/game.types";
 
-export const roomKeys = {
-  all:     (q?: RoomQuery) => ["rooms", q]    as const,
-  one:     (id: string)    => ["rooms", id]   as const,
-  history: ()              => ["rooms", "history"] as const,
-};
+export const roomKeys = bingoKeys;
 
 export const useRooms = (query?: RoomQuery) =>
   useQuery({
@@ -70,7 +67,7 @@ export const useFinishRoom = () => {
 
 export const useMyPlayer = (id: string) =>
   useQuery({
-    queryKey: [...roomKeys.one(id), "my-player"],
+    queryKey: roomKeys.myPlayer(id),
     queryFn:  () => roomsApi.getMyPlayer(id),
     enabled:  !!id,
     retry: false,
