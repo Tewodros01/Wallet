@@ -50,6 +50,7 @@ export default function AgentDeposit() {
   const [tab, setTab] = useState<Tab>("deposits");
   const [dFilter, setDFilter] = useState<string>("all");
   const [wFilter, setWFilter] = useState<string>("all");
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
   const { data: requests, isLoading } = useAgentRequests();
   const { data: agentStats } = useAgentStats();
@@ -87,6 +88,13 @@ export default function AgentDeposit() {
       : withdrawals.filter(
           (w: AgentWithdrawalRequest) => w.status === wFilter.toUpperCase(),
         );
+
+  const toProofUrl = (proofUrl?: string) =>
+    !proofUrl
+      ? null
+      : proofUrl.startsWith("http") || proofUrl.startsWith("data:")
+        ? proofUrl
+        : `${apiBase}${proofUrl}`;
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
@@ -208,11 +216,22 @@ export default function AgentDeposit() {
                       </p>
                     </div>
                   ) : (
-                    filteredD.map((req: AgentDepositRequest) => (
-                      <div
-                        key={req.id}
-                        className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
-                      >
+                    filteredD.map((req: AgentDepositRequest) => {
+                      const proofUrl = toProofUrl(req.proofUrl);
+                      const isInlineImage =
+                        !!proofUrl &&
+                        (proofUrl.startsWith("data:image") ||
+                          /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(proofUrl));
+                      const isPdf =
+                        !!proofUrl &&
+                        (proofUrl.startsWith("data:application/pdf") ||
+                          /\.pdf(\?.*)?$/i.test(proofUrl));
+
+                      return (
+                        <div
+                          key={req.id}
+                          className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
+                        >
                         <div className="flex items-center gap-3">
                           <img
                             src={
@@ -243,35 +262,42 @@ export default function AgentDeposit() {
                           </div>
                         </div>
                         {/* Payment proof */}
-                        {req.proofUrl && (
+                        {proofUrl && (
                           <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-2.5 flex flex-col gap-2">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                               Payment Proof
                             </p>
-                            {req.proofUrl.startsWith("data:image") ? (
+                            {isInlineImage ? (
                               <img
-                                src={req.proofUrl}
+                                src={proofUrl}
                                 alt="proof"
                                 className="w-full max-h-48 object-contain rounded-lg border border-white/10"
                               />
-                            ) : req.proofUrl.startsWith(
-                                "data:application/pdf",
-                              ) ? (
+                            ) : isPdf ? (
                               <div className="flex items-center gap-2 text-rose-400">
                                 <MdPictureAsPdf className="text-2xl shrink-0" />
                                 <span className="text-xs font-semibold">
                                   PDF Document attached
                                 </span>
+                                <a
+                                  href={proofUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
+                                >
+                                  <FiExternalLink className="shrink-0" />
+                                  Open
+                                </a>
                               </div>
                             ) : (
                               <a
-                                href={req.proofUrl}
+                                href={proofUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 text-emerald-400 text-xs font-semibold hover:text-emerald-300 transition-colors truncate"
                               >
                                 <FiExternalLink className="shrink-0" />
-                                <span className="truncate">{req.proofUrl}</span>
+                                <span className="truncate">{proofUrl}</span>
                               </a>
                             )}
                           </div>
@@ -297,7 +323,8 @@ export default function AgentDeposit() {
                           </div>
                         )}
                       </div>
-                    ))
+                    );
+                    })
                   )}
                 </div>
               </div>
