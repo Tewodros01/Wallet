@@ -4,10 +4,13 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import {
   DepositStatus,
   MissionCategory,
   NotificationType,
+  PaymentRequestStatus,
+  Prisma,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
@@ -17,12 +20,18 @@ import { MissionsService } from '../missions/missions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramService } from '../telegram/telegram.service';
-import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
+import {
+  CreateDepositDto,
+  CreatePaymentRequestDto,
+  CreateWithdrawalDto,
+} from './dto/payment.dto';
 
 const MIN_DEPOSIT = 10;
 const MAX_DEPOSIT = 1_000_000;
 const MIN_WITHDRAWAL = 50;
 const MAX_WITHDRAWAL = 500_000;
+const MIN_PAYMENT_REQUEST = 10;
+const MAX_PAYMENT_REQUEST = 250_000;
 const DAILY_BONUS_PRIZES = [25, 50, 75, 100, 200, 300, 500, 1000] as const;
 
 const KENO_PAYOUTS: Record<number, Record<number, number>> = {
@@ -48,6 +57,332 @@ export class PaymentsService {
     private readonly configService: ConfigService,
     private readonly telegramService: TelegramService,
   ) {}
+
+  private get publicApiUrl() {
+    return this.configService.get<string>(
+      'publicApiUrl',
+      `http://localhost:${this.configService.get<number>('port', 3000)}`,
+    );
+  }
+
+  private normalizePaymentRequests<
+    T extends {
+      creator?: { avatar?: string | null } | null;
+      payer?: { avatar?: string | null } | null;
+    },
+  >(requests: T[]) {
+    return requests.map((request) => ({
+      ...request,
+      creator: request.creator
+        ? normalizeAvatarUrls([request.creator], this.publicApiUrl)[0]
+        : request.creator,
+      payer: request.payer
+        ? normalizeAvatarUrls([request.payer], this.publicApiUrl)[0]
+        : request.payer,
+    }));
+  }
+
+  private paymentRequestSelect = {
+    id: true,
+    amount: true,
+    fee: true,
+    status: true,
+    merchantLabel: true,
+    note: true,
+    reference: true,
+    expiresAt: true,
+    paidAt: true,
+    cancelledAt: true,
+    createdAt: true,
+    updatedAt: true,
+    creatorId: true,
+    payerId: true,
+    creator: {
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+      },
+    },
+    payer: {
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+      },
+    },
+  } satisfies Prisma.PaymentRequestSelect;
+
+  async createPaymentRequest(dto: CreatePaymentRequestDto, userId: string) {
+    if (dto.amount < MIN_PAYMENT_REQUEST) {
+      throw new BadRequestException(
+        `Minimum request amount is ${MIN_PAYMENT_REQUEST} coins`,
+      );
+    }
+    if (dto.amount > MAX_PAYMENT_REQUEST) {
+      throw new BadRequestException(
+        `Maximum request amount is ${MAX_PAYMENT_REQUEST.toLocaleString()} coins`,
+      );
+    }
+
+    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    if (expiresAt && expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Expiry must be in the future');
+    }
+
+    try {
+      const created = await this.prisma.paymentRequest.create({
+        data: {
+          creatorId: userId,
+          amount: dto.amount,
+          merchantLabel: dto.merchantLabel?.trim() || null,
+          note: dto.note?.trim() || null,
+          expiresAt,
+          reference: await this.generatePaymentRequestReference(),
+        },
+        select: this.paymentRequestSelect,
+      });
+
+      return this.normalizePaymentRequests([created])[0];
+    } catch {
+      throw new InternalServerErrorException(
+        'Failed to create payment request',
+      );
+    }
+  }
+
+  async getMyPaymentRequests(userId: string) {
+    const requests = await this.prisma.paymentRequest.findMany({
+      where: { creatorId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: this.paymentRequestSelect,
+    });
+
+    return this.normalizePaymentRequests(requests);
+  }
+
+  async getPayablePaymentRequests(userId: string) {
+    const now = new Date();
+    const requests = await this.prisma.paymentRequest.findMany({
+      where: {
+        creatorId: { not: userId },
+        status: PaymentRequestStatus.PENDING,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: this.paymentRequestSelect,
+    });
+
+    return this.normalizePaymentRequests(requests);
+  }
+
+  async payPaymentRequest(requestId: string, userId: string) {
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const request = await tx.paymentRequest.findUnique({
+          where: { id: requestId },
+          select: this.paymentRequestSelect,
+        });
+
+        if (!request) {
+          throw new BadRequestException('Payment request not found');
+        }
+        if (request.creatorId === userId) {
+          throw new BadRequestException('You cannot pay your own request');
+        }
+        if (request.status !== PaymentRequestStatus.PENDING) {
+          throw new BadRequestException('Payment request is not payable');
+        }
+        if (request.expiresAt && request.expiresAt.getTime() <= Date.now()) {
+          await tx.paymentRequest.update({
+            where: { id: requestId },
+            data: { status: PaymentRequestStatus.EXPIRED },
+          });
+          throw new BadRequestException('Payment request has expired');
+        }
+
+        const payer = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true, username: true, firstName: true, coinsBalance: true },
+        });
+        if (!payer) {
+          throw new BadRequestException('Payer not found');
+        }
+        if (payer.coinsBalance < request.amount) {
+          throw new BadRequestException('Insufficient coin balance');
+        }
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { coinsBalance: { decrement: request.amount } },
+        });
+        await tx.user.update({
+          where: { id: request.creatorId },
+          data: { coinsBalance: { increment: request.amount } },
+        });
+
+        const payerWallet = await tx.wallet.findFirst({
+          where: { userId, isDefault: true, deletedAt: null },
+        });
+        const creatorWallet = await tx.wallet.findFirst({
+          where: { userId: request.creatorId, isDefault: true, deletedAt: null },
+        });
+
+        const requestLabel =
+          request.merchantLabel?.trim() ||
+          `${request.creator.firstName} ${request.creator.lastName}`.trim() ||
+          `@${request.creator.username}`;
+        const requestNote = request.note
+          ? `Request ${request.reference}: ${request.note}`
+          : `Request ${request.reference}`;
+
+        if (payerWallet) {
+          await tx.transaction.create({
+            data: {
+              title: `Payment to ${requestLabel}`,
+              amount: request.amount,
+              type: TransactionType.TRANSFER,
+              note: requestNote,
+              date: new Date(),
+              userId,
+              walletId: payerWallet.id,
+            },
+          });
+          await tx.wallet.update({
+            where: { id: payerWallet.id },
+            data: { balance: { decrement: request.amount } },
+          });
+        }
+
+        if (creatorWallet) {
+          await tx.transaction.create({
+            data: {
+              title: `Payment received from @${payer.username}`,
+              amount: request.amount,
+              type: TransactionType.INCOME,
+              note: requestNote,
+              date: new Date(),
+              userId: request.creatorId,
+              walletId: creatorWallet.id,
+            },
+          });
+          await tx.wallet.update({
+            where: { id: creatorWallet.id },
+            data: { balance: { increment: request.amount } },
+          });
+        }
+
+        const paidRequestUpdate = await tx.paymentRequest.updateMany({
+          where: {
+            id: requestId,
+            status: PaymentRequestStatus.PENDING,
+            payerId: null,
+          },
+          data: {
+            status: PaymentRequestStatus.PAID,
+            payerId: userId,
+            paidAt: new Date(),
+          },
+        });
+        if (paidRequestUpdate.count !== 1) {
+          throw new BadRequestException('Payment request is not payable');
+        }
+
+        const paidRequest = await tx.paymentRequest.findUnique({
+          where: { id: requestId },
+          select: this.paymentRequestSelect,
+        });
+        if (!paidRequest) {
+          throw new BadRequestException('Payment request not found');
+        }
+
+        await tx.notification.create({
+          data: {
+            userId: request.creatorId,
+            type: NotificationType.TRANSFER,
+            title: 'Payment request paid',
+            body: `${payer.firstName} paid ${request.amount.toLocaleString()} coins for request ${request.reference}.`,
+          },
+        });
+
+        return paidRequest;
+      });
+
+      void this.telegramService.trySendMessageToUser(
+        result.creatorId,
+        `Payment request ${result.reference} was paid for ${result.amount.toLocaleString()} coins.`,
+      );
+
+      return this.normalizePaymentRequests([result])[0];
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to pay payment request');
+    }
+  }
+
+  async cancelPaymentRequest(requestId: string, userId: string) {
+    try {
+      const request = await this.prisma.paymentRequest.findUnique({
+        where: { id: requestId },
+      });
+      if (!request || request.creatorId !== userId) {
+        throw new BadRequestException('Payment request not found');
+      }
+      if (request.status !== PaymentRequestStatus.PENDING) {
+        throw new BadRequestException('Only pending requests can be cancelled');
+      }
+
+      const cancelledUpdate = await this.prisma.paymentRequest.updateMany({
+        where: {
+          id: requestId,
+          creatorId: userId,
+          status: PaymentRequestStatus.PENDING,
+        },
+        data: {
+          status: PaymentRequestStatus.CANCELLED,
+          cancelledAt: new Date(),
+        },
+      });
+      if (cancelledUpdate.count !== 1) {
+        throw new BadRequestException('Only pending requests can be cancelled');
+      }
+
+      const cancelled = await this.prisma.paymentRequest.findUnique({
+        where: { id: requestId },
+        select: this.paymentRequestSelect,
+      });
+      if (!cancelled) {
+        throw new BadRequestException('Payment request not found');
+      }
+
+      return this.normalizePaymentRequests([cancelled])[0];
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        'Failed to cancel payment request',
+      );
+    }
+  }
+
+  private async generatePaymentRequestReference() {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const reference = `REQ-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      const exists = await this.prisma.paymentRequest.findUnique({
+        where: { reference },
+        select: { id: true },
+      });
+      if (!exists) return reference;
+    }
+
+    throw new InternalServerErrorException(
+      'Failed to generate request reference',
+    );
+  }
 
   // ── Deposits ──────────────────────────────────────────────────────────────
 
@@ -90,10 +425,7 @@ export class PaymentsService {
 
     return normalizeAvatarUrls(
       agents,
-      this.configService.get<string>(
-        'publicApiUrl',
-        `http://localhost:${this.configService.get<number>('port', 3000)}`,
-      ),
+      this.publicApiUrl,
     );
   }
 

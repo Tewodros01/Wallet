@@ -1,10 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { paymentsApi, type DepositPayload, type TransferPayload, type WithdrawalPayload } from "../api/payments.api";
+import {
+  paymentsApi,
+  type DepositPayload,
+  type TransferPayload,
+  type WithdrawalPayload,
+} from "../api/payments.api";
 import { useWalletStore } from "../store/wallet.store";
 
 export const paymentKeys = {
   deposits:    ["payments", "deposits"]    as const,
   withdrawals: ["payments", "withdrawals"] as const,
+  requestsMine: ["payments", "requests", "mine"] as const,
+  requestsPayable: ["payments", "requests", "payable"] as const,
 };
 
 export const useAgents = () =>
@@ -47,6 +54,54 @@ export const useTransfer = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+};
+
+export const useMyPaymentRequests = () =>
+  useQuery({
+    queryKey: paymentKeys.requestsMine,
+    queryFn: paymentsApi.getMyPaymentRequests,
+  });
+
+export const usePayablePaymentRequests = () =>
+  useQuery({
+    queryKey: paymentKeys.requestsPayable,
+    queryFn: paymentsApi.getPayablePaymentRequests,
+  });
+
+export const useCreatePaymentRequest = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: paymentsApi.createPaymentRequest,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsMine });
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsPayable });
+    },
+  });
+};
+
+export const usePayPaymentRequest = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.payPaymentRequest(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsMine });
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsPayable });
+      qc.invalidateQueries({ queryKey: ["users", "me"] });
+      qc.invalidateQueries({ queryKey: ["wallets"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+};
+
+export const useCancelPaymentRequest = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => paymentsApi.cancelPaymentRequest(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsMine });
+      qc.invalidateQueries({ queryKey: paymentKeys.requestsPayable });
     },
   });
 };

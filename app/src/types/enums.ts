@@ -97,6 +97,15 @@ export const WithdrawalStatus = defineEnum({
 export type WithdrawalStatus =
   (typeof WithdrawalStatus)[keyof typeof WithdrawalStatus];
 
+export const PaymentRequestStatus = defineEnum({
+  PENDING: "PENDING",
+  PAID: "PAID",
+  CANCELLED: "CANCELLED",
+  EXPIRED: "EXPIRED",
+});
+export type PaymentRequestStatus =
+  (typeof PaymentRequestStatus)[keyof typeof PaymentRequestStatus];
+
 export const AgentStatus = defineEnum({
   PENDING: "PENDING",
   ACTIVE: "ACTIVE",

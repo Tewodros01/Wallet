@@ -9,7 +9,12 @@ import type {
   AdminWithdrawal,
 } from "../types/admin.types";
 import type { AgentRequests } from "../types/agent-requests.types";
-import type { Deposit, Withdrawal } from "../types/payment.types";
+import type {
+  CreatePaymentRequestPayload,
+  Deposit,
+  PaymentRequest,
+  Withdrawal,
+} from "../types/payment.types";
 
 export interface DepositPayload {
   amount: number;
@@ -41,6 +46,16 @@ export const paymentsApi = {
     api.get("/payments/withdrawals").then((r) => r.data),
   transfer: (payload: TransferPayload) =>
     api.post("/payments/transfer", payload).then((r) => r.data),
+  createPaymentRequest: (payload: CreatePaymentRequestPayload) =>
+    api.post<PaymentRequest>("/payments/requests", payload).then((r) => r.data),
+  getMyPaymentRequests: (): Promise<PaymentRequest[]> =>
+    api.get("/payments/requests/mine").then((r) => r.data),
+  getPayablePaymentRequests: (): Promise<PaymentRequest[]> =>
+    api.get("/payments/requests/payable").then((r) => r.data),
+  payPaymentRequest: (id: string): Promise<PaymentRequest> =>
+    api.post(`/payments/requests/${id}/pay`).then((r) => r.data),
+  cancelPaymentRequest: (id: string): Promise<PaymentRequest> =>
+    api.post(`/payments/requests/${id}/cancel`).then((r) => r.data),
   claimDailyBonus: () => api.post("/payments/daily-bonus").then((r) => r.data),
   playKeno: (bet: number, picks: number[]): Promise<{ matches: number; payout: number; bet: number; net: number; drawn: number[]; newBalance: number }> =>
     api.post("/payments/keno/play", { bet, picks }).then((r) => r.data),

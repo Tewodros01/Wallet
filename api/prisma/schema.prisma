@@ -88,6 +88,13 @@ enum WithdrawalStatus {
   REJECTED
 }
 
+enum PaymentRequestStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
 enum AgentStatus {
   PENDING
   ACTIVE
@@ -150,6 +157,8 @@ model User {
   transactions Transaction[]
   deposits     Deposit[]
   withdrawals  Withdrawal[]
+  createdPaymentRequests PaymentRequest[] @relation("PaymentRequestCreator")
+  paidPaymentRequests    PaymentRequest[] @relation("PaymentRequestPayer")
 
   // game relations
   hostedRooms  GameRoom[]    @relation("RoomHost")
@@ -391,6 +400,31 @@ model Withdrawal {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model PaymentRequest {
+  id            String               @id @default(cuid())
+  creatorId     String
+  creator       User                 @relation("PaymentRequestCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  payerId       String?
+  payer         User?                @relation("PaymentRequestPayer", fields: [payerId], references: [id], onDelete: SetNull)
+  amount        Int
+  fee           Int                  @default(0)
+  status        PaymentRequestStatus @default(PENDING)
+  merchantLabel String?
+  note          String?              @db.Text
+  reference     String               @unique
+  expiresAt     DateTime?
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([creatorId])
+  @@index([payerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([expiresAt])
 }
 
 model AgentInvite {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaArrowDown, FaArrowUp, FaCoins, FaExchangeAlt } from "react-icons/fa";
+import { FaArrowDown, FaArrowUp, FaCoins, FaExchangeAlt, FaMoneyCheckAlt } from "react-icons/fa";
 import { FiClock, FiGrid } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AppBar, Avatar, BottomNav } from "../components/ui/Layout";
@@ -75,6 +75,13 @@ const quickActions = [
     color: "text-cyan-400",
     bg: "bg-cyan-500/10 border-cyan-500/20",
     path: "/transfer",
+  },
+  {
+    label: "Request",
+    icon: <FaMoneyCheckAlt />,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+    path: "/request-money",
   },
 ];
 
@@ -233,13 +240,13 @@ export default function MyWallet() {
             </span>
             <span className="text-sm text-gray-500 mb-1">coins</span>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {quickActions.map(({ label, icon, color, bg, path }) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => navigate(path)}
-                className={`flex-1 ${bg} border rounded-xl py-2.5 flex flex-col items-center gap-1 active:scale-95 transition-all`}
+                className={`${bg} border rounded-xl py-2.5 flex flex-col items-center gap-1 active:scale-95 transition-all`}
               >
                 <span className={`text-sm ${color}`}>{icon}</span>
                 <span className="text-[10px] font-bold text-gray-300">

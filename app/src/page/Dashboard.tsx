@@ -5,6 +5,7 @@ import {
   FaFire,
   FaGamepad,
   FaGift,
+  FaMoneyCheckAlt,
   FaTrophy,
   FaUsers,
   FaWallet,
@@ -334,6 +335,13 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-2.5">
             {(
               [
+                {
+                  label: "Request Money",
+                  sub: "Collect from customers",
+                  icon: <FaMoneyCheckAlt className="text-cyan-400 text-xl" />,
+                  bg: "from-cyan-500/15 to-sky-500/5 border-cyan-500/20",
+                  path: "/request-money",
+                },
                 {
                   label: "Daily Bonus",
                   sub: "Spin & win coins",

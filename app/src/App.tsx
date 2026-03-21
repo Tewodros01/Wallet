@@ -45,6 +45,7 @@ import MyWallet from "./page/MyWallet";
 import Notifications from "./page/Notifications";
 import Onboarding from "./page/Onboarding";
 import Profile from "./page/Profile";
+import RequestMoney from "./page/RequestMoney";
 import Settings from "./page/Settings";
 import SignIn from "./page/SignIn";
 import SignUp from "./page/SignUp";
@@ -207,6 +208,14 @@ const App = () => {
           element={
             <RequireAuth>
               <TransferMoney />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.requestMoney}
+          element={
+            <RequireAuth>
+              <RequestMoney />
             </RequireAuth>
           }
         />

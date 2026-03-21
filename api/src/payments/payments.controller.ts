@@ -15,6 +15,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateDepositDto,
+  CreatePaymentRequestDto,
   CreateWithdrawalDto,
   PlayKenoDto,
   TransferCoinsDto,
@@ -92,6 +93,45 @@ export class PaymentsController {
       dto.recipientUsername,
       dto.amount,
     );
+  }
+
+  @ApiOperation({ summary: 'Create a request to collect money from another user' })
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
+  @Post('requests')
+  createPaymentRequest(
+    @Body() dto: CreatePaymentRequestDto,
+    @GetUser('sub') userId: string,
+  ) {
+    return this.paymentsService.createPaymentRequest(dto, userId);
+  }
+
+  @ApiOperation({ summary: 'Get payment requests created by current user' })
+  @Get('requests/mine')
+  getMyPaymentRequests(@GetUser('sub') userId: string) {
+    return this.paymentsService.getMyPaymentRequests(userId);
+  }
+
+  @ApiOperation({ summary: 'Get pending payment requests the current user can pay' })
+  @Get('requests/payable')
+  getPayablePaymentRequests(@GetUser('sub') userId: string) {
+    return this.paymentsService.getPayablePaymentRequests(userId);
+  }
+
+  @ApiOperation({ summary: 'Pay a pending payment request' })
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
+  @Post('requests/:id/pay')
+  payPaymentRequest(@Param('id') id: string, @GetUser('sub') userId: string) {
+    return this.paymentsService.payPaymentRequest(id, userId);
+  }
+
+  @ApiOperation({ summary: 'Cancel one of your pending payment requests' })
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
+  @Post('requests/:id/cancel')
+  cancelPaymentRequest(
+    @Param('id') id: string,
+    @GetUser('sub') userId: string,
+  ) {
+    return this.paymentsService.cancelPaymentRequest(id, userId);
   }
 
   @ApiOperation({ summary: 'Create a withdrawal (get money)' })
