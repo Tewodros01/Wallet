@@ -83,7 +83,9 @@ export default function SignUp() {
       },
     );
 
-  const errMsg = error ? getErrorMessage(error, "Failed to create account") : "";
+  const errMsg = error
+    ? getErrorMessage(error, "Failed to create account")
+    : "";
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-5 py-12">

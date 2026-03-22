@@ -36,7 +36,7 @@ export class CreateDepositDto {
 export class CreateWithdrawalDto {
   @ApiProperty({ example: 200 })
   @IsInt()
-  @Min(10)
+  @Min(50)
   amount!: number;
 
   @ApiProperty({ enum: PaymentMethod })

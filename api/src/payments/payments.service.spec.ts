@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import {
   NotificationType,
+  DepositStatus,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
@@ -154,18 +155,16 @@ describe('PaymentsService', () => {
   it('refunds rejected withdrawals back through the ledger', async () => {
     const { service, prisma, ledgerService, notifGateway, telegramService } =
       createService();
-    prisma.withdrawal = {
-      findUnique: jest.fn().mockResolvedValue({
-        id: 'wd-1',
-        userId: 'user-9',
-        amount: 250,
-        method: 'CBE_BIRR',
-        status: WithdrawalStatus.PROCESSING,
-      }),
-    } as any;
     const tx = {
       withdrawal: {
-        update: jest.fn().mockResolvedValue(undefined),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'wd-1',
+          userId: 'user-9',
+          amount: 250,
+          method: 'CBE_BIRR',
+          status: WithdrawalStatus.PROCESSING,
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
     prisma.$transaction.mockImplementation(
@@ -195,6 +194,54 @@ describe('PaymentsService', () => {
       'user-9',
       expect.stringContaining('250 coins'),
     );
+  });
+
+  it('does not double-credit a deposit when it has already been processed', async () => {
+    const { service, prisma, ledgerService } = createService();
+    const tx = {
+      deposit: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'dep-1',
+          userId: 'user-4',
+          amount: 300,
+          method: 'TELEBIRR',
+          status: DepositStatus.PENDING,
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (db: unknown) => unknown) => callback(tx),
+    );
+
+    await expect(service.agentApproveDeposit('dep-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(ledgerService.applyEntry).not.toHaveBeenCalled();
+  });
+
+  it('does not refund a withdrawal twice when it has already been processed', async () => {
+    const { service, prisma, ledgerService } = createService();
+    const tx = {
+      withdrawal: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'wd-2',
+          userId: 'user-8',
+          amount: 250,
+          method: 'CBE_BIRR',
+          status: WithdrawalStatus.PROCESSING,
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (db: unknown) => unknown) => callback(tx),
+    );
+
+    await expect(service.agentRejectWithdrawal('wd-2')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(ledgerService.applyEntry).not.toHaveBeenCalled();
   });
 
   it('rejects invalid transfer amounts before touching the database', async () => {

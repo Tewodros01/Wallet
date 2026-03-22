@@ -230,7 +230,7 @@ export default function AgentDeposit() {
             {tab === "withdrawals" && (
               <div className="flex flex-col gap-4">
                 <div className="flex gap-2">
-                  {["all", "pending", "completed", "failed"].map((f) => (
+                  {["all", "pending", "completed", "failed", "rejected"].map((f) => (
                     <button
                       key={f}
                       type="button"

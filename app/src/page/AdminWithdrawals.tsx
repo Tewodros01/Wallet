@@ -13,7 +13,13 @@ import {
 } from "../hooks/usePayments";
 import type { AdminWithdrawal } from "../types";
 
-type StatusFilter = "ALL" | "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+type StatusFilter =
+  | "ALL"
+  | "PENDING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "REJECTED";
 
 export default function AdminWithdrawals() {
   const navigate = useNavigate();
@@ -90,6 +96,7 @@ export default function AdminWithdrawals() {
               "PROCESSING",
               "COMPLETED",
               "FAILED",
+              "REJECTED",
             ] as const
           }
           onChange={setStatusFilter}

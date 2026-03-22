@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   FiArrowLeft,
   FiCamera,
+  FiCreditCard,
   FiMail,
   FiPhone,
   FiSave,
@@ -30,6 +31,9 @@ export default function EditProfile() {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
+  const [telebirrAccount, setTelebirrAccount] = useState("");
+  const [cbeBirrAccount, setCbeBirrAccount] = useState("");
+  const [boaAccountNumber, setBoaAccountNumber] = useState("");
   const [bio, setBio] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -42,6 +46,9 @@ export default function EditProfile() {
       setLastName(me.lastName ?? "");
       setUsername(me.username ?? "");
       setPhone(me.phone ?? "");
+      setTelebirrAccount(me.telebirrAccount ?? "");
+      setCbeBirrAccount(me.cbeBirrAccount ?? "");
+      setBoaAccountNumber(me.boaAccountNumber ?? "");
       setBio(me.bio ?? "");
     }
   }, [me]);
@@ -54,6 +61,9 @@ export default function EditProfile() {
         lastName,
         username,
         phone: phone || undefined,
+        telebirrAccount: telebirrAccount || undefined,
+        cbeBirrAccount: cbeBirrAccount || undefined,
+        boaAccountNumber: boaAccountNumber || undefined,
         bio: bio || undefined,
       },
       {
@@ -171,6 +181,34 @@ export default function EditProfile() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
+          {(me?.role === "AGENT" || me?.role === "ADMIN") && (
+            <>
+              <Input
+                label="Telebirr Account"
+                type="text"
+                placeholder="+2519..."
+                leftIcon={<FiPhone />}
+                value={telebirrAccount}
+                onChange={(e) => setTelebirrAccount(e.target.value)}
+              />
+              <Input
+                label="CBE Account"
+                type="text"
+                placeholder="CBE account number"
+                leftIcon={<FiCreditCard />}
+                value={cbeBirrAccount}
+                onChange={(e) => setCbeBirrAccount(e.target.value)}
+              />
+              <Input
+                label="BOA Account"
+                type="text"
+                placeholder="BOA account number"
+                leftIcon={<FiCreditCard />}
+                value={boaAccountNumber}
+                onChange={(e) => setBoaAccountNumber(e.target.value)}
+              />
+            </>
+          )}
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
               Email

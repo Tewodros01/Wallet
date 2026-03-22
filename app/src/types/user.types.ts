@@ -10,6 +10,9 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string | null;
+  telebirrAccount?: string | null;
+  cbeBirrAccount?: string | null;
+  boaAccountNumber?: string | null;
   avatar: string | null;
   bio: string | null;
   telegramId?: string | null;
@@ -39,6 +42,9 @@ export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  telebirrAccount?: string;
+  cbeBirrAccount?: string;
+  boaAccountNumber?: string;
   avatar?: string;
   bio?: string;
 }

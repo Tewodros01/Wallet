@@ -105,13 +105,13 @@ export class PaymentsService {
         username: true,
         avatar: true,
         phone: true,
+        telebirrAccount: true,
+        cbeBirrAccount: true,
+        boaAccountNumber: true,
       },
     });
 
-    return normalizeAvatarUrls(
-      agents,
-      this.publicApiUrl,
-    );
+    return normalizeAvatarUrls(agents, this.publicApiUrl);
   }
 
   async transferCoins(
@@ -355,24 +355,29 @@ export class PaymentsService {
 
   async agentApproveDeposit(depositId: string) {
     try {
-      const deposit = await this.prisma.deposit.findUnique({
-        where: { id: depositId },
-      });
-      if (!deposit) throw new BadRequestException('Deposit not found');
-      if (deposit.status !== DepositStatus.PENDING)
-        throw new BadRequestException('Already processed');
-      await this.prisma.$transaction(async (tx) => {
-        await tx.deposit.update({
+      const deposit = await this.prisma.$transaction(async (tx) => {
+        const pendingDeposit = await tx.deposit.findUnique({
           where: { id: depositId },
+        });
+        if (!pendingDeposit) throw new BadRequestException('Deposit not found');
+
+        const updated = await tx.deposit.updateMany({
+          where: { id: depositId, status: DepositStatus.PENDING },
           data: { status: DepositStatus.COMPLETED, completedAt: new Date() },
         });
+        if (updated.count !== 1) {
+          throw new BadRequestException('Already processed');
+        }
+
         await this.ledgerService.applyEntry(tx, {
-          userId: deposit.userId,
-          title: `Deposit via ${deposit.method}`,
-          amount: deposit.amount,
-          balanceDelta: deposit.amount,
+          userId: pendingDeposit.userId,
+          title: `Deposit via ${pendingDeposit.method}`,
+          amount: pendingDeposit.amount,
+          balanceDelta: pendingDeposit.amount,
           type: TransactionType.DEPOSIT,
         });
+
+        return pendingDeposit;
       });
       // credit referral commission non-blocking — never fails the main flow
       void this.agentsService.creditDepositCommission(
@@ -405,15 +410,21 @@ export class PaymentsService {
 
   async agentRejectDeposit(depositId: string) {
     try {
-      const deposit = await this.prisma.deposit.findUnique({
-        where: { id: depositId },
-      });
-      if (!deposit) throw new BadRequestException('Deposit not found');
-      if (deposit.status !== DepositStatus.PENDING)
-        throw new BadRequestException('Already processed');
-      await this.prisma.deposit.update({
-        where: { id: depositId },
-        data: { status: DepositStatus.FAILED },
+      const deposit = await this.prisma.$transaction(async (tx) => {
+        const pendingDeposit = await tx.deposit.findUnique({
+          where: { id: depositId },
+        });
+        if (!pendingDeposit) throw new BadRequestException('Deposit not found');
+
+        const updated = await tx.deposit.updateMany({
+          where: { id: depositId, status: DepositStatus.PENDING },
+          data: { status: DepositStatus.FAILED },
+        });
+        if (updated.count !== 1) {
+          throw new BadRequestException('Already processed');
+        }
+
+        return pendingDeposit;
       });
       const notif = {
         type: NotificationType.DEPOSIT,
@@ -437,18 +448,31 @@ export class PaymentsService {
 
   async agentApproveWithdrawal(withdrawalId: string) {
     try {
-      const w = await this.prisma.withdrawal.findUnique({
-        where: { id: withdrawalId },
-      });
-      if (!w) throw new BadRequestException('Withdrawal not found');
-      if (
-        w.status !== WithdrawalStatus.PROCESSING &&
-        w.status !== WithdrawalStatus.PENDING
-      )
-        throw new BadRequestException('Already processed');
-      await this.prisma.withdrawal.update({
-        where: { id: withdrawalId },
-        data: { status: WithdrawalStatus.COMPLETED, completedAt: new Date() },
+      const w = await this.prisma.$transaction(async (tx) => {
+        const pendingWithdrawal = await tx.withdrawal.findUnique({
+          where: { id: withdrawalId },
+        });
+        if (!pendingWithdrawal) {
+          throw new BadRequestException('Withdrawal not found');
+        }
+
+        const updated = await tx.withdrawal.updateMany({
+          where: {
+            id: withdrawalId,
+            status: {
+              in: [WithdrawalStatus.PROCESSING, WithdrawalStatus.PENDING],
+            },
+          },
+          data: {
+            status: WithdrawalStatus.COMPLETED,
+            completedAt: new Date(),
+          },
+        });
+        if (updated.count !== 1) {
+          throw new BadRequestException('Already processed');
+        }
+
+        return pendingWithdrawal;
       });
       const notif = {
         type: NotificationType.WITHDRAWAL,
@@ -472,27 +496,36 @@ export class PaymentsService {
 
   async agentRejectWithdrawal(withdrawalId: string) {
     try {
-      const w = await this.prisma.withdrawal.findUnique({
-        where: { id: withdrawalId },
-      });
-      if (!w) throw new BadRequestException('Withdrawal not found');
-      if (
-        w.status !== WithdrawalStatus.PROCESSING &&
-        w.status !== WithdrawalStatus.PENDING
-      )
-        throw new BadRequestException('Already processed');
-      await this.prisma.$transaction(async (tx) => {
-        await tx.withdrawal.update({
+      const w = await this.prisma.$transaction(async (tx) => {
+        const pendingWithdrawal = await tx.withdrawal.findUnique({
           where: { id: withdrawalId },
+        });
+        if (!pendingWithdrawal) {
+          throw new BadRequestException('Withdrawal not found');
+        }
+
+        const updated = await tx.withdrawal.updateMany({
+          where: {
+            id: withdrawalId,
+            status: {
+              in: [WithdrawalStatus.PROCESSING, WithdrawalStatus.PENDING],
+            },
+          },
           data: { status: WithdrawalStatus.REJECTED },
         });
+        if (updated.count !== 1) {
+          throw new BadRequestException('Already processed');
+        }
+
         await this.ledgerService.applyEntry(tx, {
-          userId: w.userId,
-          title: `Withdrawal refund: ${w.method}`,
-          amount: w.amount,
-          balanceDelta: w.amount,
+          userId: pendingWithdrawal.userId,
+          title: `Withdrawal refund: ${pendingWithdrawal.method}`,
+          amount: pendingWithdrawal.amount,
+          balanceDelta: pendingWithdrawal.amount,
           type: TransactionType.INCOME,
         });
+
+        return pendingWithdrawal;
       });
       const notif = {
         type: NotificationType.WITHDRAWAL,
@@ -552,5 +585,47 @@ export class PaymentsService {
     return this.normalizePaymentAssets(
       normalizeAvatarUrls({ deposits, withdrawals }, this.publicApiUrl),
     );
+  }
+
+  async getAdminDeposits() {
+    const deposits = await this.prisma.deposit.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return this.normalizePaymentAssets(
+      normalizeAvatarUrls(deposits, this.publicApiUrl),
+    );
+  }
+
+  async getAdminWithdrawals() {
+    const withdrawals = await this.prisma.withdrawal.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return normalizeAvatarUrls(withdrawals, this.publicApiUrl);
   }
 }

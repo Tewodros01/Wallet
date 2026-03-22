@@ -6,6 +6,9 @@ export interface UpdateUserPayload {
   lastName?: string;
   username?: string;
   phone?: string;
+  telebirrAccount?: string;
+  cbeBirrAccount?: string;
+  boaAccountNumber?: string;
   avatar?: string;
   bio?: string;
 }

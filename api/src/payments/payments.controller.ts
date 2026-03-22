@@ -184,21 +184,7 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Get('admin/deposits')
   adminGetAllDeposits() {
-    return this.prisma.deposit.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            role: true,
-          },
-        },
-      },
-    });
+    return this.paymentsService.getAdminDeposits();
   }
 
   @ApiOperation({ summary: 'Admin: analytics — daily deposit/withdrawal totals for last 30 days' })
@@ -255,21 +241,7 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Get('admin/withdrawals')
   adminGetAllWithdrawals() {
-    return this.prisma.withdrawal.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-            role: true,
-          },
-        },
-      },
-    });
+    return this.paymentsService.getAdminWithdrawals();
   }
 
   @ApiOperation({ summary: 'Admin: approve deposit' })

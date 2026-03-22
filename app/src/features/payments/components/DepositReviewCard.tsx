@@ -58,6 +58,7 @@ export default function DepositReviewCard({
 }: DepositReviewCardProps) {
   const isPending = pendingStatuses.includes(deposit.status);
   const proofUrl = getPublicAssetUrl(deposit.proofUrl);
+  const avatarUrl = getPublicAssetUrl(deposit.user?.avatar);
   const avatarFallback = `https://i.pravatar.cc/40?u=${deposit.user?.id ?? deposit.userId ?? deposit.id}`;
   const hasActions = isPending && (onApprove || onReject);
   const isPdf = proofUrl?.toLowerCase().includes(".pdf");
@@ -69,7 +70,7 @@ export default function DepositReviewCard({
         onClick={onUserClick}
       >
         <img
-          src={deposit.user?.avatar ?? avatarFallback}
+          src={avatarUrl ?? avatarFallback}
           alt={deposit.user?.username ?? ""}
           className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 shrink-0"
         />

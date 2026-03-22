@@ -4,6 +4,9 @@ import type { User } from "./user.types";
 
 export interface Agent extends User {
   phone: string | null;
+  telebirrAccount?: string | null;
+  cbeBirrAccount?: string | null;
+  boaAccountNumber?: string | null;
 }
 
 export interface ApiAnalyticsPoint {

@@ -59,6 +59,24 @@ export class UpdateUserDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(80)
+  telebirrAccount?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  cbeBirrAccount?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  boaAccountNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   avatar?: string;
 
   @ApiPropertyOptional()

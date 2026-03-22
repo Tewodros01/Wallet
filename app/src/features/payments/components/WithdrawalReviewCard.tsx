@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FaCoins } from "react-icons/fa";
 import { FiCheck, FiX } from "react-icons/fi";
+import { getPublicAssetUrl } from "../../../lib/assets";
 import DepositStatusBadge from "./DepositStatusBadge";
 
 type WithdrawalReviewUser = {
@@ -52,6 +53,7 @@ export default function WithdrawalReviewCard({
   rejectLabel = "Reject",
 }: WithdrawalReviewCardProps) {
   const isPending = pendingStatuses.includes(withdrawal.status);
+  const avatarUrl = getPublicAssetUrl(withdrawal.user?.avatar);
   const avatarFallback = `https://i.pravatar.cc/40?u=${withdrawal.user?.id ?? withdrawal.id}`;
   const hasActions = isPending && (onApprove || onReject);
 
@@ -62,7 +64,7 @@ export default function WithdrawalReviewCard({
         onClick={onUserClick}
       >
         <img
-          src={withdrawal.user?.avatar ?? avatarFallback}
+          src={avatarUrl ?? avatarFallback}
           alt={withdrawal.user?.username ?? ""}
           className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 shrink-0"
         />

@@ -26,8 +26,47 @@ import { PaymentMethod } from "../types/enums";
 import type { Agent } from "../types/withdrawal.types";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000", "10000"];
+const METHODS: {
+  id: PaymentMethod;
+  label: string;
+  helper: string;
+}[] = [
+  {
+    id: PaymentMethod.TELEBIRR,
+    label: "Telebirr",
+    helper: "Send to the agent's Telebirr number",
+  },
+  {
+    id: PaymentMethod.CBE_BIRR,
+    label: "CBE",
+    helper: "Send to the agent's CBE account",
+  },
+  {
+    id: PaymentMethod.BANK_CARD,
+    label: "BOA",
+    helper: "Send to the agent's BOA account",
+  },
+];
 
 type Step = "amount" | "agent" | "confirm" | "pending";
+
+function getAgentDepositAccount(
+  agent: Agent | undefined,
+  method: PaymentMethod,
+) {
+  if (!agent) return null;
+
+  switch (method) {
+    case PaymentMethod.TELEBIRR:
+      return agent.telebirrAccount ?? agent.phone ?? null;
+    case PaymentMethod.CBE_BIRR:
+      return agent.cbeBirrAccount ?? null;
+    case PaymentMethod.BANK_CARD:
+      return agent.boaAccountNumber ?? null;
+    default:
+      return null;
+  }
+}
 
 export default function DepositMoney() {
   const navigate = useNavigate();
@@ -37,6 +76,7 @@ export default function DepositMoney() {
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const [agentId, setAgentId] = useState<string | null>(null);
+  const [method, setMethod] = useState(PaymentMethod.TELEBIRR);
   const [error, setError] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState("");
   const [proofMode, setProofMode] = useState<"link" | "file">("link");
@@ -46,10 +86,15 @@ export default function DepositMoney() {
 
   const selectedAgent = agents.find((a: Agent) => a.id === agentId);
   const numAmount = Number(amount) || 0;
-
-  const method = PaymentMethod.TELEBIRR;
+  const selectedMethod = METHODS.find((item) => item.id === method)!;
+  const selectedAgentAccount = getAgentDepositAccount(selectedAgent, method);
 
   const handleSendRequest = async () => {
+    if (!selectedAgentAccount) {
+      setError(`This agent has no ${selectedMethod.label} account configured yet.`);
+      return;
+    }
+
     setError(null);
     let finalProofUrl = proofUrl.trim() || undefined;
 
@@ -115,6 +160,20 @@ export default function DepositMoney() {
               </span>
             ),
           },
+          {
+            label: "Pay via",
+            value: (
+              <span className="font-bold text-white">{selectedMethod.label}</span>
+            ),
+          },
+          {
+            label: "Account",
+            value: (
+              <span className="font-mono text-xs font-semibold text-emerald-400">
+                {selectedAgentAccount ?? "Not available"}
+              </span>
+            ),
+          },
           ...(proofUrl
             ? [
                 {
@@ -169,8 +228,60 @@ export default function DepositMoney() {
           <AgentSummaryCard
             agent={selectedAgent}
             tone="emerald"
-            contact={selectedAgent?.phone ?? selectedAgent?.username ?? "—"}
+            contact={`@${selectedAgent?.username ?? "unknown"}`}
           />
+
+          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Deposit Method
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {METHODS.map((item) => {
+                const accountValue = getAgentDepositAccount(selectedAgent, item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setMethod(item.id)}
+                    className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                      method === item.id
+                        ? "bg-emerald-500/10 border-emerald-500/30"
+                        : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-white">
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          {item.helper}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          accountValue
+                            ? "bg-emerald-500/10 text-emerald-300"
+                            : "bg-rose-500/10 text-rose-300"
+                        }`}
+                      >
+                        {accountValue ? "Ready" : "Missing"}
+                      </span>
+                    </div>
+                    <div className="mt-3 rounded-xl bg-black/20 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-500">
+                        Account Number
+                      </p>
+                      <p className="mt-1 font-mono text-sm text-white">
+                        {accountValue ?? "Not set for this agent"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -290,6 +401,7 @@ export default function DepositMoney() {
 
           <Button
             loading={isPending || uploading}
+            disabled={!selectedAgentAccount}
             icon={<FiCheck />}
             onClick={handleSendRequest}
           >
@@ -321,7 +433,7 @@ export default function DepositMoney() {
         />
         <div className="flex flex-col gap-4 px-5 py-6">
           <p className="text-xs text-gray-500">
-            Choose an agent to transfer your deposit to.
+            Choose an agent, then pick Telebirr, CBE, or BOA in the next step.
           </p>
           <div className="flex flex-col gap-2">
             {loadingAgents ? (
@@ -358,9 +470,26 @@ export default function DepositMoney() {
                     <p className="text-sm font-bold text-white">
                       {agent.firstName} {agent.lastName}
                     </p>
-                    <p className="text-[11px] text-gray-500">
-                      {agent.phone ?? `@${agent.username}`}
-                    </p>
+                    <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-gray-500">
+                      <p>
+                        Telebirr:{" "}
+                        <span className="text-gray-300">
+                          {agent.telebirrAccount ?? agent.phone ?? "—"}
+                        </span>
+                      </p>
+                      <p>
+                        CBE:{" "}
+                        <span className="text-gray-300">
+                          {agent.cbeBirrAccount ?? "—"}
+                        </span>
+                      </p>
+                      <p>
+                        BOA:{" "}
+                        <span className="text-gray-300">
+                          {agent.boaAccountNumber ?? "—"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
                   <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
                     Agent
