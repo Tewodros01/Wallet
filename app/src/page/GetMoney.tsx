@@ -43,6 +43,14 @@ const METHODS: {
     bg: "bg-violet-500/15 border-violet-500/25",
   },
   {
+    id: PaymentMethod.MPESA,
+    label: "M-Pesa",
+    sub: "Instant · 0% fee",
+    icon: <FiSmartphone />,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/15 border-emerald-500/25",
+  },
+  {
     id: PaymentMethod.CBE_BIRR,
     label: "CBE Birr",
     sub: "1–2 hrs · 0% fee",

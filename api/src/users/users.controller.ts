@@ -29,7 +29,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   AdjustCoinsDto,
+  CreateFinancialAccountDto,
   UpdateRoleDto,
+  UpdateFinancialAccountDto,
   UpdateUserDto,
 } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -135,6 +137,40 @@ export class UsersController {
   @Patch('me')
   updateMe(@GetUser('sub') userId: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(userId, dto);
+  }
+
+  @ApiOperation({ summary: 'List current user financial accounts' })
+  @Get('me/financial-accounts')
+  getMyFinancialAccounts(@GetUser('sub') userId: string) {
+    return this.usersService.getFinancialAccounts(userId);
+  }
+
+  @ApiOperation({ summary: 'Create current user financial account' })
+  @Post('me/financial-accounts')
+  createMyFinancialAccount(
+    @GetUser('sub') userId: string,
+    @Body() dto: CreateFinancialAccountDto,
+  ) {
+    return this.usersService.createFinancialAccount(userId, dto);
+  }
+
+  @ApiOperation({ summary: 'Update current user financial account' })
+  @Patch('me/financial-accounts/:accountId')
+  updateMyFinancialAccount(
+    @GetUser('sub') userId: string,
+    @Param('accountId') accountId: string,
+    @Body() dto: UpdateFinancialAccountDto,
+  ) {
+    return this.usersService.updateFinancialAccount(userId, accountId, dto);
+  }
+
+  @ApiOperation({ summary: 'Delete current user financial account' })
+  @Post('me/financial-accounts/:accountId/remove')
+  removeMyFinancialAccount(
+    @GetUser('sub') userId: string,
+    @Param('accountId') accountId: string,
+  ) {
+    return this.usersService.removeFinancialAccount(userId, accountId);
   }
 
   @ApiOperation({ summary: 'Get current user game stats' })

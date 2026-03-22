@@ -70,8 +70,23 @@ enum PlayerStatus {
 
 enum PaymentMethod {
   TELEBIRR
+  MPESA
   CBE_BIRR
   BANK_CARD
+}
+
+enum FinancialAccountType {
+  MOBILE_WALLET
+  BANK_ACCOUNT
+}
+
+enum FinancialAccountProvider {
+  TELEBIRR
+  MPESA
+  CBE_BIRR
+  BOA
+  OTHER_BANK
+  OTHER_WALLET
 }
 
 enum DepositStatus {
@@ -134,9 +149,6 @@ model User {
   firstName    String
   lastName     String
   phone        String?   @unique
-  telebirrAccount String?
-  cbeBirrAccount String?
-  boaAccountNumber String?
   avatar       String?
   bio          String?   @db.Text
   telegramId   String?   @unique
@@ -153,6 +165,7 @@ model User {
   transactions Transaction[]
   deposits     Deposit[]
   withdrawals  Withdrawal[]
+  financialAccounts FinancialAccount[]
 
   // game relations
   hostedRooms  GameRoom[]    @relation("RoomHost")
@@ -172,6 +185,29 @@ model User {
   @@index([username])
   @@index([telegramId])
   @@index([deletedAt])
+}
+
+model FinancialAccount {
+  id            String                   @id @default(cuid())
+  userId        String
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          FinancialAccountType
+  provider      FinancialAccountProvider
+  accountName   String?
+  accountNumber String
+  label         String?
+  isDefault     Boolean                  @default(false)
+  isActive      Boolean                  @default(true)
+  metadata      Json?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@unique([userId, provider, accountNumber])
+  @@index([userId])
+  @@index([type])
+  @@index([provider])
+  @@index([isDefault])
+  @@index([isActive])
 }
 
 model Session {

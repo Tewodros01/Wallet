@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWalletDto, UpdateWalletDto } from './dto/wallet.dto';
 
@@ -18,6 +19,11 @@ const walletSelect = {
   updatedAt: true,
 } as const;
 
+const walletOrderBy: Prisma.WalletOrderByWithRelationInput[] = [
+  { isDefault: 'desc' },
+  { createdAt: 'asc' },
+];
+
 @Injectable()
 export class WalletsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,7 +33,7 @@ export class WalletsService {
       return await this.prisma.wallet.findMany({
         where: { userId, deletedAt: null, isActive: true },
         select: walletSelect,
-        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+        orderBy: walletOrderBy,
       });
     } catch {
       throw new InternalServerErrorException('Failed to fetch wallets');
@@ -57,13 +63,16 @@ export class WalletsService {
           where: { userId, deletedAt: null },
         });
         const isFirst = count === 0;
+        const hasDefault = await tx.wallet.count({
+          where: { userId, deletedAt: null, isDefault: true, isActive: true },
+        });
 
         return tx.wallet.create({
           data: {
             name: dto.name,
             currency: dto.currency,
             userId,
-            isDefault: dto.isDefault ?? isFirst,
+            isDefault: dto.isDefault ?? (isFirst || hasDefault === 0),
           },
           select: walletSelect,
         });
@@ -74,9 +83,15 @@ export class WalletsService {
   }
 
   async update(id: string, dto: UpdateWalletDto, userId: string) {
-    await this.assertOwnership(id, userId);
+    const wallet = await this.assertOwnership(id, userId);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (wallet.isDefault && dto.isDefault === false) {
+          throw new BadRequestException(
+            'Default wallet cannot be unset without choosing another default wallet',
+          );
+        }
+
         if (dto.isDefault) {
           await tx.wallet.updateMany({
             where: { userId, deletedAt: null },

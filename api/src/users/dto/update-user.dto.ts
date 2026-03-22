@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -8,7 +9,10 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Role } from 'generated/prisma/client';
+import {
+  FinancialAccountProvider,
+  Role,
+} from 'generated/prisma/client';
 
 export class UpdateRoleDto {
   @IsEnum(Role)
@@ -59,24 +63,6 @@ export class UpdateUserDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(80)
-  telebirrAccount?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  cbeBirrAccount?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  boaAccountNumber?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
   avatar?: string;
 
   @ApiPropertyOptional()
@@ -84,4 +70,62 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(300)
   bio?: string;
+}
+
+export class CreateFinancialAccountDto {
+  @ApiPropertyOptional({ enum: FinancialAccountProvider })
+  @IsEnum(FinancialAccountProvider)
+  provider!: FinancialAccountProvider;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @MaxLength(120)
+  accountNumber!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  accountName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  label?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+}
+
+export class UpdateFinancialAccountDto {
+  @ApiPropertyOptional({ enum: FinancialAccountProvider })
+  @IsOptional()
+  @IsEnum(FinancialAccountProvider)
+  provider?: FinancialAccountProvider;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  accountNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  accountName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  label?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 }

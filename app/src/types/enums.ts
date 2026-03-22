@@ -75,10 +75,29 @@ export type PlayerStatus = (typeof PlayerStatus)[keyof typeof PlayerStatus];
 
 export const PaymentMethod = defineEnum({
   TELEBIRR: "TELEBIRR",
+  MPESA: "MPESA",
   CBE_BIRR: "CBE_BIRR",
   BANK_CARD: "BANK_CARD",
 });
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const FinancialAccountType = defineEnum({
+  MOBILE_WALLET: "MOBILE_WALLET",
+  BANK_ACCOUNT: "BANK_ACCOUNT",
+});
+export type FinancialAccountType =
+  (typeof FinancialAccountType)[keyof typeof FinancialAccountType];
+
+export const FinancialAccountProvider = defineEnum({
+  TELEBIRR: "TELEBIRR",
+  MPESA: "MPESA",
+  CBE_BIRR: "CBE_BIRR",
+  BOA: "BOA",
+  OTHER_BANK: "OTHER_BANK",
+  OTHER_WALLET: "OTHER_WALLET",
+});
+export type FinancialAccountProvider =
+  (typeof FinancialAccountProvider)[keyof typeof FinancialAccountProvider];
 
 export const DepositStatus = defineEnum({
   PENDING: "PENDING",

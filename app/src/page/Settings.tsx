@@ -18,10 +18,13 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AppBar } from "../components/ui/Layout";
-import { useSendTelegramMessage, useTelegramStatus } from "../hooks/useAuth";
+import {
+  useLogout,
+  useSendTelegramMessage,
+  useTelegramStatus,
+} from "../hooks/useAuth";
 import { useMe } from "../hooks/useUser";
 import { getErrorMessage } from "../lib/errors";
-import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import { useSoundStore } from "../store/sound.store";
 import type { SettingsSection } from "../types/settings.types";
@@ -45,9 +48,13 @@ export default function Settings() {
   const user = useAuthStore((s) => s.user);
   const { data: me } = useMe();
   const profile = me ?? user;
+  const { mutate: logout, isPending: isSigningOut } = useLogout();
   const handleSignOut = () => {
-    clearClientSession();
-    navigate("/signin", { replace: true });
+    logout(undefined, {
+      onSettled: () => {
+        navigate("/signin", { replace: true });
+      },
+    });
   };
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
@@ -318,10 +325,11 @@ export default function Settings() {
         <button
           type="button"
           onClick={handleSignOut}
+          disabled={isSigningOut}
           className="w-full bg-rose-500/10 border border-rose-500/20 rounded-2xl py-3.5 flex items-center justify-center gap-2 text-rose-400 font-bold text-sm hover:bg-rose-500/15 transition-colors active:scale-[0.98]"
         >
           <FiLogOut />
-          Sign Out
+          {isSigningOut ? "Signing Out..." : "Sign Out"}
         </button>
 
         <p className="text-center text-[11px] text-gray-600">

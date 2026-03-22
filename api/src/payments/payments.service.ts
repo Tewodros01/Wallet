@@ -8,6 +8,7 @@ import {
   DepositStatus,
   MissionCategory,
   NotificationType,
+  Prisma,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
@@ -44,6 +45,22 @@ const KENO_PAYOUTS: Record<number, Record<number, number>> = {
   9: { 4: 2, 5: 10, 6: 50, 7: 500, 8: 5000, 9: 25000 },
   10: { 5: 5, 6: 20, 7: 100, 8: 1000, 9: 10000, 10: 100000 },
 };
+
+const financialAccountSelect = {
+  id: true,
+  type: true,
+  provider: true,
+  accountName: true,
+  accountNumber: true,
+  label: true,
+  isDefault: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const financialAccountOrderBy: Prisma.FinancialAccountOrderByWithRelationInput[] =
+  [{ isDefault: 'desc' }, { createdAt: 'asc' }];
 
 @Injectable()
 export class PaymentsService {
@@ -105,9 +122,11 @@ export class PaymentsService {
         username: true,
         avatar: true,
         phone: true,
-        telebirrAccount: true,
-        cbeBirrAccount: true,
-        boaAccountNumber: true,
+        financialAccounts: {
+          where: { isActive: true },
+          orderBy: financialAccountOrderBy,
+          select: financialAccountSelect,
+        },
       },
     });
 

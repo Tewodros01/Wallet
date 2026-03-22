@@ -10,7 +10,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Prisma, Role } from 'generated/prisma/client';
+import {
+  Prisma,
+  Role,
+} from 'generated/prisma/client';
 import {
   getPublicApiUrl,
   toPublicAssetUrl,
@@ -24,6 +27,23 @@ const DUMMY_HASH =
   '$2b$10$invalidhashfortimingprotectionXXXXXXXXXXXXXXXXXXXXXXX';
 const MAX_SESSIONS = 5;
 const TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = 60 * 60;
+const RESET_TOKEN_PREFIX = 'reset:';
+
+const financialAccountSelect = {
+  id: true,
+  type: true,
+  provider: true,
+  accountName: true,
+  accountNumber: true,
+  label: true,
+  isDefault: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const financialAccountOrderBy: Prisma.FinancialAccountOrderByWithRelationInput[] =
+  [{ isDefault: 'desc' }, { createdAt: 'asc' }];
 
 const userSelect = {
   id: true,
@@ -40,24 +60,14 @@ const userSelect = {
   isVerified: true,
   onboardingDone: true,
   createdAt: true,
+  financialAccounts: {
+    where: { isActive: true },
+    orderBy: financialAccountOrderBy,
+    select: financialAccountSelect,
+  },
 } as const;
 
-type SafeUser = {
-  id: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  avatar: string | null;
-  phone: string | null;
-  telegramId: string | null;
-  telegramUsername: string | null;
-  telegramPhotoUrl: string | null;
-  role: Role;
-  isVerified: boolean;
-  onboardingDone: boolean;
-  createdAt: Date;
-};
+type SafeUser = Prisma.UserGetPayload<{ select: typeof userSelect }>;
 
 type TelegramMiniAppUser = {
   id: number;
@@ -411,7 +421,11 @@ export class AuthService {
   async getSessions(userId: string) {
     try {
       return await this.prisma.session.findMany({
-        where: { userId, expiresAt: { gt: new Date() } },
+        where: {
+          userId,
+          expiresAt: { gt: new Date() },
+          refreshToken: { not: { startsWith: RESET_TOKEN_PREFIX } },
+        },
         select: {
           id: true,
           userAgent: true,
@@ -446,7 +460,7 @@ export class AuthService {
       await this.prisma.session.create({
         data: {
           userId: user.id,
-          refreshToken: `reset:${hashedToken}`,
+          refreshToken: `${RESET_TOKEN_PREFIX}${hashedToken}`,
           expiresAt,
         },
       });
@@ -474,7 +488,7 @@ export class AuthService {
     try {
       const hashedToken = this.hashToken(rawToken);
       const session = await this.prisma.session.findFirst({
-        where: { refreshToken: `reset:${hashedToken}` },
+        where: { refreshToken: `${RESET_TOKEN_PREFIX}${hashedToken}` },
         include: { user: { select: { id: true, deletedAt: true } } },
       });
 
@@ -520,11 +534,17 @@ export class AuthService {
 
       // enforce session cap — delete oldest if over limit
       const sessionCount = await this.prisma.session.count({
-        where: { userId },
+        where: {
+          userId,
+          refreshToken: { not: { startsWith: RESET_TOKEN_PREFIX } },
+        },
       });
       if (sessionCount >= MAX_SESSIONS) {
         const oldest = await this.prisma.session.findFirst({
-          where: { userId },
+          where: {
+            userId,
+            refreshToken: { not: { startsWith: RESET_TOKEN_PREFIX } },
+          },
           orderBy: { createdAt: 'asc' },
         });
         if (oldest)
@@ -549,20 +569,8 @@ export class AuthService {
 
   private toSafeUser(user: SafeUser): SafeUser {
     return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      ...user,
       avatar: this.toPublicAssetUrl(user.avatar),
-      phone: user.phone,
-      telegramId: user.telegramId,
-      telegramUsername: user.telegramUsername,
-      telegramPhotoUrl: user.telegramPhotoUrl,
-      role: user.role,
-      isVerified: user.isVerified,
-      onboardingDone: user.onboardingDone,
-      createdAt: user.createdAt,
     };
   }
 

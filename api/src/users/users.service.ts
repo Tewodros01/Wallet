@@ -6,7 +6,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, Role } from 'generated/prisma/client';
+import {
+  FinancialAccountProvider,
+  FinancialAccountType,
+  Prisma,
+  Role,
+} from 'generated/prisma/client';
 import {
   getPublicApiUrl,
   toPublicAssetUrl,
@@ -17,7 +22,27 @@ import {
 } from '../common/utils/upload.util';
 import { LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  CreateFinancialAccountDto,
+  UpdateFinancialAccountDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
+
+const financialAccountSelect = {
+  id: true,
+  type: true,
+  provider: true,
+  accountName: true,
+  accountNumber: true,
+  label: true,
+  isDefault: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const financialAccountOrderBy: Prisma.FinancialAccountOrderByWithRelationInput[] =
+  [{ isDefault: 'desc' }, { createdAt: 'asc' }];
 
 const userSelect = {
   id: true,
@@ -26,9 +51,6 @@ const userSelect = {
   firstName: true,
   lastName: true,
   phone: true,
-  telebirrAccount: true,
-  cbeBirrAccount: true,
-  boaAccountNumber: true,
   avatar: true,
   bio: true,
   role: true,
@@ -36,6 +58,11 @@ const userSelect = {
   isVerified: true,
   onboardingDone: true,
   createdAt: true,
+  financialAccounts: {
+    where: { isActive: true },
+    orderBy: financialAccountOrderBy,
+    select: financialAccountSelect,
+  },
 } as const;
 
 @Injectable()
@@ -110,6 +137,146 @@ export class UsersService {
     }
   }
 
+  async getFinancialAccounts(userId: string) {
+    return this.prisma.financialAccount.findMany({
+      where: { userId, isActive: true },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      select: financialAccountSelect,
+    });
+  }
+
+  async createFinancialAccount(
+    userId: string,
+    dto: CreateFinancialAccountDto,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const hasDefault = await tx.financialAccount.count({
+          where: { userId, isActive: true, isDefault: true },
+        });
+        const shouldBeDefault = dto.isDefault ?? (hasDefault === 0);
+
+        if (shouldBeDefault) {
+          await tx.financialAccount.updateMany({
+            where: { userId, isActive: true },
+            data: { isDefault: false },
+          });
+        }
+
+        return tx.financialAccount.create({
+          data: {
+            userId,
+            provider: dto.provider,
+            type: this.getFinancialAccountType(dto.provider),
+            accountNumber: dto.accountNumber.trim(),
+            accountName: dto.accountName?.trim() || null,
+            label: dto.label?.trim() || null,
+            isDefault: shouldBeDefault,
+          },
+          select: financialAccountSelect,
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('This financial account already exists');
+      }
+      throw new InternalServerErrorException(
+        'Failed to create financial account',
+      );
+    }
+  }
+
+  async updateFinancialAccount(
+    userId: string,
+    accountId: string,
+    dto: UpdateFinancialAccountDto,
+  ) {
+    const existing = await this.prisma.financialAccount.findFirst({
+      where: { id: accountId, userId, isActive: true },
+      select: financialAccountSelect,
+    });
+    if (!existing) throw new NotFoundException('Financial account not found');
+
+    if (existing.isDefault && dto.isDefault === false) {
+      throw new BadRequestException(
+        'Default account cannot be unset directly. Choose another default account instead.',
+      );
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (dto.isDefault) {
+          await tx.financialAccount.updateMany({
+            where: { userId, isActive: true },
+            data: { isDefault: false },
+          });
+        }
+
+        const provider = dto.provider ?? existing.provider;
+
+        return tx.financialAccount.update({
+          where: { id: accountId },
+          data: {
+            provider,
+            type: this.getFinancialAccountType(provider),
+            accountNumber: dto.accountNumber?.trim(),
+            accountName:
+              dto.accountName !== undefined
+                ? dto.accountName.trim() || null
+                : undefined,
+            label: dto.label !== undefined ? dto.label.trim() || null : undefined,
+            isDefault: dto.isDefault,
+          },
+          select: financialAccountSelect,
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('This financial account already exists');
+      }
+      throw new InternalServerErrorException(
+        'Failed to update financial account',
+      );
+    }
+  }
+
+  async removeFinancialAccount(userId: string, accountId: string) {
+    const existing = await this.prisma.financialAccount.findFirst({
+      where: { id: accountId, userId, isActive: true },
+      select: financialAccountSelect,
+    });
+    if (!existing) throw new NotFoundException('Financial account not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.financialAccount.delete({
+        where: { id: accountId },
+      });
+
+      if (existing.isDefault) {
+        const replacement = await tx.financialAccount.findFirst({
+          where: { userId, isActive: true },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        });
+
+        if (replacement) {
+          await tx.financialAccount.update({
+            where: { id: replacement.id },
+            data: { isDefault: true },
+          });
+        }
+      }
+    });
+
+    return { success: true };
+  }
+
   async uploadAvatar(userId: string, file: Express.Multer.File) {
     const avatarUrl = storeUploadedFile({
       file,
@@ -168,13 +335,15 @@ export class UsersService {
           lastName: true,
           avatar: true,
           phone: true,
-          telebirrAccount: true,
-          cbeBirrAccount: true,
-          boaAccountNumber: true,
           email: true,
           coinsBalance: true,
           createdAt: true,
           role: true,
+          financialAccounts: {
+            where: { isActive: true },
+            orderBy: financialAccountOrderBy,
+            select: financialAccountSelect,
+          },
         },
       });
       if (!agent) throw new NotFoundException('Agent not found');
@@ -392,6 +561,21 @@ export class UsersService {
 
   private toPublicAssetUrl(path: string | null) {
     return toPublicAssetUrl(path, this.getPublicApiUrl());
+  }
+
+  private getFinancialAccountType(provider: FinancialAccountProvider) {
+    switch (provider) {
+      case FinancialAccountProvider.TELEBIRR:
+      case FinancialAccountProvider.MPESA:
+      case FinancialAccountProvider.CBE_BIRR:
+      case FinancialAccountProvider.OTHER_WALLET:
+        return FinancialAccountType.MOBILE_WALLET;
+      case FinancialAccountProvider.BOA:
+      case FinancialAccountProvider.OTHER_BANK:
+        return FinancialAccountType.BANK_ACCOUNT;
+      default:
+        return FinancialAccountType.BANK_ACCOUNT;
+    }
   }
 
   private serializeUser<T extends { avatar: string | null }>(user: T): T {

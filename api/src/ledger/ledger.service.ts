@@ -49,6 +49,35 @@ export class LedgerService {
       throw new BadRequestException('Ledger amount must be positive');
     }
 
+    const wallet =
+      input.walletId
+        ? await tx.wallet.findFirst({
+            where: {
+              id: input.walletId,
+              userId: input.userId,
+              deletedAt: null,
+              isActive: true,
+            },
+            select: { id: true },
+          })
+        : await tx.wallet.findFirst({
+            where: {
+              userId: input.userId,
+              isDefault: true,
+              isActive: true,
+              deletedAt: null,
+            },
+            select: { id: true },
+          });
+
+    if (!wallet) {
+      throw new NotFoundException(
+        input.walletId
+          ? 'Wallet not found'
+          : 'Default wallet not found for user',
+      );
+    }
+
     const currentBalance = await this.getBalance(tx, input.userId);
     const nextBalance = currentBalance + input.balanceDelta;
     if (nextBalance < 0) {
@@ -62,44 +91,27 @@ export class LedgerService {
       });
     }
 
-    const wallet =
-      input.walletId
-        ? await tx.wallet.findFirst({
-            where: {
-              id: input.walletId,
-              userId: input.userId,
-              deletedAt: null,
-            },
-            select: { id: true },
-          })
-        : await tx.wallet.findFirst({
-            where: { userId: input.userId, isDefault: true, deletedAt: null },
-            select: { id: true },
-          });
+    await tx.transaction.create({
+      data: {
+        title: input.title,
+        amount: input.amount,
+        type: input.type,
+        status: input.status,
+        note: input.note,
+        date: input.date ?? new Date(),
+        userId: input.userId,
+        walletId: wallet.id,
+        sourceWalletId: input.sourceWalletId,
+        destinationWalletId: input.destinationWalletId,
+        gameRoomId: input.gameRoomId,
+      },
+    });
 
-    if (wallet) {
-      await tx.transaction.create({
-        data: {
-          title: input.title,
-          amount: input.amount,
-          type: input.type,
-          status: input.status,
-          note: input.note,
-          date: input.date ?? new Date(),
-          userId: input.userId,
-          walletId: wallet.id,
-          sourceWalletId: input.sourceWalletId,
-          destinationWalletId: input.destinationWalletId,
-          gameRoomId: input.gameRoomId,
-        },
+    if (input.balanceDelta !== 0) {
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: input.balanceDelta } },
       });
-
-      if (input.balanceDelta !== 0) {
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: input.balanceDelta } },
-        });
-      }
     }
 
     return nextBalance;

@@ -1,4 +1,5 @@
 import { Role } from "./enums";
+import type { FinancialAccount } from "./financial-account.types";
 
 // ─── User Types ───────────────────────────────────────────────────────────────
 
@@ -10,9 +11,6 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string | null;
-  telebirrAccount?: string | null;
-  cbeBirrAccount?: string | null;
-  boaAccountNumber?: string | null;
   avatar: string | null;
   bio: string | null;
   telegramId?: string | null;
@@ -22,6 +20,7 @@ export interface User {
   isVerified: boolean;
   onboardingDone: boolean;
   coinsBalance: number;
+  financialAccounts?: FinancialAccount[];
   referredById: string | null;
   deletedAt: string | null;
   createdAt: string;
@@ -42,9 +41,6 @@ export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  telebirrAccount?: string;
-  cbeBirrAccount?: string;
-  boaAccountNumber?: string;
   avatar?: string;
   bio?: string;
 }

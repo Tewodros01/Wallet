@@ -1,4 +1,9 @@
 import { api } from "../lib/axios";
+import type {
+  FinancialAccount,
+  FinancialAccountPayload,
+  UpdateFinancialAccountPayload,
+} from "../types/financial-account.types";
 import type { User } from "../types/user.types";
 
 export interface UpdateUserPayload {
@@ -6,9 +11,6 @@ export interface UpdateUserPayload {
   lastName?: string;
   username?: string;
   phone?: string;
-  telebirrAccount?: string;
-  cbeBirrAccount?: string;
-  boaAccountNumber?: string;
   avatar?: string;
   bio?: string;
 }
@@ -37,6 +39,14 @@ export const usersApi = {
   getMe: () => api.get<User>("/users/me").then((r) => r.data),
   updateMe: (payload: UpdateUserPayload) =>
     api.patch<User>("/users/me", payload).then((r) => r.data),
+  getFinancialAccounts: (): Promise<FinancialAccount[]> =>
+    api.get("/users/me/financial-accounts").then((r) => r.data),
+  createFinancialAccount: (payload: FinancialAccountPayload) =>
+    api.post<FinancialAccount>("/users/me/financial-accounts", payload).then((r) => r.data),
+  updateFinancialAccount: (id: string, payload: UpdateFinancialAccountPayload) =>
+    api.patch<FinancialAccount>(`/users/me/financial-accounts/${id}`, payload).then((r) => r.data),
+  removeFinancialAccount: (id: string) =>
+    api.post(`/users/me/financial-accounts/${id}/remove`).then((r) => r.data),
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("file", file);

@@ -43,8 +43,6 @@ export default function ActiveSessions() {
   const { mutate: revoke, isPending: revoking } = useRevokeSession();
   const { mutate: revokeAll, isPending: revokingAll } = useRevokeAllSessions();
 
-  const others = sessions.filter((_: Session, i: number) => i > 0); // first = current
-
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       <AppBar
@@ -88,20 +86,25 @@ export default function ActiveSessions() {
             </span>
           </div>
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl py-3 flex flex-col items-center gap-1">
-            <span className="text-lg font-black text-emerald-400">1</span>
+            <span className="text-lg font-black text-emerald-400">?</span>
             <span className="text-[9px] text-gray-500 uppercase tracking-wide">
               Current
             </span>
           </div>
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl py-3 flex flex-col items-center gap-1">
             <span className="text-lg font-black text-orange-400">
-              {others.length}
+              {sessions.length}
             </span>
             <span className="text-[9px] text-gray-500 uppercase tracking-wide">
-              Other
+              Listed
             </span>
           </div>
         </div>
+
+        <p className="text-[11px] text-gray-500">
+          This screen shows your active sessions, but it does not try to guess
+          which one is this device.
+        </p>
 
         {isLoading ? (
           <div className="flex flex-col gap-2">
@@ -114,50 +117,11 @@ export default function ActiveSessions() {
           </div>
         ) : (
           <>
-            {sessions.slice(0, 1).map((s: Session) => {
-              const dtype = guessDevice(s.userAgent);
-              return (
-                <div key={s.id} className="flex flex-col gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    Current Session
-                  </p>
-                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${deviceBg[dtype]}`}
-                    >
-                      <DeviceIcon type={dtype} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white truncate">
-                          {s.userAgent ?? "Unknown device"}
-                        </p>
-                        <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full shrink-0">
-                          THIS DEVICE
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-500">
-                        {s.ipAddress ?? "Unknown IP"}
-                      </p>
-                      <p className="text-[11px] text-emerald-400 font-semibold">
-                        {new Date(s.createdAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {others.length > 0 && (
+            {sessions.length > 0 && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    Other Sessions
+                    Active Sessions
                   </p>
                   <button
                     type="button"
@@ -169,12 +133,12 @@ export default function ActiveSessions() {
                   </button>
                 </div>
                 <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
-                  {others.map((s: Session, i: number) => {
+                  {sessions.map((s: Session, i: number) => {
                     const dtype = guessDevice(s.userAgent);
                     return (
                       <div
                         key={s.id}
-                        className={`flex items-center gap-3 px-4 py-3.5 ${i < others.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                        className={`flex items-center gap-3 px-4 py-3.5 ${i < sessions.length - 1 ? "border-b border-white/[0.05]" : ""}`}
                       >
                         <div
                           className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${deviceBg[dtype]}`}
@@ -216,13 +180,15 @@ export default function ActiveSessions() {
               </div>
             )}
 
-            {others.length === 0 && sessions.length > 0 && (
+            {sessions.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-8 text-gray-600">
                 <FiShield className="text-3xl text-emerald-600" />
                 <p className="text-sm font-semibold text-emerald-500">
-                  Only one active session
+                  No active sessions found
                 </p>
-                <p className="text-xs text-gray-600">Your account is secure</p>
+                <p className="text-xs text-gray-600">
+                  Sessions appear here after you sign in
+                </p>
               </div>
             )}
           </>

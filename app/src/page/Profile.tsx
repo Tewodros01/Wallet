@@ -14,8 +14,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AppBar, BottomNav } from "../components/ui/Layout";
 import { badges } from "../constance/profileBadges";
+import { useLogout } from "../hooks/useAuth";
 import { useMe, useMyStats } from "../hooks/useUser";
-import { clearClientSession } from "../lib/session";
 import { useAuthStore } from "../store/auth.store";
 import { useWalletStore } from "../store/wallet.store";
 
@@ -61,14 +61,18 @@ export default function Profile() {
 
   const { data: me } = useMe();
   const { data: stats } = useMyStats();
+  const { mutate: logout, isPending: isSigningOut } = useLogout();
 
   useEffect(() => {
     if (me?.coinsBalance !== undefined) syncFromUser(me.coinsBalance);
   }, [me?.coinsBalance, syncFromUser]);
 
   const handleSignOut = () => {
-    clearClientSession();
-    navigate("/signin", { replace: true });
+    logout(undefined, {
+      onSettled: () => {
+        navigate("/signin", { replace: true });
+      },
+    });
   };
 
   const statItems = [
@@ -323,10 +327,11 @@ export default function Profile() {
                 key={label}
                 type="button"
                 aria-label={label}
+                disabled={danger && isSigningOut}
                 onClick={() =>
                   danger ? handleSignOut() : path && navigate(path)
                 }
-                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left ${i < moreItems.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left disabled:opacity-60 ${i < moreItems.length - 1 ? "border-b border-white/[0.05]" : ""}`}
               >
                 <span
                   className={`text-sm shrink-0 ${danger ? "text-rose-400" : "text-gray-400"}`}
@@ -337,7 +342,7 @@ export default function Profile() {
                   <p
                     className={`text-sm font-semibold ${danger ? "text-rose-400" : "text-white"}`}
                   >
-                    {label}
+                    {danger && isSigningOut ? "Signing Out..." : label}
                   </p>
                   <p className="text-[11px] text-gray-500">{sub}</p>
                 </div>

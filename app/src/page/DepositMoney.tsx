@@ -22,7 +22,11 @@ import { AppBar } from "../components/ui/Layout";
 import { APP_ROUTES } from "../config/routes";
 import { useAgents, useDeposit } from "../hooks/usePayments";
 import { getErrorMessage } from "../lib/errors";
-import { PaymentMethod } from "../types/enums";
+import {
+  FinancialAccountProvider,
+  PaymentMethod,
+} from "../types/enums";
+import type { FinancialAccount } from "../types/financial-account.types";
 import type { Agent } from "../types/withdrawal.types";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000", "10000"];
@@ -37,32 +41,53 @@ const METHODS: {
     helper: "Send to the agent's Telebirr number",
   },
   {
+    id: PaymentMethod.MPESA,
+    label: "M-Pesa",
+    helper: "Send to the agent's M-Pesa wallet",
+  },
+  {
     id: PaymentMethod.CBE_BIRR,
     label: "CBE",
     helper: "Send to the agent's CBE account",
   },
   {
     id: PaymentMethod.BANK_CARD,
-    label: "BOA",
-    helper: "Send to the agent's BOA account",
+    label: "Bank",
+    helper: "Send to the agent's bank account",
   },
 ];
 
 type Step = "amount" | "agent" | "confirm" | "pending";
 
-function getAgentDepositAccount(
-  agent: Agent | undefined,
+function getMethodAccount(
+  accounts: FinancialAccount[] | undefined,
   method: PaymentMethod,
 ) {
-  if (!agent) return null;
+  if (!accounts?.length) return null;
 
   switch (method) {
     case PaymentMethod.TELEBIRR:
-      return agent.telebirrAccount ?? agent.phone ?? null;
+      return (
+        accounts.find((account) => account.provider === FinancialAccountProvider.TELEBIRR) ??
+        null
+      );
+    case PaymentMethod.MPESA:
+      return (
+        accounts.find((account) => account.provider === FinancialAccountProvider.MPESA) ??
+        null
+      );
     case PaymentMethod.CBE_BIRR:
-      return agent.cbeBirrAccount ?? null;
+      return (
+        accounts.find((account) => account.provider === FinancialAccountProvider.CBE_BIRR) ??
+        null
+      );
     case PaymentMethod.BANK_CARD:
-      return agent.boaAccountNumber ?? null;
+      return (
+        accounts.find((account) => account.provider === FinancialAccountProvider.BOA) ??
+        accounts.find((account) => account.provider === FinancialAccountProvider.OTHER_BANK) ??
+        accounts.find((account) => account.type === "BANK_ACCOUNT") ??
+        null
+      );
     default:
       return null;
   }
@@ -87,7 +112,10 @@ export default function DepositMoney() {
   const selectedAgent = agents.find((a: Agent) => a.id === agentId);
   const numAmount = Number(amount) || 0;
   const selectedMethod = METHODS.find((item) => item.id === method)!;
-  const selectedAgentAccount = getAgentDepositAccount(selectedAgent, method);
+  const selectedAgentAccount = getMethodAccount(
+    selectedAgent?.financialAccounts,
+    method,
+  );
 
   const handleSendRequest = async () => {
     if (!selectedAgentAccount) {
@@ -170,7 +198,7 @@ export default function DepositMoney() {
             label: "Account",
             value: (
               <span className="font-mono text-xs font-semibold text-emerald-400">
-                {selectedAgentAccount ?? "Not available"}
+                {selectedAgentAccount?.accountNumber ?? "Not available"}
               </span>
             ),
           },
@@ -237,7 +265,10 @@ export default function DepositMoney() {
             </p>
             <div className="grid grid-cols-1 gap-2">
               {METHODS.map((item) => {
-                const accountValue = getAgentDepositAccount(selectedAgent, item.id);
+                const accountValue = getMethodAccount(
+                  selectedAgent?.financialAccounts,
+                  item.id,
+                );
 
                 return (
                   <button
@@ -274,8 +305,13 @@ export default function DepositMoney() {
                         Account Number
                       </p>
                       <p className="mt-1 font-mono text-sm text-white">
-                        {accountValue ?? "Not set for this agent"}
+                        {accountValue?.accountNumber ?? "Not set for this agent"}
                       </p>
+                      {accountValue?.label && (
+                        <p className="mt-1 text-[11px] text-gray-400">
+                          {accountValue.label}
+                        </p>
+                      )}
                     </div>
                   </button>
                 );
@@ -433,7 +469,7 @@ export default function DepositMoney() {
         />
         <div className="flex flex-col gap-4 px-5 py-6">
           <p className="text-xs text-gray-500">
-            Choose an agent, then pick Telebirr, CBE, or BOA in the next step.
+            Choose an agent, then pick Telebirr, M-Pesa, CBE, or a bank account in the next step.
           </p>
           <div className="flex flex-col gap-2">
             {loadingAgents ? (
@@ -471,24 +507,17 @@ export default function DepositMoney() {
                       {agent.firstName} {agent.lastName}
                     </p>
                     <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-gray-500">
-                      <p>
-                        Telebirr:{" "}
-                        <span className="text-gray-300">
-                          {agent.telebirrAccount ?? agent.phone ?? "—"}
-                        </span>
-                      </p>
-                      <p>
-                        CBE:{" "}
-                        <span className="text-gray-300">
-                          {agent.cbeBirrAccount ?? "—"}
-                        </span>
-                      </p>
-                      <p>
-                        BOA:{" "}
-                        <span className="text-gray-300">
-                          {agent.boaAccountNumber ?? "—"}
-                        </span>
-                      </p>
+                      {METHODS.map((item) => {
+                        const account = getMethodAccount(agent.financialAccounts, item.id);
+                        return (
+                          <p key={item.id}>
+                            {item.label}:{" "}
+                            <span className="text-gray-300">
+                              {account?.accountNumber ?? "—"}
+                            </span>
+                          </p>
+                        );
+                      })}
                     </div>
                   </div>
                   <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
