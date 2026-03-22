@@ -58,12 +58,12 @@ interface StatusScreenProps {
 
 const TONE_CONFIG: Record<PaymentTone, ToneConfig> = {
   emerald: {
-    hero: "bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20",
+    hero: "bg-linear-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20",
     ring: "ring-emerald-500/30",
     fallbackAvatar: "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30",
   },
   rose: {
-    hero: "bg-gradient-to-br from-rose-500/10 to-orange-500/5 border border-rose-500/20",
+    hero: "bg-linear-to-br from-rose-500/10 to-orange-500/5 border border-rose-500/20",
     ring: "ring-rose-500/30",
     fallbackAvatar: "bg-rose-500/20 text-rose-400 ring-rose-500/30",
   },
@@ -127,7 +127,7 @@ export function AgentSummaryCard({
   const toneConfig = TONE_CONFIG[tone];
 
   return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+    <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
         Agent
       </p>
@@ -165,7 +165,7 @@ export function AgentSummaryCard({
 
 export function SummaryCard({ rows }: SummaryCardProps) {
   return (
-    <div className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+    <div className="w-full bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
       {rows.map(({ label, value }) => (
         <div
           key={label}

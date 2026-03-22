@@ -30,7 +30,7 @@ export default function BingoRoomViewTabs({
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all ${
             gameView === id
               ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-              : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
+              : "bg-white/5 text-gray-400 hover:bg-white/10"
           }`}
         >
           <Icon className="text-sm" />

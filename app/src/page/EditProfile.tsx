@@ -175,7 +175,7 @@ export default function EditProfile() {
             <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
               Email
             </label>
-            <div className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3.5">
+            <div className="flex items-center gap-3 bg-white/4 border border-white/7 rounded-2xl px-4 py-3.5">
               <FiMail className="text-gray-600 shrink-0" />
               <span className="text-sm text-gray-500">{me?.email ?? "—"}</span>
               <span className="ml-auto text-[10px] text-gray-600">
@@ -206,7 +206,7 @@ export default function EditProfile() {
             placeholder="Tell something about yourself..."
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white/[0.09] transition-all resize-none"
+            className="w-full bg-white/6 text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white/9 transition-all resize-none"
           />
         </div>
 

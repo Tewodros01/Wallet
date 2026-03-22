@@ -179,14 +179,14 @@ export default function AdminAnalytics() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-48 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-48 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
         ) : (
           <>
             {/* Coin flow chart */}
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
+            <div className="bg-white/4 border border-white/7 rounded-2xl p-4">
               <p className="text-xs font-black text-white mb-1">Coin Flow</p>
               <p className="text-[10px] text-gray-500 mb-4">
                 Deposits vs Withdrawals (completed)
@@ -247,7 +247,7 @@ export default function AdminAnalytics() {
             </div>
 
             {/* New users chart */}
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
+            <div className="bg-white/4 border border-white/7 rounded-2xl p-4">
               <p className="text-xs font-black text-white mb-1">
                 New Registrations
               </p>
@@ -287,7 +287,7 @@ export default function AdminAnalytics() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
+            <div className="bg-white/4 border border-white/7 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-xs font-black text-white mb-1">
@@ -307,19 +307,19 @@ export default function AdminAnalytics() {
                     {
                       label: "Regular Users",
                       count: regular.length,
-                      bar: "bg-gradient-to-r from-blue-500 to-cyan-400",
+                      bar: "bg-linear-to-r from-blue-500 to-cyan-400",
                       pct: users.length ? (regular.length / users.length) * 100 : 0,
                     },
                     {
                       label: "Agents",
                       count: agents.length,
-                      bar: "bg-gradient-to-r from-emerald-500 to-teal-400",
+                      bar: "bg-linear-to-r from-emerald-500 to-teal-400",
                       pct: users.length ? (agents.length / users.length) * 100 : 0,
                     },
                     {
                       label: "Admins",
                       count: admins.length,
-                      bar: "bg-gradient-to-r from-yellow-500 to-amber-400",
+                      bar: "bg-linear-to-r from-yellow-500 to-amber-400",
                       pct: users.length ? (admins.length / users.length) * 100 : 0,
                     },
                   ] as AdminUserBreakdown[]
@@ -333,7 +333,7 @@ export default function AdminAnalytics() {
                         {count}
                       </span>
                     </div>
-                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-white/6 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${bar} rounded-full transition-all duration-700`}
                         style={{ width: `${pct}%` }}

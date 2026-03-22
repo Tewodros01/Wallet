@@ -56,7 +56,7 @@ export default function BingoJoinRoomModal({
             <FiX className="text-gray-400 text-sm" />
           </button>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center gap-3">
           <img
             src={
               room.host?.avatar ?? `https://i.pravatar.cc/40?u=${room.host?.id}`
@@ -80,7 +80,7 @@ export default function BingoJoinRoomModal({
             </div>
           </div>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+        <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
           {[
             {
               label: "Prize Pool",
@@ -98,7 +98,7 @@ export default function BingoJoinRoomModal({
           ].map(({ label, value, highlight }, i) => (
             <div
               key={label}
-              className={`flex items-center justify-between px-4 py-3 ${i < 3 ? "border-b border-white/[0.05]" : ""}`}
+              className={`flex items-center justify-between px-4 py-3 ${i < 3 ? "border-b border-white/5" : ""}`}
             >
               <span className="text-xs text-gray-500">{label}</span>
               <span
@@ -128,7 +128,7 @@ export default function BingoJoinRoomModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold"
+            className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-400 text-sm font-bold"
           >
             Cancel
           </button>

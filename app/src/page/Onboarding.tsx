@@ -72,7 +72,7 @@ export default function Onboarding() {
       <div className="flex-1 flex flex-col items-center justify-center px-8 gap-8">
         {/* Illustration */}
         <div
-          className={`w-48 h-48 rounded-3xl bg-gradient-to-br ${slide.bg} border border-white/[0.08] flex items-center justify-center`}
+          className={`w-48 h-48 rounded-3xl bg-linear-to-br ${slide.bg} border border-white/8 flex items-center justify-center`}
           style={{ boxShadow: "0 0 80px rgba(16,185,129,0.1)" }}
         >
           <span className="text-8xl">{slide.emoji}</span>

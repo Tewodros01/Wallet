@@ -86,7 +86,7 @@ export default function BingoLobby({
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
-      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
+      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-500/10">
             <FaGamepad className="text-emerald-300 text-lg" />
@@ -109,7 +109,7 @@ export default function BingoLobby({
             aria-label="Notifications"
             title="View notifications"
             onClick={() => navigate("/notifications")}
-            className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center relative"
+            className="w-9 h-9 rounded-full bg-white/6 border border-white/8 flex items-center justify-center relative"
           >
             <FiBell className="text-gray-400 text-sm" aria-hidden="true" />
             {(unreadCount?.count ?? 0) > 0 && (

@@ -56,14 +56,14 @@ export default function Missions() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.06] px-5 pt-5 pb-3 flex flex-col gap-3">
+      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/6 px-5 pt-5 pb-3 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Go back"
               onClick={() => navigate(-1)}
-              className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+              className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center"
             >
               <FiArrowLeft className="text-white text-sm" />
             </button>
@@ -91,7 +91,7 @@ export default function Missions() {
           </AnimatePresence>
         </div>
 
-        <div className="flex gap-1.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1">
+        <div className="flex gap-1.5 bg-white/4 border border-white/7 rounded-2xl p-1">
           {(["DAILY", "WEEKLY"] as const).map((t) => (
             <button
               key={t}
@@ -114,7 +114,7 @@ export default function Missions() {
 
       <div className="flex flex-col gap-5 px-5 py-5 pb-10">
         {/* Streak calendar */}
-        <div className="bg-gradient-to-br from-orange-500/15 to-rose-500/5 border border-orange-500/20 rounded-3xl p-5 flex flex-col gap-4">
+        <div className="bg-linear-to-br from-orange-500/15 to-rose-500/5 border border-orange-500/20 rounded-3xl p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FaFire className="text-orange-400 text-lg" />
@@ -150,7 +150,7 @@ export default function Missions() {
                       : done
                         ? "bg-emerald-500/15 border-emerald-500/25"
                         : future
-                          ? "bg-white/[0.03] border-white/[0.06]"
+                          ? "bg-white/3 border-white/6"
                           : "bg-rose-500/10 border-rose-500/20"
                   }`}
                 >
@@ -220,21 +220,21 @@ export default function Missions() {
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 transition-all ${
+                  className={`bg-white/4 border rounded-2xl p-4 flex items-center gap-3 transition-all ${
                     m.claimed
-                      ? "border-white/[0.04] opacity-50"
+                      ? "border-white/4 opacity-50"
                       : done
                         ? "border-emerald-500/25"
-                        : "border-white/[0.07]"
+                        : "border-white/7"
                   }`}
                 >
                   <div
                     className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
                       m.claimed
-                        ? "bg-white/[0.04]"
+                        ? "bg-white/4"
                         : done
                           ? "bg-emerald-500/15"
-                          : "bg-white/[0.06]"
+                          : "bg-white/6"
                     }`}
                   >
                     {m.claimed ? "✅" : m.icon}
@@ -254,7 +254,7 @@ export default function Missions() {
                     <p className="text-[10px] text-gray-500 mb-1.5">{m.desc}</p>
                     {!m.claimed && (
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
                           <motion.div
                             className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-blue-400"}`}
                             initial={{ width: 0 }}
@@ -307,7 +307,7 @@ export default function Missions() {
 
         {/* Weekly summary */}
         {tab === "WEEKLY" && missions.length > 0 && (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 grid grid-cols-3 gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-4 grid grid-cols-3 gap-3">
             {[
               {
                 icon: <FaTrophy className="text-yellow-400" />,

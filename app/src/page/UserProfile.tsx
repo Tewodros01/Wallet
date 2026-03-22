@@ -66,32 +66,32 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/95 border-b border-white/[0.06] sticky top-0 z-40 backdrop-blur-xl">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/95 border-b border-white/6 sticky top-0 z-40 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Go back"
             title="Go back"
             onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+            className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center"
           >
             <FiArrowLeft className="text-white text-sm" />
           </button>
           <span className="text-base font-black">Player Profile</span>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center">
           <FiUser className="text-gray-400 text-sm" />
         </div>
       </div>
 
       {loadingUser ? (
         <div className="flex flex-col gap-4 px-5 py-5">
-          <div className="h-48 bg-white/[0.04] rounded-2xl animate-pulse" />
+          <div className="h-48 bg-white/4 rounded-2xl animate-pulse" />
           <div className="grid grid-cols-4 gap-2">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-20 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -104,7 +104,7 @@ export default function UserProfile() {
       ) : (
         <div className="flex flex-col gap-5 px-5 py-5 pb-10">
           {/* Avatar hero */}
-          <div className="bg-gradient-to-br from-violet-500/10 to-cyan-500/5 border border-violet-500/20 rounded-2xl p-6 flex flex-col items-center gap-3">
+          <div className="bg-linear-to-br from-violet-500/10 to-cyan-500/5 border border-violet-500/20 rounded-2xl p-6 flex flex-col items-center gap-3">
             <div className="relative">
               <img
                 src={user.avatar ?? `https://i.pravatar.cc/80?u=${user.id}`}
@@ -140,7 +140,7 @@ export default function UserProfile() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+                  className="h-20 bg-white/4 rounded-2xl animate-pulse"
                 />
               ))}
             </div>
@@ -149,7 +149,7 @@ export default function UserProfile() {
               {statItems.map(({ icon, label, value, color }) => (
                 <div
                   key={label}
-                  className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+                  className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1"
                 >
                   <span className={`text-base ${color}`}>{icon}</span>
                   <span className="text-base font-black text-white leading-none">
@@ -172,7 +172,7 @@ export default function UserProfile() {
               {badges.map(({ emoji, label }) => (
                 <div
                   key={label}
-                  className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1.5"
+                  className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1.5"
                 >
                   <span className="text-2xl">{emoji}</span>
                   <span className="text-[10px] text-gray-400 font-semibold">

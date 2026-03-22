@@ -28,7 +28,7 @@ export default function BingoLobbyHero({
 
   return (
     <>
-      <div className="relative flex min-h-[180px] flex-col justify-between overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-emerald-600/35 via-teal-600/18 to-cyan-600/10 p-5">
+      <div className="relative flex min-h-[180px] flex-col justify-between overflow-hidden rounded-3xl border border-white/8 bg-linear-to-br from-emerald-600/35 via-teal-600/18 to-cyan-600/10 p-5">
         <div className="pointer-events-none absolute -right-10 -top-8 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-cyan-400/15 blur-2xl" />
         <span className="absolute right-5 top-4 rotate-6 select-none text-5xl opacity-15">
@@ -48,7 +48,7 @@ export default function BingoLobbyHero({
           <h1 className="text-2xl font-black leading-tight text-white">
             Join a room.
             <br />
-            <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
               Play for the prize.
             </span>
           </h1>
@@ -84,7 +84,7 @@ export default function BingoLobbyHero({
             haptic.light();
             onCreateOpen();
           }}
-          className="flex w-full items-center gap-4 rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/18 via-emerald-500/10 to-teal-500/5 p-4 text-left transition-all hover:brightness-110 active:scale-[0.98]"
+          className="flex w-full items-center gap-4 rounded-3xl border border-emerald-500/25 bg-linear-to-br from-emerald-500/18 via-emerald-500/10 to-teal-500/5 p-4 text-left transition-all hover:brightness-110 active:scale-[0.98]"
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/20 shadow-[0_0_18px_rgba(16,185,129,0.18)]">
             <FaGamepad className="text-xl text-emerald-400" />
@@ -104,7 +104,7 @@ export default function BingoLobbyHero({
             haptic.light();
             onJoinCodeOpen();
           }}
-          className="flex w-full items-center gap-4 rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/16 via-sky-500/8 to-white/[0.02] p-4 text-left transition-all hover:brightness-110 active:scale-[0.98]"
+          className="flex w-full items-center gap-4 rounded-3xl border border-cyan-500/20 bg-linear-to-br from-cyan-500/16 via-sky-500/8 to-white/2 p-4 text-left transition-all hover:brightness-110 active:scale-[0.98]"
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/15 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
             <FiArrowRightCircle className="text-xl text-cyan-300" />

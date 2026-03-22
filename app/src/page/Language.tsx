@@ -57,7 +57,7 @@ export default function Language() {
 
       <div className="flex flex-col gap-5 px-5 py-5">
         {/* Current */}
-        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-linear-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20 rounded-2xl p-4 flex items-center gap-3">
           <span className="text-3xl">{current.flag}</span>
           <div className="flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -70,7 +70,7 @@ export default function Language() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
+        <div className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
           <FiSearch className="text-gray-500 shrink-0" />
           <input
             type="text"
@@ -83,7 +83,7 @@ export default function Language() {
         </div>
 
         {/* List */}
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+        <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
           {filtered.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-gray-600">
               <FiGlobe className="text-2xl" />
@@ -95,8 +95,8 @@ export default function Language() {
               key={lang.code}
               type="button"
               onClick={() => setSelected(lang.code)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left ${
-                i < filtered.length - 1 ? "border-b border-white/[0.05]" : ""
+              className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/4 transition-colors text-left ${
+                i < filtered.length - 1 ? "border-b border-white/5" : ""
               } ${selected === lang.code ? "bg-emerald-500/5" : ""}`}
             >
               <span className="text-2xl shrink-0">{lang.flag}</span>

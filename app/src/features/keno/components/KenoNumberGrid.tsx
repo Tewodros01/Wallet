@@ -18,7 +18,7 @@ export default function KenoNumberGrid({
   onToggle,
 }: KenoNumberGridProps) {
   return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-3xl p-3">
+    <div className="bg-white/3 border border-white/6 rounded-3xl p-3">
       <div className="grid grid-cols-10 gap-1">
         {numbers.map((n) => {
           const isPicked = picked.has(n);
@@ -46,7 +46,7 @@ export default function KenoNumberGrid({
                       ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : isPicked
                         ? "bg-yellow-400 text-gray-950 shadow-[0_0_8px_rgba(250,204,21,0.5)]"
-                        : "bg-white/[0.06] text-gray-400 hover:bg-white/[0.10]"
+                        : "bg-white/6 text-gray-400 hover:bg-white/10"
               }`}
             >
               {n}

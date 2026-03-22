@@ -13,7 +13,7 @@ export default function StatusSegmentedFilter<T extends string>({
 }: StatusSegmentedFilterProps<T>) {
   return (
     <div
-      className={`flex bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1 ${
+      className={`flex bg-white/4 border border-white/7 rounded-2xl p-1 ${
         compact ? "gap-1 overflow-x-auto" : "gap-1.5"
       }`}
     >

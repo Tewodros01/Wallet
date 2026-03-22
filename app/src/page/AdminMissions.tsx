@@ -117,7 +117,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
                 placeholder={placeholder}
                 value={form[key as MissionFormKey]}
                 onChange={(e) => set(key as MissionFormKey, e.target.value)}
-                className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
+                className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
               />
             </div>
           ))}
@@ -131,7 +131,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
                 aria-label="Mission type"
                 value={form.type}
                 onChange={(e) => set("type", e.target.value as MissionType)}
-                className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none"
+                className="w-full bg-white/6 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none"
               >
                 {TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -150,7 +150,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) =>
                   set("category", e.target.value as MissionCategory)
                 }
-                className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none"
+                className="w-full bg-white/6 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -166,7 +166,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold"
+            className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-400 text-sm font-bold"
           >
             Cancel
           </button>
@@ -265,7 +265,7 @@ export default function AdminMissions() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-12 flex flex-col gap-4">
         {/* Filter tabs */}
-        <div className="flex gap-1.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1">
+        <div className="flex gap-1.5 bg-white/4 border border-white/7 rounded-2xl p-1">
           {(["ALL", "DAILY", "WEEKLY"] as const).map((f) => (
             <button
               key={f}
@@ -282,7 +282,7 @@ export default function AdminMissions() {
           [1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-20 bg-white/4 rounded-2xl animate-pulse"
             />
           ))
         ) : filtered.length === 0 ? (
@@ -301,7 +301,7 @@ export default function AdminMissions() {
           filtered.map((m: MissionListItem) => (
             <div
               key={m.id}
-              className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 transition-all ${m.isActive !== false ? "border-white/[0.07]" : "border-white/[0.03] opacity-50"}`}
+              className={`bg-white/4 border rounded-2xl p-4 flex items-center gap-3 transition-all ${m.isActive !== false ? "border-white/7" : "border-white/3 opacity-50"}`}
             >
               <span className="text-2xl shrink-0">{m.icon}</span>
               <div className="flex-1 min-w-0">

@@ -30,7 +30,7 @@ export default function LobbyRoomCard({
     isJoined && (room.status === "WAITING" || room.status === "PLAYING");
 
   return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+    <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <img
@@ -96,7 +96,7 @@ export default function LobbyRoomCard({
         ].map(({ icon, value, label }) => (
           <div
             key={label}
-            className="bg-white/[0.04] rounded-xl py-2 flex flex-col items-center gap-0.5"
+            className="bg-white/4 rounded-xl py-2 flex flex-col items-center gap-0.5"
           >
             <span className="text-xs">{icon}</span>
             <span className="text-[10px] font-bold text-white">{value}</span>
@@ -135,7 +135,7 @@ export default function LobbyRoomCard({
                 ? "bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)]"
                 : canJoin
                   ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-600 cursor-not-allowed"
+                  : "bg-white/5 text-gray-600 cursor-not-allowed"
             }`}
           >
             {rejoining === room.id ? (

@@ -196,7 +196,7 @@ export default function GetMoney() {
             }
           />
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Your Account Number
             </p>
@@ -206,7 +206,7 @@ export default function GetMoney() {
               placeholder="e.g. +251912345678"
               value={accountNum}
               onChange={(e) => setAccountNum(e.target.value)}
-              className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-rose-500/50 transition-colors"
+              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-rose-500/50 transition-colors"
             />
             <p className="text-[11px] text-gray-600">
               The agent will send cash to this account via{" "}
@@ -224,7 +224,7 @@ export default function GetMoney() {
                   key={m.id}
                   type="button"
                   onClick={() => setMethod(m.id)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all active:scale-[0.98] ${method === m.id ? "bg-emerald-500/10 border-emerald-500/30" : "bg-white/[0.04] border-white/[0.07] hover:bg-white/[0.07]"}`}
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all active:scale-[0.98] ${method === m.id ? "bg-emerald-500/10 border-emerald-500/30" : "bg-white/4 border-white/7 hover:bg-white/7"}`}
                 >
                   <div
                     className={`w-10 h-10 rounded-xl ${m.bg} border flex items-center justify-center shrink-0`}
@@ -294,7 +294,7 @@ export default function GetMoney() {
               [1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
+                  className="h-16 bg-white/4 rounded-2xl animate-pulse"
                 />
               ))
             ) : agents.length === 0 ? (
@@ -311,7 +311,7 @@ export default function GetMoney() {
                     setAgentId(agent.id);
                     setStep("confirm");
                   }}
-                  className="flex items-center gap-3 px-4 py-3.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl hover:bg-white/[0.07] active:scale-[0.98] transition-all text-left"
+                  className="flex items-center gap-3 px-4 py-3.5 bg-white/4 border border-white/7 rounded-2xl hover:bg-white/7 active:scale-[0.98] transition-all text-left"
                 >
                   {agent.avatar ? (
                     <img
@@ -371,7 +371,7 @@ export default function GetMoney() {
         }
       />
       <div className="flex flex-col gap-6 px-5 py-6">
-        <div className="bg-gradient-to-br from-rose-500/10 to-orange-500/5 border border-rose-500/20 rounded-2xl p-5 flex flex-col items-center gap-3">
+        <div className="bg-linear-to-br from-rose-500/10 to-orange-500/5 border border-rose-500/20 rounded-2xl p-5 flex flex-col items-center gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Available Balance
           </p>
@@ -389,7 +389,7 @@ export default function GetMoney() {
             Withdraw Amount
           </p>
           <div
-            className={`bg-white/[0.06] border rounded-2xl px-4 py-3.5 flex items-center gap-3 transition-all ${insufficient ? "border-rose-500/50" : "border-white/10 focus-within:border-emerald-500"}`}
+            className={`bg-white/6 border rounded-2xl px-4 py-3.5 flex items-center gap-3 transition-all ${insufficient ? "border-rose-500/50" : "border-white/10 focus-within:border-emerald-500"}`}
           >
             <FiArrowUp
               className={insufficient ? "text-rose-400" : "text-gray-500"}
@@ -421,7 +421,7 @@ export default function GetMoney() {
                 key={p}
                 type="button"
                 onClick={() => setAmount(p)}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border ${amount === p ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "bg-white/[0.05] text-gray-300 border-white/10 hover:bg-white/10"}`}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border ${amount === p ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"}`}
               >
                 {Number(p).toLocaleString()}
               </button>

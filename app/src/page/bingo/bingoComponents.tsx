@@ -5,7 +5,7 @@ import {
   LETTER_COLOR,
   LETTER_TAILWIND,
   getLetter,
-} from "../../constance/bingoData";
+} from "../../features/bingo/bingoData";
 
 type BingoBoard = readonly (readonly number[])[];
 
@@ -68,7 +68,7 @@ export const BingoCard = ({
   latestCall?: number;
   onToggle?: (n: number) => void;
 }) => (
-  <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-2.5">
+  <div className="bg-white/3 border border-white/10 rounded-2xl p-2.5">
     <div className="grid grid-cols-5 gap-1.5 mb-1.5">
       {COLS.map((l) => (
         <div
@@ -100,7 +100,7 @@ export const BingoCard = ({
                       ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                       : isCalled
                         ? "bg-white/10 text-white ring-1 ring-emerald-500/50"
-                        : "bg-white/[0.03] text-gray-600 cursor-default"
+                        : "bg-white/3 text-gray-600 cursor-default"
                 }`}
             >
               {isFree ? "⭐" : n}
@@ -132,7 +132,7 @@ export const MiniCard = ({ board }: { board: BingoBoard }) => (
         return (
           <div
             key={`${ri}-${ci}`}
-            className={`rounded-sm py-1 text-center text-[8px] font-bold leading-none ${isFree ? "bg-yellow-400 text-gray-900" : "bg-white/[0.07] text-gray-400"}`}
+            className={`rounded-sm py-1 text-center text-[8px] font-bold leading-none ${isFree ? "bg-yellow-400 text-gray-900" : "bg-white/7 text-gray-400"}`}
           >
             {isFree ? "★" : n}
           </div>
@@ -161,7 +161,7 @@ export const NumberBoard = ({ called }: { called: number[] }) => {
         return (
           <div
             key={n}
-            className={`rounded-lg py-1.5 text-center text-[10px] font-bold transition-all ${hit ? `${LETTER_TAILWIND[l as keyof typeof LETTER_TAILWIND]} text-white` : "bg-white/[0.04] text-gray-600"}`}
+            className={`rounded-lg py-1.5 text-center text-[10px] font-bold transition-all ${hit ? `${LETTER_TAILWIND[l as keyof typeof LETTER_TAILWIND]} text-white` : "bg-white/4 text-gray-600"}`}
           >
             {n}
           </div>
@@ -193,7 +193,7 @@ export const StatBadge = ({
   value: string;
   sub: string;
 }) => (
-  <div className="flex-1 bg-white/[0.04] border border-white/[0.07] rounded-2xl flex flex-col items-center gap-0.5 py-3">
+  <div className="flex-1 bg-white/4 border border-white/7 rounded-2xl flex flex-col items-center gap-0.5 py-3">
     <span className="text-lg leading-none">{icon}</span>
     <span className="text-base font-black text-white leading-tight">
       {value}

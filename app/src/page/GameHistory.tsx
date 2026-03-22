@@ -78,7 +78,7 @@ export default function GameHistory() {
           {summary.map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+              className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1"
             >
               <span className={`text-base font-black leading-none ${color}`}>
                 {value}
@@ -92,7 +92,7 @@ export default function GameHistory() {
 
         {/* Win rate bar */}
         {stats && (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-2">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400 font-semibold">
                 Win Rate
@@ -103,7 +103,7 @@ export default function GameHistory() {
             </div>
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                className="h-full bg-linear-to-r from-emerald-500 to-teal-400 rounded-full"
                 style={{ width: `${stats.winRate}%` }}
               />
             </div>
@@ -124,7 +124,7 @@ export default function GameHistory() {
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                 filter === f
                   ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
+                  : "bg-white/5 text-gray-400 hover:bg-white/10"
               }`}
             >
               {f}
@@ -138,12 +138,12 @@ export default function GameHistory() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 h-20 animate-pulse"
+                className="bg-white/4 border border-white/7 rounded-2xl p-4 h-20 animate-pulse"
               />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-8 text-center text-gray-600 text-sm">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-8 text-center text-gray-600 text-sm">
             No games found
           </div>
         ) : (
@@ -151,7 +151,7 @@ export default function GameHistory() {
             {filtered.map((g: GameHistoryItem) => (
               <div
                 key={g.roomId}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3"
+                className="bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center gap-3"
               >
                 <img
                   src={

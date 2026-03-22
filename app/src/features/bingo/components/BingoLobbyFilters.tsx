@@ -25,7 +25,7 @@ export default function BingoLobbyFilters({
 }: BingoLobbyFiltersProps) {
   return (
     <>
-      <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
+      <div className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition-all">
         <FiSearch className="text-gray-500 shrink-0" />
         <input
           type="text"
@@ -49,7 +49,7 @@ export default function BingoLobbyFilters({
             className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
               filter === value
                 ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
+                : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
             {value === "all"

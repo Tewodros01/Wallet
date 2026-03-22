@@ -115,7 +115,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
                 placeholder={placeholder}
                 value={form[key as TournamentFormKey]}
                 onChange={(e) => set(key as TournamentFormKey, e.target.value)}
-                className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
+                className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
               />
             </div>
           ))}
@@ -128,7 +128,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               aria-label="Starts at"
               value={form.startsAt}
               onChange={(e) => set("startsAt", e.target.value)}
-              className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
+              className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-emerald-500/50"
             />
           </div>
         </div>
@@ -137,7 +137,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold"
+            className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-400 text-sm font-bold"
           >
             Cancel
           </button>
@@ -207,7 +207,7 @@ function FinishModal({
             placeholder="Paste the winner's user ID"
             value={winnerUserId}
             onChange={(e) => setWinnerUserId(e.target.value.trim())}
-            className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-yellow-500/50 font-mono"
+            className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-yellow-500/50 font-mono"
           />
           <p className="text-[10px] text-gray-600 mt-1">
             The winner must be a registered player in this tournament.
@@ -218,7 +218,7 @@ function FinishModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/10 text-gray-400 text-sm font-bold"
+            className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/10 text-gray-400 text-sm font-bold"
           >
             Cancel
           </button>
@@ -294,7 +294,7 @@ export default function AdminTournaments() {
           [1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-28 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-28 bg-white/4 rounded-2xl animate-pulse"
             />
           ))
         ) : tournaments.length === 0 ? (
@@ -313,7 +313,7 @@ export default function AdminTournaments() {
           tournaments.map((t: Tournament) => (
             <div
               key={t.id}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
+              className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">

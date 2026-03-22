@@ -22,7 +22,7 @@ export default function BingoStatePanel({
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className="h-36 animate-pulse rounded-3xl border border-white/[0.07] bg-white/[0.04]"
+            className="h-36 animate-pulse rounded-3xl border border-white/7 bg-white/4"
           />
         ))}
       </div>
@@ -30,7 +30,7 @@ export default function BingoStatePanel({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/[0.07] bg-white/[0.03] px-6 py-12 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/7 bg-white/3 px-6 py-12 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-2xl">
         🎱
       </div>

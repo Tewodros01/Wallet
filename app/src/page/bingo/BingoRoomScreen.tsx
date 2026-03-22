@@ -34,7 +34,7 @@ export default function BingoRoomScreen({
 }: BingoRoomScreenProps) {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      <div className="sticky top-0 z-50 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07]">
+      <div className="sticky top-0 z-50 bg-gray-950/95 backdrop-blur-xl border-b border-white/7">
         <BingoRoomHeader
           roomCode={activeRoom.id.slice(-8).toUpperCase()}
           isSpectator={isSpectator}

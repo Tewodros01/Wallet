@@ -26,7 +26,7 @@ export default function BingoLobbyStatsStrip({
       ].map(({ label, value, color }) => (
         <div
           key={label}
-          className="flex flex-col items-center gap-0.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] py-3"
+          className="flex flex-col items-center gap-0.5 rounded-2xl border border-white/7 bg-white/4 py-3"
         >
           <span className={`text-sm font-black ${color}`}>{value}</span>
           <span className="text-center text-[9px] uppercase tracking-wide text-gray-500">

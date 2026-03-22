@@ -58,7 +58,7 @@ export default function WithdrawalReviewCard({
   const hasActions = isPending && (onApprove || onReject);
 
   return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+    <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
       <div
         className={`flex items-center gap-3 ${onUserClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
         onClick={onUserClick}

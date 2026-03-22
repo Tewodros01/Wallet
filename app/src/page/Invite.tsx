@@ -69,7 +69,7 @@ export default function Invite() {
 
       <div className="flex flex-col gap-5 px-5 py-5 pb-10">
         {/* Hero */}
-        <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
+        <div className="bg-linear-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
           <div className="w-14 h-14 bg-violet-500/15 border border-violet-500/25 rounded-2xl flex items-center justify-center">
             <FiUserPlus className="text-violet-400 text-2xl" />
           </div>
@@ -103,7 +103,7 @@ export default function Invite() {
           ].map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+              className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1"
             >
               <span className={`text-lg font-black ${color}`}>
                 {isLoading ? "—" : value}
@@ -120,7 +120,7 @@ export default function Invite() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Your Referral Code
           </p>
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3.5 flex items-center justify-between">
+          <div className="bg-white/4 border border-white/7 rounded-2xl px-4 py-3.5 flex items-center justify-between">
             <span className="text-xl font-black tracking-widest text-white">
               {isLoading ? "Loading..." : code}
             </span>
@@ -157,11 +157,11 @@ export default function Invite() {
                 <span>{invitedUsers.length} total</span>
               </div>
             </div>
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+            <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
               {invitedUsers.map((u: InvitedUser, i: number) => (
                 <div
                   key={u.id}
-                  className={`flex items-center gap-3 px-4 py-3.5 ${i < invitedUsers.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                  className={`flex items-center gap-3 px-4 py-3.5 ${i < invitedUsers.length - 1 ? "border-b border-white/5" : ""}`}
                 >
                   <img
                     src={u.avatar ?? `https://i.pravatar.cc/40?u=${u.id}`}

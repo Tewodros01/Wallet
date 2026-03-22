@@ -149,7 +149,7 @@ export default function Notifications() {
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 tab === t
                   ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
+                  : "bg-white/5 text-gray-400 hover:bg-white/10"
               }`}
             >
               {t}
@@ -164,7 +164,7 @@ export default function Notifications() {
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-20 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -188,8 +188,8 @@ export default function Notifications() {
                     transition={{ duration: 0.2 }}
                     className={`w-full flex items-start gap-3 p-4 rounded-2xl border transition-all ${
                       n.read
-                        ? "bg-white/[0.03] border-white/[0.06]"
-                        : "bg-white/[0.06] border-white/[0.10]"
+                        ? "bg-white/3 border-white/6"
+                        : "bg-white/6 border-white/10"
                     }`}
                   >
                     <button
@@ -251,7 +251,7 @@ export default function Notifications() {
                         deleteOne(n.id);
                         haptic.light();
                       }}
-                      className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center hover:bg-rose-500/20 transition-colors"
+                      className="shrink-0 w-7 h-7 rounded-lg bg-white/4 flex items-center justify-center hover:bg-rose-500/20 transition-colors"
                     >
                       <FiTrash2 className="text-gray-600 hover:text-rose-400 text-xs" />
                     </button>

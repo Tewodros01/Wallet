@@ -20,7 +20,7 @@ export default function BingoCardSelectionSummary({
   onConfirm,
 }: BingoCardSelectionSummaryProps) {
   return (
-    <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-teal-500/6 to-white/[0.02] px-3.5 py-2.5 shadow-[0_8px_18px_rgba(0,0,0,0.2)]">
+    <div className="rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-500/10 via-teal-500/6 to-white/2 px-3.5 py-2.5 shadow-[0_8px_18px_rgba(0,0,0,0.2)]">
       <div className="flex items-start justify-between gap-2.5">
         <div>
           <h2 className="mt-1 text-base font-bold uppercase leading-none text-emerald-300/80">
@@ -30,7 +30,7 @@ export default function BingoCardSelectionSummary({
             Select 1 to {maxCount} cards before the game starts.
           </p>
         </div>
-        <div className="rounded-lg bg-white/[0.06] px-2 py-1.5 text-right">
+        <div className="rounded-lg bg-white/6 px-2 py-1.5 text-right">
           <p className="text-[8px] uppercase tracking-[0.16em] text-gray-500">
             Total
           </p>

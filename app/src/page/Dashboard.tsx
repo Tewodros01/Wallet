@@ -50,7 +50,7 @@ const RANK_BG = [
   "bg-yellow-400/15 border-yellow-400/30",
   "bg-gray-400/10 border-gray-400/20",
   "bg-orange-400/10 border-orange-400/20",
-  "bg-white/[0.04] border-white/[0.07]",
+  "bg-white/4 border-white/7",
 ];
 
 const stagger = {
@@ -91,11 +91,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* ── Top bar ── */}
-      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
+      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="relative">
             {meLoading ? (
-              <div className="w-11 h-11 rounded-full bg-white/[0.07] animate-pulse" />
+              <div className="w-11 h-11 rounded-full bg-white/7 animate-pulse" />
             ) : (
               <img
                 src={me?.avatar ?? "https://i.pravatar.cc/40"}
@@ -111,7 +111,7 @@ export default function Dashboard() {
             </p>
             <p className="text-base font-black text-white leading-tight">
               {meLoading ? (
-                <span className="inline-block w-24 h-4 bg-white/[0.07] rounded animate-pulse" />
+                <span className="inline-block w-24 h-4 bg-white/7 rounded animate-pulse" />
               ) : me ? (
                 `${me.firstName} ${me.lastName}`
               ) : (
@@ -139,7 +139,7 @@ export default function Dashboard() {
             aria-label="Notifications"
             title="View notifications"
             onClick={() => nav("/notifications")}
-            className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center relative"
+            className="w-9 h-9 rounded-full bg-white/6 border border-white/8 flex items-center justify-center relative"
           >
             <FiBell className="text-gray-400 text-sm" aria-hidden="true" />
             {(unreadCount?.count ?? 0) > 0 && (
@@ -158,7 +158,7 @@ export default function Dashboard() {
         {/* ── Hero banner ── */}
         <motion.div
           variants={fadeUp}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600/40 via-emerald-600/20 to-cyan-600/20 border border-white/[0.08] p-5 min-h-[160px] flex flex-col justify-between mt-4"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-violet-600/40 via-emerald-600/20 to-cyan-600/20 border border-white/8 p-5 min-h-[160px] flex flex-col justify-between mt-4"
         >
           <div className="absolute -top-8 -right-8 w-40 h-40 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
@@ -185,7 +185,7 @@ export default function Dashboard() {
             </div>
             <h1 className="text-2xl font-black text-white leading-tight">
               Play and <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-cyan-400">
                 Win Big.
               </span>
             </h1>
@@ -346,10 +346,10 @@ export default function Dashboard() {
                 type="button"
                 aria-label={label}
                 onClick={() => nav(path)}
-                className={`bg-gradient-to-br ${bg} border rounded-2xl p-4 flex flex-col gap-3 active:scale-95 transition-all text-left`}
+                className={`bg-linear-to-br ${bg} border rounded-2xl p-4 flex flex-col gap-3 active:scale-95 transition-all text-left`}
               >
                 <div
-                  className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"
+                  className="w-10 h-10 bg-white/6 rounded-xl flex items-center justify-center"
                   aria-hidden="true"
                 >
                   {icon}
@@ -376,7 +376,7 @@ export default function Dashboard() {
               See all <FiChevronRight aria-hidden="true" />
             </button>
           </div>
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {lbLoading
               ? [1, 2, 3, 4].map((i) => <SkeletonLeaderRow key={i} />)
               : (leaderboard ?? []).map((p: LeaderboardEntry, i: number) => (
@@ -384,10 +384,10 @@ export default function Dashboard() {
                     key={p.user?.id ?? i}
                     type="button"
                     onClick={() => nav(`/profile/${p.user?.id}`)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 active:bg-white/[0.06] transition-colors text-left ${i < (leaderboard?.length ?? 0) - 1 ? "border-b border-white/[0.05]" : ""}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 active:bg-white/6 transition-colors text-left ${i < (leaderboard?.length ?? 0) - 1 ? "border-b border-white/5" : ""}`}
                   >
                     <div
-                      className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 ${RANK_BG[i] ?? "bg-white/[0.04] border-white/[0.07]"}`}
+                      className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 ${RANK_BG[i] ?? "bg-white/4 border-white/7"}`}
                     >
                       {i === 0 ? (
                         <FaCrown className="text-yellow-400 text-xs" />

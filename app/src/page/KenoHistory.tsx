@@ -97,7 +97,7 @@ export default function KenoHistory() {
           ].map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+              className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1"
             >
               <span className={`text-base font-black leading-none ${color}`}>
                 {value}
@@ -125,13 +125,13 @@ export default function KenoHistory() {
             }}
           />
         ) : (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {history.map((h, i) => {
               const isWin = h.type === "GAME_WIN";
               return (
                 <div
                   key={h.id}
-                  className={`flex items-center gap-3 px-4 py-3.5 ${i < history.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                  className={`flex items-center gap-3 px-4 py-3.5 ${i < history.length - 1 ? "border-b border-white/5" : ""}`}
                 >
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 ${isWin ? "bg-emerald-500/15" : "bg-rose-500/10"}`}

@@ -47,7 +47,7 @@ export default function TournamentJoinModal({
         </div>
 
         <div
-          className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br ${GRADIENTS[tournament.status]} p-4`}
+          className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-linear-to-br ${GRADIENTS[tournament.status]} p-4`}
         >
           <FaTrophy className="shrink-0 text-2xl text-yellow-400" />
           <div>
@@ -56,7 +56,7 @@ export default function TournamentJoinModal({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+        <div className="overflow-hidden rounded-2xl border border-white/7 bg-white/4">
           {[
             {
               label: "Entry Fee",
@@ -85,7 +85,7 @@ export default function TournamentJoinModal({
             <div
               key={label}
               className={`flex justify-between px-4 py-3 ${
-                i < 3 ? "border-b border-white/[0.05]" : ""
+                i < 3 ? "border-b border-white/5" : ""
               }`}
             >
               <span className="text-xs text-gray-500">{label}</span>
@@ -111,7 +111,7 @@ export default function TournamentJoinModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-2xl border border-white/10 bg-white/[0.06] py-3 text-sm font-bold text-gray-400"
+            className="flex-1 rounded-2xl border border-white/10 bg-white/6 py-3 text-sm font-bold text-gray-400"
           >
             Cancel
           </button>

@@ -5,7 +5,7 @@ import { FiPause, FiPlay } from "react-icons/fi";
 import { MdTimer } from "react-icons/md";
 import Button from "../../components/ui/Button";
 import { AppBar, Avatar, Pill } from "../../components/ui/Layout";
-import { getLetter, LETTER_TEXT } from "../../constance/bingoData";
+import { getLetter, LETTER_TEXT } from "../../features/bingo/bingoData";
 import { useGame } from "../../hooks/useGame";
 import { useRoom } from "../../hooks/useRooms";
 import { useGameSound } from "../../hooks/useSound";
@@ -175,7 +175,7 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
               )}
             </>
           ) : (
-            <div className="w-20 h-20 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-gray-600 text-sm">
+            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-600 text-sm">
               {isStarted ? "—" : "Not started"}
             </div>
           )}
@@ -208,7 +208,7 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
         <div className="mt-auto pt-2 flex flex-col gap-2">
           {!isStarted ? (
             <div className="flex flex-col gap-3">
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+              <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                     Players Joined

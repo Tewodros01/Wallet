@@ -14,7 +14,7 @@ export default function KenoPickSummary({
   onQuickPick,
 }: KenoPickSummaryProps) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3">
+    <div className="flex items-center justify-between rounded-2xl border border-white/7 bg-white/4 px-4 py-3">
       <div className="flex items-center gap-2">
         <span className="text-sm font-black text-white">{picksCount}</span>
         <span className="text-xs text-gray-500">/ {maxPick} numbers picked</span>
@@ -25,7 +25,7 @@ export default function KenoPickSummary({
             <div
               key={i}
               className={`h-2 w-2 rounded-full transition-all ${
-                i < picksCount ? "bg-yellow-400" : "bg-white/[0.10]"
+                i < picksCount ? "bg-yellow-400" : "bg-white/10"
               }`}
             />
           ))}

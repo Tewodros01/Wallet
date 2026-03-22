@@ -66,7 +66,7 @@ export default function BingoJoinCodeModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4">
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/4 p-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Room ID
           </p>

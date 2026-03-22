@@ -41,8 +41,8 @@ export function AgentPanelTabs({
   onChange,
 }: AgentPanelTabsProps) {
   return (
-    <div className="flex gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] p-1.5">
-      {tabs.map(({ id, label, icon }) => (
+    <div className="flex gap-1.5 rounded-2xl border border-white/7 bg-white/4 p-1.5">
+      {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           type="button"
@@ -54,7 +54,9 @@ export function AgentPanelTabs({
               : "text-gray-500 hover:text-gray-300"
           }`}
         >
-          <span className="text-sm">{icon}</span>
+          <span className="text-sm">
+            <Icon />
+          </span>
           {label}
         </button>
       ))}

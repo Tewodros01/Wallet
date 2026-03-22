@@ -160,10 +160,10 @@ export default function AdminPanel() {
             ).map(({ label, value, sub, icon, from, to, glow }) => (
               <div
                 key={label}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden"
+                className="bg-white/4 border border-white/7 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden"
               >
                 <div
-                  className={`w-8 h-8 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
+                  className={`w-8 h-8 rounded-xl bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
                   style={{ boxShadow: `0 0 10px ${glow}` }}
                 >
                   {icon}
@@ -186,7 +186,7 @@ export default function AdminPanel() {
           {/* ── Coin flow ── */}
           <motion.div
             variants={fadeUp}
-            className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5"
+            className="bg-white/4 border border-white/7 rounded-3xl p-5"
           >
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
               Coin Flow
@@ -213,11 +213,11 @@ export default function AdminPanel() {
             </div>
             {/* flow bar */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden flex">
+              <div className="flex-1 h-2 bg-white/6 rounded-full overflow-hidden flex">
                 {totalDepositCoins + totalWithdrawalCoins > 0 && (
                   <>
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all"
+                      className="h-full bg-linear-to-r from-emerald-500 to-teal-400 rounded-full transition-all"
                       style={{
                         width: `${(totalDepositCoins / (totalDepositCoins + totalWithdrawalCoins)) * 100}%`,
                       }}
@@ -298,17 +298,17 @@ export default function AdminPanel() {
                   type="button"
                   aria-label={label}
                   onClick={() => navigate(path)}
-                  className={`bg-gradient-to-br ${bg} border rounded-2xl px-3.5 py-3 flex flex-col gap-2.5 active:scale-95 transition-all text-left min-h-[116px]`}
+                  className={`bg-linear-to-br ${bg} border rounded-2xl px-3.5 py-3 flex flex-col gap-2.5 active:scale-95 transition-all text-left min-h-[116px]`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div
-                      className="w-9 h-9 bg-white/[0.06] rounded-xl flex items-center justify-center"
+                      className="w-9 h-9 bg-white/6 rounded-xl flex items-center justify-center"
                       aria-hidden="true"
                     >
                       {icon}
                     </div>
                     {badge !== undefined && (
-                      <span className="min-w-6 h-6 px-1.5 rounded-full bg-white/[0.08] border border-white/[0.1] text-[10px] font-black text-white flex items-center justify-center shrink-0">
+                      <span className="min-w-6 h-6 px-1.5 rounded-full bg-white/8 border border-white/10 text-[10px] font-black text-white flex items-center justify-center shrink-0">
                         {badge}
                       </span>
                     )}
@@ -342,7 +342,7 @@ export default function AdminPanel() {
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
+                    className="h-16 bg-white/4 rounded-2xl animate-pulse"
                   />
                 ))}
               </div>
@@ -359,7 +359,7 @@ export default function AdminPanel() {
                     type="button"
                     onClick={() => navigate(`/admin/agents/${u.id}`)}
                     title={`View ${u.firstName} ${u.lastName}'s profile`}
-                    className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-3.5 flex items-center gap-3 active:scale-[0.98] transition-all text-left hover:bg-white/[0.07]"
+                    className="w-full bg-white/4 border border-white/7 rounded-2xl p-3.5 flex items-center gap-3 active:scale-[0.98] transition-all text-left hover:bg-white/7"
                   >
                     <div className="relative shrink-0">
                       <img
@@ -412,7 +412,7 @@ export default function AdminPanel() {
                 )
               }
               title="Review pending transactions"
-              className="w-full bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
+              className="w-full bg-linear-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
             >
               <div className="w-10 h-10 rounded-2xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center shrink-0">
                 <FiClock className="text-yellow-400 text-base" />

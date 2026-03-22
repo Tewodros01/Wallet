@@ -45,7 +45,7 @@ export default function ProofViewerSheet({
         </a>
       }
     >
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+      <div className="rounded-2xl border border-white/10 bg-white/4 p-3">
         {kind === "image" ? (
           <img
             src={url}

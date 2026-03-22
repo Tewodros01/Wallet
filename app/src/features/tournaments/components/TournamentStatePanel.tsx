@@ -19,7 +19,7 @@ export default function TournamentStatePanel({
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className={`${cardHeightClassName} animate-pulse rounded-3xl bg-white/[0.04]`}
+            className={`${cardHeightClassName} animate-pulse rounded-3xl bg-white/4`}
           />
         ))}
       </div>

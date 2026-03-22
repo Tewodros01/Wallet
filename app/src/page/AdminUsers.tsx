@@ -222,10 +222,10 @@ export default function AdminUsers() {
             ].map(({ label, value, sub, icon, from, to, glow }) => (
               <div
                 key={label}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden"
+                className="bg-white/4 border border-white/7 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 overflow-hidden"
               >
                 <div
-                  className={`w-8 h-8 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
+                  className={`w-8 h-8 rounded-xl bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
                   style={{ boxShadow: `0 0 10px ${glow}` }}
                 >
                   {icon}
@@ -246,7 +246,7 @@ export default function AdminUsers() {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3 focus-within:border-emerald-500/40 transition-all">
+          <div className="flex items-center gap-3 bg-white/4 border border-white/7 rounded-2xl px-4 py-3 focus-within:border-emerald-500/40 transition-all">
             <FiSearch className="text-gray-500 shrink-0 text-sm" />
             <input
               type="text"
@@ -276,7 +276,7 @@ export default function AdminUsers() {
           </div>
 
           {/* Role filter tabs */}
-          <div className="flex gap-1.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1.5">
+          <div className="flex gap-1.5 bg-white/4 border border-white/7 rounded-2xl p-1.5">
             {(["all", Role.USER, Role.AGENT, Role.ADMIN] as RoleFilter[]).map(
               (f) => (
                 <button
@@ -308,13 +308,13 @@ export default function AdminUsers() {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="h-[68px] bg-white/[0.04] rounded-2xl animate-pulse"
+                    className="h-[68px] bg-white/4 rounded-2xl animate-pulse"
                   />
                 ))}
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-14 text-gray-700">
-                <div className="w-14 h-14 rounded-3xl bg-white/[0.04] flex items-center justify-center">
+                <div className="w-14 h-14 rounded-3xl bg-white/4 flex items-center justify-center">
                   <FiUsers className="text-3xl" />
                 </div>
                 <p className="text-sm font-semibold">No users found</p>
@@ -329,7 +329,7 @@ export default function AdminUsers() {
                     return (
                       <div
                         key={u.id}
-                        className={`bg-white/[0.04] border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/[0.07] transition-all ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/[0.07]"}`}
+                        className={`bg-white/4 border rounded-2xl p-4 flex items-center gap-3 hover:bg-white/7 transition-all ${u.deletedAt ? "border-rose-500/20 opacity-60" : "border-white/7"}`}
                       >
                         <button
                           type="button"
@@ -432,7 +432,7 @@ export default function AdminUsers() {
                                 }}
                                 aria-haspopup="menu"
                                 aria-label={`Change role for ${u.firstName} ${u.lastName}`}
-                                className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors backdrop-blur-sm ${ROLE_BADGE[u.role] ?? "bg-white/[0.06] border-white/10 text-gray-300"}`}
+                                className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors backdrop-blur-sm ${ROLE_BADGE[u.role] ?? "bg-white/6 border-white/10 text-gray-300"}`}
                               >
                                 {ROLE_ICON[u.role]}
                                 <span>{u.role}</span>
@@ -460,7 +460,7 @@ export default function AdminUsers() {
                                         className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-colors ${
                                           u.role === role
                                             ? `${ROLE_BADGE[role]}`
-                                            : "text-gray-300 hover:bg-white/[0.06]"
+                                            : "text-gray-300 hover:bg-white/6"
                                         }`}
                                       >
                                         <span className="flex items-center gap-2">
@@ -493,7 +493,7 @@ export default function AdminUsers() {
       {/* Ban confirm dialog */}
       {banConfirm && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end justify-center px-5 pb-6">
-          <div className="w-full max-w-sm bg-gray-900 border border-white/[0.08] rounded-3xl p-6 flex flex-col gap-5">
+          <div className="w-full max-w-sm bg-gray-900 border border-white/8 rounded-3xl p-6 flex flex-col gap-5">
             <div className="text-center">
               <p className="text-base font-black text-white">
                 {banConfirm.banned ? "Unban User?" : "Ban User?"}
@@ -522,7 +522,7 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={() => setBanConfirm(null)}
-                className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/8 text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
               >
                 Cancel
               </button>
@@ -552,7 +552,7 @@ export default function AdminUsers() {
       {/* Confirm dialog */}
       {confirm && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end justify-center px-5 pb-6">
-          <div className="w-full max-w-sm bg-gray-900 border border-white/[0.08] rounded-3xl p-6 flex flex-col gap-5">
+          <div className="w-full max-w-sm bg-gray-900 border border-white/8 rounded-3xl p-6 flex flex-col gap-5">
             <div className="flex flex-col items-center gap-3 text-center">
               {confirm.avatar ? (
                 <img
@@ -583,7 +583,7 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={() => setConfirm(null)}
-                className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/8 text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
               >
                 Cancel
               </button>
@@ -606,7 +606,7 @@ export default function AdminUsers() {
       {/* Coins dialog */}
       {coinsDialog && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end justify-center px-5 pb-6">
-          <div className="w-full max-w-sm bg-gray-900 border border-white/[0.08] rounded-3xl p-6 flex flex-col gap-5">
+          <div className="w-full max-w-sm bg-gray-900 border border-white/8 rounded-3xl p-6 flex flex-col gap-5">
             <div className="flex flex-col items-center gap-3 text-center">
               {coinsDialog.avatar ? (
                 <img
@@ -644,7 +644,7 @@ export default function AdminUsers() {
                   placeholder="Amount (use - to deduct)"
                   value={coinsAmount}
                   onChange={(e) => setCoinsAmount(e.target.value)}
-                  className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-bold outline-none focus:border-yellow-500/50 text-center"
+                  className="flex-1 bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-bold outline-none focus:border-yellow-500/50 text-center"
                 />
                 <button
                   type="button"
@@ -663,14 +663,14 @@ export default function AdminUsers() {
                 placeholder="Note (optional)"
                 value={coinsNote}
                 onChange={(e) => setCoinsNote(e.target.value)}
-                className="bg-white/[0.06] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-yellow-500/50"
+                className="bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-yellow-500/50"
               />
             </div>
             <div className="flex gap-2.5">
               <button
                 type="button"
                 onClick={() => setCoinsDialog(null)}
-                className="flex-1 py-3 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-2xl bg-white/6 border border-white/8 text-gray-400 text-sm font-bold active:scale-[0.97] transition-all"
               >
                 Cancel
               </button>

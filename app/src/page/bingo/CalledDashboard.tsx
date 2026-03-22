@@ -5,7 +5,7 @@ import { FiMessageCircle, FiSend, FiX } from "react-icons/fi";
 import { MdTimer } from "react-icons/md";
 import Button from "../../components/ui/Button";
 import { AppBar, Avatar, Pill } from "../../components/ui/Layout";
-import { getLetter, LETTER_TEXT } from "../../constance/bingoData";
+import { getLetter, LETTER_TEXT } from "../../features/bingo/bingoData";
 import { useGame } from "../../hooks/useGame";
 import { useRoom } from "../../hooks/useRooms";
 import { useGameSound } from "../../hooks/useSound";
@@ -338,7 +338,7 @@ export default function CalledDashboard({
                     className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-bold whitespace-nowrap transition-colors ${
                       selected
                         ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.18)]"
-                        : "bg-white/[0.04] border-white/10 text-gray-400 hover:bg-white/[0.08]"
+                        : "bg-white/4 border-white/10 text-gray-400 hover:bg-white/8"
                     }`}
                   >
                     Card {index + 1} · {markedCount} marked
@@ -408,7 +408,7 @@ export default function CalledDashboard({
             className="fixed inset-x-0 bottom-0 z-[60] bg-gray-900 border-t border-white/10 flex flex-col"
             style={{ maxHeight: "55vh" }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/7">
               <p className="text-sm font-black text-white flex items-center gap-2">
                 <FiMessageCircle /> Room Chat
               </p>
@@ -450,7 +450,7 @@ export default function CalledDashboard({
                         className={`px-3 py-2 rounded-2xl text-xs font-medium ${
                           m.userId === user?.id
                             ? "bg-emerald-500 text-white rounded-tr-sm"
-                            : "bg-white/[0.08] text-white rounded-tl-sm"
+                            : "bg-white/8 text-white rounded-tl-sm"
                         }`}
                       >
                         {m.message}
@@ -461,7 +461,7 @@ export default function CalledDashboard({
               )}
               <div ref={chatEndRef} />
             </div>
-            <div className="flex items-center gap-2 px-4 py-3 border-t border-white/[0.07]">
+            <div className="flex items-center gap-2 px-4 py-3 border-t border-white/7">
               <input
                 type="text"
                 aria-label="Chat message"
@@ -472,7 +472,7 @@ export default function CalledDashboard({
                   if (e.key === "Enter") void sendChat();
                 }}
                 maxLength={200}
-                className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500/50"
+                className="flex-1 bg-white/6 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500/50"
               />
               <button
                 type="button"

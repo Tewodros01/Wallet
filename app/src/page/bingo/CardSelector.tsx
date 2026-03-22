@@ -35,7 +35,7 @@ export default function CardSelector({
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col text-white overflow-hidden">
-      <div className="sticky top-0 z-30 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07]">
+      <div className="sticky top-0 z-30 bg-gray-950/95 backdrop-blur-xl border-b border-white/7">
         <AppBar
           left={
             <div className="flex items-center gap-3">
@@ -63,7 +63,7 @@ export default function CardSelector({
       </div>
 
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="shrink-0 px-4 pt-2.5 pb-2.5 border-b border-white/[0.07] bg-gray-950/95 backdrop-blur-xl">
+        <div className="shrink-0 px-4 pt-2.5 pb-2.5 border-b border-white/7 bg-gray-950/95 backdrop-blur-xl">
           <BingoCardSelectionSummary
             maxCount={maxCount}
             entryFee={entryFee}
@@ -90,7 +90,7 @@ export default function CardSelector({
                   onClick={() => {
                     onToggle(c.id);
                   }}
-                  className={`relative rounded-2xl p-3 text-left transition-all overflow-hidden border-2 ${disablePickMore ? "opacity-40 cursor-not-allowed border-white/[0.08] bg-white/[0.03]" : "active:scale-95"} ${sel ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "border-white/[0.08] bg-white/[0.03] hover:border-white/20"}`}
+                  className={`relative rounded-2xl p-3 text-left transition-all overflow-hidden border-2 ${disablePickMore ? "opacity-40 cursor-not-allowed border-white/8 bg-white/3" : "active:scale-95"} ${sel ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "border-white/8 bg-white/3 hover:border-white/20"}`}
                 >
                   <div className="flex items-center justify-between mb-2.5">
                     <span className="text-[11px] font-bold text-gray-400">
@@ -109,7 +109,7 @@ export default function CardSelector({
           </div>
 
           {cards.length === 0 && (
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 text-sm text-gray-400 text-center">
+            <div className="bg-white/4 border border-white/7 rounded-2xl p-4 text-sm text-gray-400 text-center">
               No more cards are available in this room right now.
             </div>
           )}

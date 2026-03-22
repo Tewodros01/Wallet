@@ -26,7 +26,7 @@ export default function TournamentPageHeader({
   onFilterChange,
 }: TournamentPageHeaderProps) {
   return (
-    <div className="sticky top-0 z-40 flex flex-col gap-3 border-b border-white/[0.06] bg-gray-950/95 px-5 pb-3 pt-5 backdrop-blur-xl">
+    <div className="sticky top-0 z-40 flex flex-col gap-3 border-b border-white/6 bg-gray-950/95 px-5 pb-3 pt-5 backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -34,7 +34,7 @@ export default function TournamentPageHeader({
             aria-label="Go back"
             title="Go back"
             onClick={onBack}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.06]"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/8 bg-white/6"
           >
             <FiArrowLeft className="text-sm text-white" />
           </button>

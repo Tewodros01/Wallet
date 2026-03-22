@@ -106,11 +106,11 @@ function TransactionCard({
     icon: null,
   };
   return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+    <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${type === "deposit" ? "from-emerald-500 to-teal-500" : "from-rose-500 to-pink-500"} flex items-center justify-center`}
+            className={`w-10 h-10 rounded-xl bg-linear-to-br ${type === "deposit" ? "from-emerald-500 to-teal-500" : "from-rose-500 to-pink-500"} flex items-center justify-center`}
           >
             <FiDollarSign className="text-white text-sm" />
           </div>
@@ -130,7 +130,7 @@ function TransactionCard({
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white/[0.04] rounded-xl px-3 py-2.5">
+        <div className="bg-white/4 rounded-xl px-3 py-2.5">
           <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">
             Amount
           </p>
@@ -141,7 +141,7 @@ function TransactionCard({
             {Number(item.amount || 1000).toLocaleString()}
           </p>
         </div>
-        <div className="bg-white/[0.04] rounded-xl px-3 py-2.5">
+        <div className="bg-white/4 rounded-xl px-3 py-2.5">
           <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">
             Date
           </p>
@@ -228,14 +228,14 @@ export default function UserDetail() {
       <div className="min-h-screen bg-gray-950 flex flex-col text-white">
         <div className="px-5 pt-12 pb-6">
           <div className="w-9 h-9 rounded-2xl bg-white/10 mb-5 animate-pulse" />
-          <div className="w-40 h-5 bg-white/[0.07] rounded-xl animate-pulse mb-2" />
-          <div className="w-24 h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="w-40 h-5 bg-white/7 rounded-xl animate-pulse mb-2" />
+          <div className="w-24 h-3 bg-white/4 rounded animate-pulse" />
         </div>
         <div className="flex flex-col gap-3 px-5">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-24 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-24 bg-white/4 rounded-2xl animate-pulse"
             />
           ))}
         </div>
@@ -246,7 +246,7 @@ export default function UserDetail() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white">
-        <div className="w-16 h-16 rounded-3xl bg-white/[0.04] flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-3xl bg-white/4 flex items-center justify-center mb-4">
           <FiUser className="text-3xl text-gray-600" />
         </div>
         <p className="text-lg font-bold text-gray-400">User not found</p>
@@ -257,7 +257,7 @@ export default function UserDetail() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       {/* ── Sticky top bar ── */}
-      <div className="sticky top-0 z-40 flex items-center gap-3 px-5 py-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
+      <div className="sticky top-0 z-40 flex items-center gap-3 px-5 py-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -272,7 +272,7 @@ export default function UserDetail() {
           </p>
           <p className="text-[10px] text-gray-500">@{user.username}</p>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.4)]">
+        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.4)]">
           <FiUser className="text-white text-xs" />
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function UserDetail() {
       <div className="flex-1 overflow-y-auto">
         {/* ── Hero profile header ── */}
         <div className="relative overflow-hidden px-5 pt-6 pb-4">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/15 via-purple-600/8 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-br from-violet-600/15 via-purple-600/8 to-transparent" />
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl" />
           <div className="relative flex items-center gap-4">
             <div className="relative shrink-0">
@@ -289,7 +289,7 @@ export default function UserDetail() {
                 alt={user.username}
                 className="w-16 h-16 rounded-2xl object-cover ring-2 ring-violet-500/40 shadow-[0_0_20px_rgba(139,92,246,0.2)]"
               />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center border-2 border-gray-950">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center border-2 border-gray-950">
                 <FiUser className="text-white text-[10px]" />
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function UserDetail() {
 
           {/* User bio */}
           {user.bio && (
-            <div className="relative mt-4 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3">
+            <div className="relative mt-4 bg-white/5 border border-white/8 rounded-2xl px-4 py-3">
               <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">
                 About
               </p>
@@ -340,8 +340,8 @@ export default function UserDetail() {
               onClick={() => setTab(tid)}
               className={`relative flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all ${
                 tab === tid
-                  ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]"
-                  : "bg-white/[0.05] text-gray-500 hover:text-gray-300 hover:bg-white/[0.08]"
+                  ? "bg-linear-to-r from-violet-500 to-purple-500 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]"
+                  : "bg-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/8"
               }`}
             >
               {label}
@@ -396,10 +396,10 @@ export default function UserDetail() {
                 ].map(({ icon, label, value, from, to, glow }) => (
                   <div
                     key={label}
-                    className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5"
+                    className="bg-white/4 border border-white/7 rounded-2xl px-3 py-2.5 flex items-center gap-2.5"
                   >
                     <div
-                      className={`w-8 h-8 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
+                      className={`w-8 h-8 rounded-xl bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
                       style={{ boxShadow: `0 0 12px ${glow}` }}
                     >
                       {icon}
@@ -417,7 +417,7 @@ export default function UserDetail() {
               </div>
 
               {/* Activity chart */}
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+              <div className="bg-white/4 border border-white/7 rounded-3xl p-5">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
                   Recent Activity
                 </p>
@@ -426,7 +426,7 @@ export default function UserDetail() {
                     (height, i) => (
                       <div
                         key={i}
-                        className="flex-1 bg-gradient-to-t from-violet-500 to-purple-400 rounded-t opacity-70 hover:opacity-100 transition-opacity"
+                        className="flex-1 bg-linear-to-t from-violet-500 to-purple-400 rounded-t opacity-70 hover:opacity-100 transition-opacity"
                         style={{ height: `${height}%` }}
                       />
                     ),
@@ -439,7 +439,7 @@ export default function UserDetail() {
               </div>
 
               {/* Recent achievements */}
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+              <div className="bg-white/4 border border-white/7 rounded-3xl p-5">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
                   Recent Achievements
                 </p>
@@ -450,9 +450,9 @@ export default function UserDetail() {
                     .map((achievement) => (
                       <div
                         key={achievement.id}
-                        className="flex items-center gap-3 bg-white/[0.04] rounded-2xl p-3"
+                        className="flex items-center gap-3 bg-white/4 rounded-2xl p-3"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-lg shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-lg shadow-[0_0_12px_rgba(245,158,11,0.4)]">
                           {achievement.emoji}
                         </div>
                         <div className="flex-1">
@@ -505,7 +505,7 @@ export default function UserDetail() {
                 ].map(({ icon, label, value, color }) => (
                   <div
                     key={label}
-                    className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1"
+                    className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1"
                   >
                     <span className={`text-base ${color}`}>{icon}</span>
                     <span className="text-base font-black text-white leading-none">
@@ -519,7 +519,7 @@ export default function UserDetail() {
               </div>
 
               {/* Performance breakdown */}
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+              <div className="bg-white/4 border border-white/7 rounded-3xl p-5">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
                   Performance Breakdown
                 </p>
@@ -554,9 +554,9 @@ export default function UserDetail() {
                           {wins}/{total}
                         </span>
                       </div>
-                      <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div className="h-2 bg-white/6 rounded-full overflow-hidden">
                         <div
-                          className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-700`}
+                          className={`h-full bg-linear-to-r ${color} rounded-full transition-all duration-700`}
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -585,7 +585,7 @@ export default function UserDetail() {
               </div>
               {transactions.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-20 text-gray-700">
-                  <div className="w-16 h-16 rounded-3xl bg-white/[0.04] flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-3xl bg-white/4 flex items-center justify-center">
                     <FiDollarSign className="text-3xl" />
                   </div>
                   <p className="text-sm font-semibold">No transactions yet</p>
@@ -615,15 +615,15 @@ export default function UserDetail() {
                     key={achievement.id}
                     className={`border rounded-2xl p-4 flex flex-col items-center gap-2 transition-all ${
                       achievement.unlocked
-                        ? "bg-gradient-to-br from-yellow-500/10 to-orange-500/5 border-yellow-500/20"
-                        : "bg-white/[0.04] border-white/[0.07] opacity-50"
+                        ? "bg-linear-to-br from-yellow-500/10 to-orange-500/5 border-yellow-500/20"
+                        : "bg-white/4 border-white/7 opacity-50"
                     }`}
                   >
                     <div
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${
                         achievement.unlocked
-                          ? "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]"
-                          : "bg-white/[0.06]"
+                          ? "bg-linear-to-br from-yellow-400 to-orange-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]"
+                          : "bg-white/6"
                       }`}
                     >
                       {achievement.emoji}

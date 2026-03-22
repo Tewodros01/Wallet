@@ -86,7 +86,7 @@ export default function TransferMoney() {
         <button
           type="button"
           onClick={() => navigate("/wallet")}
-          className="w-full bg-white/[0.06] border border-white/[0.08] text-white font-black py-4 rounded-2xl active:scale-95 transition-all"
+          className="w-full bg-white/6 border border-white/8 text-white font-black py-4 rounded-2xl active:scale-95 transition-all"
         >
           Back to Wallet
         </button>
@@ -104,7 +104,7 @@ export default function TransferMoney() {
               onClick={() => setStep(2)}
               aria-label="Go back"
               title="Go back"
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08]"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/6 border border-white/8"
             >
               <FiArrowLeft className="text-white text-sm" />
             </button>
@@ -114,7 +114,7 @@ export default function TransferMoney() {
           }
         />
         <div className="flex flex-col gap-5 px-5 py-6">
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 flex items-center gap-4">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-5 flex items-center gap-4">
             {selected.avatar ? (
               <img
                 src={selected.avatar}
@@ -134,7 +134,7 @@ export default function TransferMoney() {
             </div>
           </div>
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 flex flex-col gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-5 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Transfer Summary
             </p>
@@ -156,7 +156,7 @@ export default function TransferMoney() {
                 <span className={`text-sm font-bold ${color}`}>{value}</span>
               </div>
             ))}
-            <div className="border-t border-white/[0.07] pt-3 flex items-center justify-between">
+            <div className="border-t border-white/7 pt-3 flex items-center justify-between">
               <span className="text-sm font-bold text-white">
                 Total Deducted
               </span>
@@ -198,7 +198,7 @@ export default function TransferMoney() {
               onClick={() => setStep(1)}
               aria-label="Go back"
               title="Go back"
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08]"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/6 border border-white/8"
             >
               <FiArrowLeft className="text-white text-sm" />
             </button>
@@ -216,7 +216,7 @@ export default function TransferMoney() {
               placeholder="Search by name or username…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+              className="w-full bg-white/4 border border-white/7 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
             />
             {query && (
               <button
@@ -231,12 +231,12 @@ export default function TransferMoney() {
             )}
           </div>
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {loadingUsers ? (
               [1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-16 bg-white/[0.04] animate-pulse border-b border-white/[0.05] last:border-0"
+                  className="h-16 bg-white/4 animate-pulse border-b border-white/5 last:border-0"
                 />
               ))
             ) : filtered.length === 0 ? (
@@ -252,7 +252,7 @@ export default function TransferMoney() {
                     setSelected(u);
                     setStep(3);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/[0.06] transition-colors text-left ${i < filtered.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/6 transition-colors text-left ${i < filtered.length - 1 ? "border-b border-white/5" : ""}`}
                 >
                   {u.avatar ? (
                     <img
@@ -295,7 +295,7 @@ export default function TransferMoney() {
             onClick={() => navigate(-1)}
             aria-label="Go back"
             title="Go back"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08]"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/6 border border-white/8"
           >
             <FiArrowLeft className="text-white text-sm" />
           </button>
@@ -303,7 +303,7 @@ export default function TransferMoney() {
         center={<span className="text-base font-black">Transfer</span>}
       />
       <div className="flex flex-col gap-6 px-5 py-6">
-        <div className="flex items-center justify-center gap-2 bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3">
+        <div className="flex items-center justify-center gap-2 bg-white/4 border border-white/7 rounded-2xl py-3">
           <FaCoins className="text-yellow-400 text-sm" />
           <span className="text-sm text-gray-400">Available:</span>
           <span className="text-sm font-black text-yellow-300">
@@ -311,7 +311,7 @@ export default function TransferMoney() {
           </span>
         </div>
 
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 flex flex-col gap-4">
+        <div className="bg-white/4 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Enter Amount
           </p>
@@ -323,7 +323,7 @@ export default function TransferMoney() {
               placeholder="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3.5 text-xl font-black text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
+              className="w-full bg-white/6 border border-white/8 rounded-xl pl-10 pr-4 py-3.5 text-xl font-black text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50"
             />
           </div>
           {amountErr && (
@@ -335,7 +335,7 @@ export default function TransferMoney() {
                 key={v}
                 type="button"
                 onClick={() => setAmount(String(v))}
-                className={`rounded-xl py-2 text-xs font-bold active:scale-95 transition-all border ${amount === String(v) ? "bg-cyan-500 text-white border-cyan-500" : "bg-white/[0.06] border-white/[0.08] text-gray-300"}`}
+                className={`rounded-xl py-2 text-xs font-bold active:scale-95 transition-all border ${amount === String(v) ? "bg-cyan-500 text-white border-cyan-500" : "bg-white/6 border-white/8 text-gray-300"}`}
               >
                 {v}
               </button>
@@ -347,7 +347,7 @@ export default function TransferMoney() {
           type="button"
           disabled={!parsed || !!amountErr}
           onClick={() => setStep(2)}
-          className="w-full bg-cyan-500 disabled:bg-white/[0.06] disabled:text-gray-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all"
+          className="w-full bg-cyan-500 disabled:bg-white/6 disabled:text-gray-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all"
         >
           Next — Select Recipient
         </button>

@@ -237,7 +237,7 @@ export default function WalletHistory() {
             placeholder="Search transactions…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 transition-all"
+            className="w-full bg-white/4 border border-white/7 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 transition-all"
           />
           {search && (
             <button
@@ -261,7 +261,7 @@ export default function WalletHistory() {
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 tab === t
                   ? "bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                  : "bg-white/[0.05] text-gray-400 hover:bg-white/10"
+                  : "bg-white/5 text-gray-400 hover:bg-white/10"
               }`}
             >
               {t}
@@ -279,7 +279,7 @@ export default function WalletHistory() {
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-16 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -289,15 +289,15 @@ export default function WalletHistory() {
             <p className="text-sm font-semibold">No transactions found</p>
           </div>
         ) : (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {filtered.map((tx: HistoryItem, i: number) => (
               <div
                 key={tx.id}
-                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors ${i < filtered.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/2 transition-colors ${i < filtered.length - 1 ? "border-b border-white/5" : ""}`}
                 onClick={() => navigate(`/transaction/${tx.id}`)}
               >
                 <div
-                  className={`w-10 h-10 ${TYPE_BG[tx.type] ?? "bg-white/[0.06]"} rounded-xl flex items-center justify-center text-base shrink-0`}
+                  className={`w-10 h-10 ${TYPE_BG[tx.type] ?? "bg-white/6"} rounded-xl flex items-center justify-center text-base shrink-0`}
                 >
                   <span className={TYPE_COLOR[tx.type] ?? "text-white"}>
                     {TYPE_ICON[tx.type] ?? "💱"}

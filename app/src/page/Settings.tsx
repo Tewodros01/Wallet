@@ -229,7 +229,7 @@ export default function Settings() {
         <button
           type="button"
           onClick={() => navigate("/profile")}
-          className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.07] transition-colors active:scale-[0.98] text-left"
+          className="bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/7 transition-colors active:scale-[0.98] text-left"
         >
           {profile?.avatar ? (
             <img
@@ -259,14 +259,14 @@ export default function Settings() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               {section.title}
             </p>
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+            <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
               {section.items.map((item, i) => {
-                const base = `w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${i < section.items.length - 1 ? "border-b border-white/[0.05]" : ""}`;
+                const base = `w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${i < section.items.length - 1 ? "border-b border-white/5" : ""}`;
                 if (item.toggle) {
                   return (
                     <div
                       key={item.label}
-                      className={`${base} hover:bg-white/[0.04]`}
+                      className={`${base} hover:bg-white/4`}
                     >
                       <span className="text-gray-400 text-sm shrink-0">
                         {item.icon}
@@ -290,7 +290,7 @@ export default function Settings() {
                     key={item.label}
                     type="button"
                     onClick={item.action}
-                    className={`${base} hover:bg-white/[0.04]`}
+                    className={`${base} hover:bg-white/4`}
                   >
                     <span className="text-gray-400 text-sm shrink-0">
                       {item.icon}

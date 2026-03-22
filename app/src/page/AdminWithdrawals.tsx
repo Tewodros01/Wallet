@@ -111,7 +111,7 @@ export default function AdminWithdrawals() {
           [1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-36 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-36 bg-white/4 rounded-2xl animate-pulse"
             />
           ))
         ) : filtered.length === 0 ? (
@@ -129,7 +129,7 @@ export default function AdminWithdrawals() {
                 subtitle={`@${item.user?.username ?? "unknown"}`}
                 details={
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/[0.04] rounded-xl px-3 py-2">
+                    <div className="bg-white/4 rounded-xl px-3 py-2">
                       <p className="text-[9px] text-gray-500 uppercase tracking-wide">
                         Amount
                       </p>
@@ -138,7 +138,7 @@ export default function AdminWithdrawals() {
                         {Number(item.amount).toLocaleString()} coins
                       </p>
                     </div>
-                    <div className="bg-white/[0.04] rounded-xl px-3 py-2">
+                    <div className="bg-white/4 rounded-xl px-3 py-2">
                       <p className="text-[9px] text-gray-500 uppercase tracking-wide">
                         Method
                       </p>
@@ -147,7 +147,7 @@ export default function AdminWithdrawals() {
                       </p>
                     </div>
                     {item.accountNumber && (
-                      <div className="bg-white/[0.04] rounded-xl px-3 py-2 col-span-2">
+                      <div className="bg-white/4 rounded-xl px-3 py-2 col-span-2">
                         <p className="text-[9px] text-gray-500 uppercase tracking-wide">
                           Account
                         </p>

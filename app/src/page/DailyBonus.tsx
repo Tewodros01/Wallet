@@ -134,7 +134,7 @@ export default function DailyBonus() {
             coins added to your wallet!
           </p>
         </div>
-        <div className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center justify-between">
+        <div className="w-full bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center justify-between">
           <span className="text-sm text-gray-400">New Balance</span>
           <div className="flex items-center gap-1.5">
             <FaCoins className="text-yellow-400 text-sm" />
@@ -158,7 +158,7 @@ export default function DailyBonus() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.07] flex items-center justify-between px-5 pt-5 pb-3">
+      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/7 flex items-center justify-between px-5 pt-5 pb-3">
         <button
           type="button"
           aria-label="Go back"
@@ -269,7 +269,7 @@ export default function DailyBonus() {
         </div>
 
         {prize && !claimed && (
-          <div className="w-full bg-white/[0.06] border border-white/[0.10] rounded-2xl p-4 flex items-center justify-between">
+          <div className="w-full bg-white/6 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400">You landed on</p>
               <div className="flex items-center gap-2 mt-0.5">

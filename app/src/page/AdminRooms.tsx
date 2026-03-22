@@ -199,7 +199,7 @@ export default function AdminRooms() {
       />
 
       <div className="flex-1 overflow-y-auto px-5 pt-5 pb-12">
-        <div className="rounded-3xl border border-white/[0.07] bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-transparent p-5">
+        <div className="rounded-3xl border border-white/7 bg-linear-to-br from-cyan-500/15 via-sky-500/10 to-transparent p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300/80">
             Bingo Control
           </p>
@@ -239,10 +239,10 @@ export default function AdminRooms() {
           ].map(({ label, value, sub, icon, tone, glow }) => (
             <div
               key={label}
-              className="flex items-center gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-3 py-3"
+              className="flex items-center gap-2 rounded-2xl border border-white/7 bg-white/4 px-3 py-3"
             >
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br ${tone} text-xs text-white shrink-0`}
+                className={`flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br ${tone} text-xs text-white shrink-0`}
                 style={{ boxShadow: `0 0 10px ${glow}` }}
               >
                 {icon}
@@ -260,7 +260,7 @@ export default function AdminRooms() {
           ))}
         </div>
 
-        <div className="mt-5 flex gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] p-1.5">
+        <div className="mt-5 flex gap-1.5 rounded-2xl border border-white/7 bg-white/4 p-1.5">
           {(["all", "WAITING", "PLAYING", "FINISHED"] as AdminRoomFilter[]).map(
             (value) => (
               <button
@@ -289,12 +289,12 @@ export default function AdminRooms() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-28 rounded-2xl bg-white/[0.04] animate-pulse"
+                  className="h-28 rounded-2xl bg-white/4 animate-pulse"
                 />
               ))}
             </div>
           ) : visibleRooms.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-8 text-center">
+            <div className="rounded-2xl border border-white/7 bg-white/4 px-4 py-8 text-center">
               <p className="text-sm font-bold text-white">No rooms found</p>
               <p className="mt-1 text-[11px] text-gray-500">
                 {emptyStateCopy}
@@ -313,7 +313,7 @@ export default function AdminRooms() {
                 return (
                   <div
                     key={room.id}
-                    className="rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4"
+                    className="rounded-2xl border border-white/7 bg-white/4 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -334,7 +334,7 @@ export default function AdminRooms() {
                           >
                             {room.status}
                           </span>
-                          <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[9px] font-bold text-gray-300">
+                          <span className="rounded-full bg-white/6 px-2 py-0.5 text-[9px] font-bold text-gray-300">
                             {getRoomVisibility(room)}
                           </span>
                         </div>
@@ -427,7 +427,7 @@ export default function AdminRooms() {
 
       {playersRoom && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 px-5 pb-6 backdrop-blur-sm">
-          <div className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-white/[0.08] bg-gray-900 p-6">
+          <div className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-white/8 bg-gray-900 p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-base font-black text-white">Room Players</p>
@@ -436,7 +436,7 @@ export default function AdminRooms() {
               <button
                 type="button"
                 onClick={() => setPlayersRoom(null)}
-                className="rounded-xl bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-gray-300"
+                className="rounded-xl bg-white/6 px-3 py-1.5 text-xs font-bold text-gray-300"
               >
                 Close
               </button>
@@ -449,7 +449,7 @@ export default function AdminRooms() {
                 {playersRoom.players.map((player: GameRoomPlayer) => (
                   <div
                     key={player.id}
-                    className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.04] px-4 py-3"
+                    className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/4 px-4 py-3"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-white">
@@ -479,7 +479,7 @@ export default function AdminRooms() {
 
       {actionRoom && actionType && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 px-5 pb-6 backdrop-blur-sm">
-          <div className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-white/[0.08] bg-gray-900 p-6">
+          <div className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-white/8 bg-gray-900 p-6">
             <div className="text-center">
               <p className="text-base font-black text-white">{actionMeta.title}</p>
               <p className="mt-1 text-sm text-gray-400">
@@ -495,7 +495,7 @@ export default function AdminRooms() {
                 type="button"
                 onClick={closeActionModal}
                 disabled={isMutating}
-                className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.06] py-3 text-sm font-bold text-gray-400 transition-all active:scale-[0.97]"
+                className="flex-1 rounded-2xl border border-white/8 bg-white/6 py-3 text-sm font-bold text-gray-400 transition-all active:scale-[0.97]"
               >
                 Cancel
               </button>

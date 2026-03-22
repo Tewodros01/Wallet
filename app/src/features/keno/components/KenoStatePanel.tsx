@@ -22,7 +22,7 @@ export default function KenoStatePanel({
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className="h-16 animate-pulse rounded-2xl bg-white/[0.04]"
+            className="h-16 animate-pulse rounded-2xl bg-white/4"
           />
         ))}
       </div>

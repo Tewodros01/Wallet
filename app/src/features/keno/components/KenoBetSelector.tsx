@@ -26,7 +26,7 @@ export default function KenoBetSelector({
             className={`py-2 rounded-xl text-xs font-black transition-all ${
               value === bet
                 ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                : "bg-white/[0.06] text-gray-400"
+                : "bg-white/6 text-gray-400"
             }`}
           >
             {bet}

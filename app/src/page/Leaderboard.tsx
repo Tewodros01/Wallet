@@ -75,7 +75,7 @@ export default function Leaderboard() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/[0.06] px-5 pt-5 pb-3 flex flex-col gap-3">
+      <div className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur-xl border-b border-white/6 px-5 pt-5 pb-3 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -83,7 +83,7 @@ export default function Leaderboard() {
               aria-label="Go back"
               title="Go back"
               onClick={() => navigate(-1)}
-              className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+              className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center"
             >
               <FiArrowLeft className="text-white text-sm" />
             </button>
@@ -98,7 +98,7 @@ export default function Leaderboard() {
             <FaTrophy className="text-yellow-400 text-sm" />
           </div>
         </div>
-        <div className="flex gap-1.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-1">
+        <div className="flex gap-1.5 bg-white/4 border border-white/7 rounded-2xl p-1">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
@@ -129,7 +129,7 @@ export default function Leaderboard() {
           {/* Podium */}
           {top3.length >= 3 && (
             <div className="relative pt-8 pb-2">
-              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-yellow-400/5 to-transparent pointer-events-none rounded-3xl" />
+              <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-yellow-400/5 to-transparent pointer-events-none rounded-3xl" />
               <div className="flex items-end justify-center gap-3 relative z-10">
                 {[top3[1], top3[0], top3[2]].map(
                   (p: LeaderboardUserEntry, idx: number) => {
@@ -194,7 +194,7 @@ export default function Leaderboard() {
 
           {/* Ranked list */}
           {rest.length > 0 && (
-            <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+            <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
               {rest.map((p: LeaderboardUserEntry, i: number) => (
                 <motion.button
                   key={p.rank}
@@ -203,7 +203,7 @@ export default function Leaderboard() {
                   transition={{ delay: i * 0.04 }}
                   type="button"
                   onClick={() => handleProfileOpen(p.user?.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 active:bg-white/[0.06] transition-colors text-left ${i < rest.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 active:bg-white/6 transition-colors text-left ${i < rest.length - 1 ? "border-b border-white/5" : ""}`}
                 >
                   <span className="w-6 text-xs font-black text-gray-500 text-center shrink-0">
                     #{p.rank}
@@ -240,9 +240,9 @@ export default function Leaderboard() {
             <>
               {myEntry.rank > 13 && (
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/6" />
                   <span className="text-[10px] text-gray-600">· · ·</span>
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/6" />
                 </div>
               )}
               <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl px-4 py-3.5 flex items-center gap-3">

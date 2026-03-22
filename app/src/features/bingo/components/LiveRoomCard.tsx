@@ -18,15 +18,15 @@ export default function LiveRoomCard({
       type="button"
       aria-label={`Join ${room.name}`}
       onClick={() => onOpen(room)}
-      className="w-full bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
+      className="w-full bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
     >
-      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500/20 to-emerald-500/20 border border-white/[0.08] flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-violet-500/20 to-emerald-500/20 border border-white/8 flex items-center justify-center shrink-0">
         <GiPokerHand className="text-violet-400 text-xl" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-black text-white truncate">{room.name}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <div className="flex-1 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 fill > 80 ? "bg-rose-400" : "bg-emerald-400"

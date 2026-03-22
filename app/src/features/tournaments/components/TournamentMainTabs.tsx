@@ -10,7 +10,7 @@ export default function TournamentMainTabs({
   onChange,
 }: TournamentMainTabsProps) {
   return (
-    <div className="flex gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] p-1">
+    <div className="flex gap-1.5 rounded-2xl border border-white/7 bg-white/4 p-1">
       {(["tournaments", "leaderboard"] as const).map((tab) => (
         <button
           key={tab}

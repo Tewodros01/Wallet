@@ -77,7 +77,7 @@ export default function ActiveSessions() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-1">
+          <div className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-1">
             <span className="text-lg font-black text-white">
               {sessions.length}
             </span>
@@ -111,7 +111,7 @@ export default function ActiveSessions() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-16 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -132,13 +132,13 @@ export default function ActiveSessions() {
                     Revoke All
                   </button>
                 </div>
-                <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+                <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
                   {sessions.map((s: Session, i: number) => {
                     const dtype = guessDevice(s.userAgent);
                     return (
                       <div
                         key={s.id}
-                        className={`flex items-center gap-3 px-4 py-3.5 ${i < sessions.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                        className={`flex items-center gap-3 px-4 py-3.5 ${i < sessions.length - 1 ? "border-b border-white/5" : ""}`}
                       >
                         <div
                           className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${deviceBg[dtype]}`}

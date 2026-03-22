@@ -85,7 +85,7 @@ export default function AgentAccountsSection({
         </button>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/7 bg-white/4 p-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
           {editingAccountId ? "Edit Account" : "Add Financial Account"}
         </p>
@@ -100,7 +100,7 @@ export default function AgentAccountsSection({
                 onProviderChange(event.target.value as FinancialAccountProvider)
               }
               aria-label="Financial account provider"
-              className="h-11 rounded-2xl border border-white/10 bg-white/[0.05] px-3 text-sm text-white outline-none transition-all focus:border-emerald-500 focus:bg-white/[0.09]"
+              className="h-11 rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition-all focus:border-emerald-500 focus:bg-white/9"
             >
               {AGENT_ACCOUNT_OPTIONS.map((option) => (
                 <option
@@ -136,7 +136,7 @@ export default function AgentAccountsSection({
             placeholder={accountName.trim() || "Defaults to account name"}
           />
 
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3">
+          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
             <input
               type="checkbox"
               checked={isDefaultAccount}
@@ -173,7 +173,7 @@ export default function AgentAccountsSection({
 
       <div className="flex flex-col gap-2">
         {financialAccounts.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+          <div className="rounded-2xl border border-white/7 bg-white/4">
             <EmptyState
               type="transactions"
               title="No financial accounts yet"
@@ -184,7 +184,7 @@ export default function AgentAccountsSection({
           financialAccounts.map((account) => (
             <div
               key={account.id}
-              className="rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4"
+              className="rounded-2xl border border-white/7 bg-white/4 p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -214,7 +214,7 @@ export default function AgentAccountsSection({
                   <button
                     type="button"
                     onClick={() => onEdit(account)}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-gray-300"
+                    className="rounded-xl border border-white/10 bg-white/4 p-2 text-gray-300"
                     aria-label={`Edit ${account.provider} account`}
                   >
                     <FiEdit2 />

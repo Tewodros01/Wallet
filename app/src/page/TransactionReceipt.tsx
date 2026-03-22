@@ -122,7 +122,7 @@ const TransactionReceipt = () => {
         </div>
 
         {/* Details */}
-        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5">
+        <div className="bg-white/4 border border-white/7 rounded-2xl p-5">
           <h3 className="text-lg font-bold text-white mb-4">
             Transaction Details
           </h3>

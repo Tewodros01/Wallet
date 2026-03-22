@@ -99,7 +99,7 @@ export default function SignUp() {
         </div>
       </div>
 
-      <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 flex flex-col gap-5">
+      <div className="w-full max-w-sm bg-white/4 border border-white/10 rounded-3xl p-6 flex flex-col gap-5">
         {refCode && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5 flex items-center gap-2">
             <span className="text-emerald-400 text-sm">🎁</span>

@@ -110,7 +110,7 @@ const App = () => {
   if (isBootstrappingTelegram) {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-6">
-        <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center">
+        <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/4 p-6 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-cyan-400/30 bg-cyan-500/10">
             <span className="text-2xl">📲</span>
           </div>

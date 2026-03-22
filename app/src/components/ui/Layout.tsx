@@ -64,7 +64,7 @@ export const AppBar = ({
   style,
 }: AppBarProps) => (
   <div
-    className={`flex items-center justify-between px-5 py-3.5 bg-gray-950/95 border-b border-white/[0.07] backdrop-blur-xl sticky top-0 z-40 ${className}`}
+    className={`flex items-center justify-between px-5 py-3.5 bg-gray-950/95 border-b border-white/7 backdrop-blur-xl sticky top-0 z-40 ${className}`}
     style={style}
   >
     {left}
@@ -93,7 +93,7 @@ export const SocialBtn = ({
   <button
     type="button"
     aria-label={label}
-    className="flex-1 h-12 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+    className="flex-1 h-12 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
   >
     <span className="text-gray-300 text-lg">{icon}</span>
   </button>
@@ -112,7 +112,7 @@ export const BottomNav = () => {
   const navigate = useNavigate();
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-2 pointer-events-none">
-      <div className="pointer-events-auto flex items-center bg-gray-900/90 backdrop-blur-2xl border border-white/[0.08] rounded-3xl px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <div className="pointer-events-auto flex items-center bg-gray-900/90 backdrop-blur-2xl border border-white/8 rounded-3xl px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
         {NAV_ITEMS.map(({ path, label, Icon }) => {
           const active =
             pathname === path ||

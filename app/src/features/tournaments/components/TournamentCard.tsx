@@ -27,7 +27,7 @@ export default function TournamentCard({
 
   return (
     <div
-      className={`relative flex flex-col gap-4 overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br p-5 ${GRADIENTS[tournament.status] ?? GRADIENTS.UPCOMING}`}
+      className={`relative flex flex-col gap-4 overflow-hidden rounded-3xl border border-white/8 bg-linear-to-br p-5 ${GRADIENTS[tournament.status] ?? GRADIENTS.UPCOMING}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -133,7 +133,7 @@ export default function TournamentCard({
               : tournament.status === "LIVE"
                 ? "cursor-default border border-rose-500/30 bg-rose-500/20 text-rose-400"
                 : full
-                  ? "cursor-not-allowed bg-white/[0.05] text-gray-600"
+                  ? "cursor-not-allowed bg-white/5 text-gray-600"
                   : "bg-white text-gray-950 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           }`}
         >

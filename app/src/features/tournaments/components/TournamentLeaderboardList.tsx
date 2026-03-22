@@ -22,12 +22,12 @@ export default function TournamentLeaderboardList({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+    <div className="overflow-hidden rounded-2xl border border-white/7 bg-white/4">
       {leaderboard.map((entry, i) => (
         <div
           key={entry.user?.id ?? i}
           className={`flex items-center gap-3 px-4 py-3.5 ${
-            i < leaderboard.length - 1 ? "border-b border-white/[0.05]" : ""
+            i < leaderboard.length - 1 ? "border-b border-white/5" : ""
           }`}
         >
           <div
@@ -38,7 +38,7 @@ export default function TournamentLeaderboardList({
                   ? "bg-gray-400/20 text-gray-300"
                   : i === 2
                     ? "bg-orange-400/20 text-orange-400"
-                    : "bg-white/[0.06] text-gray-500"
+                    : "bg-white/6 text-gray-500"
             }`}
           >
             {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}

@@ -27,7 +27,7 @@ function PasswordInput({
       >
         {label}
       </label>
-      <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3.5 focus-within:border-emerald-500 transition-all">
+      <div className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-2xl px-4 py-3.5 focus-within:border-emerald-500 transition-all">
         <FiLock className="text-gray-500 shrink-0" />
         <input
           id={inputId}
@@ -186,7 +186,7 @@ export default function ChangePassword() {
           onChange={setCurrent}
           placeholder="Enter current password"
         />
-        <div className="h-px bg-white/[0.06]" />
+        <div className="h-px bg-white/6" />
         <PasswordInput
           label="New Password"
           value={newPass}

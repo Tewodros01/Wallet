@@ -19,7 +19,7 @@ export default function KenoPayoutTable({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.04] p-4"
+      className="flex flex-col gap-2 rounded-2xl border border-white/7 bg-white/4 p-4"
     >
       <div className="mb-1 flex items-center gap-2">
         <FaTrophy className="text-xs text-yellow-400" />
@@ -31,7 +31,7 @@ export default function KenoPayoutTable({
         {Object.entries(payouts).map(([match, mult]) => (
           <div
             key={match}
-            className="flex items-center justify-between rounded-xl bg-white/[0.04] px-3 py-2"
+            className="flex items-center justify-between rounded-xl bg-white/4 px-3 py-2"
           >
             <span className="text-xs text-gray-400">
               {match} match{Number(match) > 1 ? "es" : ""}

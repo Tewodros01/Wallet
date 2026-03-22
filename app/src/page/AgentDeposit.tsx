@@ -254,7 +254,7 @@ export default function AgentDeposit() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 bg-white/[0.04] rounded-2xl animate-pulse"
+                className="h-20 bg-white/4 rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -270,7 +270,7 @@ export default function AgentDeposit() {
                 />
                 <div className="flex flex-col gap-2.5">
                   {filteredD.length === 0 ? (
-                    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+                    <div className="rounded-2xl border border-white/7 bg-white/4">
                       <EmptyState
                         type="transactions"
                         title={`No ${dFilter} deposits`}
@@ -310,7 +310,7 @@ export default function AgentDeposit() {
                 />
                 <div className="flex flex-col gap-2.5">
                   {filteredW.length === 0 ? (
-                    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+                    <div className="rounded-2xl border border-white/7 bg-white/4">
                       <EmptyState
                         type="transactions"
                         title={`No ${wFilter} withdrawals`}
@@ -354,7 +354,7 @@ export default function AgentDeposit() {
 
             {/* Users tab — from invite system */}
             {tab === "users" && (
-              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.04]">
+              <div className="rounded-2xl border border-white/7 bg-white/4">
                 <EmptyState
                   type="rooms"
                   title="View invited users in the Invite page"
@@ -393,7 +393,7 @@ export default function AgentDeposit() {
             {/* Earnings tab */}
             {tab === "earnings" && (
               <div className="flex flex-col gap-3">
-                <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div className="bg-linear-to-br from-yellow-500/10 to-orange-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                       Total Commission Earned
@@ -408,7 +408,7 @@ export default function AgentDeposit() {
                   </div>
                   <FiTrendingUp className="text-yellow-400 text-3xl" />
                 </div>
-                <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-2">
+                <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-2">
                   <p className="text-xs text-gray-400">
                     You earn{" "}
                     <span className="text-yellow-300 font-bold">50 coins</span>{" "}

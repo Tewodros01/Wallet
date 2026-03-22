@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { IconType } from "react-icons";
 import { FaCoins } from "react-icons/fa";
 import { FiCreditCard, FiTrendingUp, FiUsers } from "react-icons/fi";
 import { MdOutlineAccountBalanceWallet } from "react-icons/md";
@@ -14,19 +14,19 @@ export type AgentTab =
 export type AgentTabConfig = {
   id: AgentTab;
   label: string;
-  icon: ReactNode;
+  icon: IconType;
 };
 
 export const AGENT_TABS: AgentTabConfig[] = [
   {
     id: "deposits",
     label: "Deposits",
-    icon: <MdOutlineAccountBalanceWallet />,
+    icon: MdOutlineAccountBalanceWallet,
   },
-  { id: "withdrawals", label: "Withdrawals", icon: <FiTrendingUp /> },
-  { id: "users", label: "My Users", icon: <FiUsers /> },
-  { id: "accounts", label: "Accounts", icon: <FiCreditCard /> },
-  { id: "earnings", label: "Earnings", icon: <FaCoins /> },
+  { id: "withdrawals", label: "Withdrawals", icon: FiTrendingUp },
+  { id: "users", label: "My Users", icon: FiUsers },
+  { id: "accounts", label: "Accounts", icon: FiCreditCard },
+  { id: "earnings", label: "Earnings", icon: FaCoins },
 ];
 
 export type AgentAccountOption = {

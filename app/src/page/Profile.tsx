@@ -13,7 +13,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AppBar, BottomNav } from "../components/ui/Layout";
-import { badges } from "../constance/profileBadges";
+import { badges } from "../features/profile/profileBadges";
 import { useLogout } from "../hooks/useAuth";
 import { useMe, useMyStats } from "../hooks/useUser";
 import { useAuthStore } from "../store/auth.store";
@@ -153,7 +153,7 @@ export default function Profile() {
         <div className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(6,10,18,0.96)_38%,rgba(34,211,238,0.1))] p-5 shadow-[0_22px_60px_rgba(0,0,0,0.28)]">
           <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-cyan-400/12 blur-3xl" />
           <div className="absolute -left-8 bottom-0 h-24 w-24 rounded-full bg-emerald-400/10 blur-3xl" />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/25 to-transparent" />
 
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -176,7 +176,7 @@ export default function Profile() {
                   <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-200">
                     Active
                   </span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-slate-300">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-slate-300">
                     Profile
                   </span>
                 </div>
@@ -209,7 +209,7 @@ export default function Profile() {
           {statItems.map(({ icon, label, value, color, glow, surface }) => (
             <div
               key={label}
-              className={`relative flex flex-col items-center overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b ${surface} px-2 py-3 text-center ${glow}`}
+              className={`relative flex flex-col items-center overflow-hidden rounded-3xl border border-white/8 bg-linear-to-b ${surface} px-2 py-3 text-center ${glow}`}
             >
               <div className="absolute inset-x-4 top-0 h-px bg-white/10" />
               <span className={`mb-1 text-base ${color}`}>{icon}</span>
@@ -234,7 +234,7 @@ export default function Profile() {
                 Gallery
               </h3>
             </div>
-            <div className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.1em] text-slate-400">
+            <div className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.1em] text-slate-400">
               {badgeUnlocked} unlocked
             </div>
           </div>
@@ -246,10 +246,10 @@ export default function Profile() {
               return (
                 <div
                   key={label}
-                  className={`group relative overflow-hidden rounded-[14px] border p-2 transition-all ${unlocked ? `${ring} bg-white/[0.05] shadow-[0_8px_18px_rgba(0,0,0,0.12)]` : "border-white/[0.07] bg-white/[0.03] opacity-70"}`}
+                  className={`group relative overflow-hidden rounded-[14px] border p-2 transition-all ${unlocked ? `${ring} bg-white/5 shadow-[0_8px_18px_rgba(0,0,0,0.12)]` : "border-white/7 bg-white/3 opacity-70"}`}
                 >
                   <div
-                    className={`absolute inset-0 bg-gradient-to-br ${tone} ${unlocked ? "opacity-100" : "opacity-35"}`}
+                    className={`absolute inset-0 bg-linear-to-br ${tone} ${unlocked ? "opacity-100" : "opacity-35"}`}
                   />
                   <div className="relative flex items-start justify-between gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-slate-950/50 text-sm shadow-inner shadow-black/30">
@@ -321,7 +321,7 @@ export default function Profile() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             More
           </p>
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {moreItems.map(({ icon, label, sub, path, danger }, i) => (
               <button
                 key={label}
@@ -331,7 +331,7 @@ export default function Profile() {
                 onClick={() =>
                   danger ? handleSignOut() : path && navigate(path)
                 }
-                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left disabled:opacity-60 ${i < moreItems.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/4 transition-colors text-left disabled:opacity-60 ${i < moreItems.length - 1 ? "border-b border-white/5" : ""}`}
               >
                 <span
                   className={`text-sm shrink-0 ${danger ? "text-rose-400" : "text-gray-400"}`}
@@ -357,11 +357,11 @@ export default function Profile() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Account Info
           </p>
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+          <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
             {fields.map(({ icon, label, value }, i) => (
               <div
                 key={label}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < fields.length - 1 ? "border-b border-white/[0.06]" : ""}`}
+                className={`flex items-center gap-4 px-4 py-3.5 ${i < fields.length - 1 ? "border-b border-white/6" : ""}`}
               >
                 <span className="text-gray-500 text-sm shrink-0">{icon}</span>
                 <div className="flex-1 min-w-0">

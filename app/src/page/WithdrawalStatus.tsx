@@ -105,7 +105,7 @@ export default function WithdrawalStatus() {
           ].map(({ label, value, color }) => (
             <div
               key={label}
-              className="bg-white/[0.04] border border-white/[0.07] rounded-2xl py-3 flex flex-col items-center gap-0.5"
+              className="bg-white/4 border border-white/7 rounded-2xl py-3 flex flex-col items-center gap-0.5"
             >
               <span className={`text-sm font-black ${color}`}>{value}</span>
               <span className="text-[9px] text-gray-500 uppercase tracking-wide">
@@ -120,7 +120,7 @@ export default function WithdrawalStatus() {
           [1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-24 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-24 bg-white/4 rounded-2xl animate-pulse"
             />
           ))
         ) : withdrawals.length === 0 ? (
@@ -144,7 +144,7 @@ export default function WithdrawalStatus() {
               return (
                 <div
                   key={w.id}
-                  className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3"
+                  className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

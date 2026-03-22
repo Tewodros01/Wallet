@@ -39,7 +39,7 @@ function OptionPill({
       className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold transition-all border flex flex-col items-center gap-0.5 ${
         selected
           ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-          : "bg-white/[0.05] text-gray-400 border-white/10 hover:bg-white/10"
+          : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"
       }`}
     >
       {label}
@@ -177,7 +177,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   maxLength={50}
-                  className="w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
+                  className="w-full bg-white/6 text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
                 />
               </div>
 
@@ -250,7 +250,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                 </div>
               </div>
 
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl overflow-hidden">
+              <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
                 {[
                   {
                     icon: isPrivate ? (
@@ -293,12 +293,12 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={4}
                     maxLength={50}
-                    className="w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
+                    className="w-full bg-white/6 text-white placeholder-gray-600 border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all"
                   />
                 </div>
               )}
 
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 grid grid-cols-2 gap-3">
+              <div className="bg-white/4 border border-white/7 rounded-2xl p-4 grid grid-cols-2 gap-3">
                 {[
                   {
                     label: "Entry Fee",
@@ -348,7 +348,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 flex flex-col gap-4">
+              <div className="bg-linear-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -373,7 +373,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                   ].map(({ label, value }) => (
                     <div
                       key={label}
-                      className="bg-white/[0.06] rounded-xl py-2 flex flex-col items-center gap-0.5"
+                      className="bg-white/6 rounded-xl py-2 flex flex-col items-center gap-0.5"
                     >
                       <span className="text-sm font-black text-white">
                         {value}
@@ -388,7 +388,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
 
               <div className="flex flex-col gap-2">
                 <SectionLabel>Room Link</SectionLabel>
-                <div className="flex items-center gap-2 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                   <span className="text-xs text-gray-400 flex-1 truncate">
                     {roomLink}
                   </span>

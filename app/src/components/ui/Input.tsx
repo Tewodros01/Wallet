@@ -37,7 +37,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             aria-label={props["aria-label"] ?? label}
-            className={`w-full bg-white/[0.06] text-white placeholder-gray-600 border border-white/10 rounded-2xl py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white/[0.09] transition-all ${leftIcon ? "pl-10" : "pl-4"} ${rightIcon ? "pr-10" : "pr-4"} ${className}`}
+            className={`w-full bg-white/6 text-white placeholder-gray-600 border border-white/10 rounded-2xl py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white/9 transition-all ${leftIcon ? "pl-10" : "pl-4"} ${rightIcon ? "pr-10" : "pr-4"} ${className}`}
             {...props}
           />
           {rightIcon && (

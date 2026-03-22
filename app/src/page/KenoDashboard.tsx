@@ -65,7 +65,7 @@ export default function KenoDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
+      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-500/10">
             <FiZap className="text-cyan-300 text-lg" />
@@ -88,7 +88,7 @@ export default function KenoDashboard() {
             aria-label="Notifications"
             title="View notifications"
             onClick={() => nav("/notifications")}
-            className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center relative"
+            className="w-9 h-9 rounded-full bg-white/6 border border-white/8 flex items-center justify-center relative"
           >
             <FiBell className="text-gray-400 text-sm" aria-hidden="true" />
             {(unreadCount?.count ?? 0) > 0 && (
@@ -106,7 +106,7 @@ export default function KenoDashboard() {
       >
         <motion.div
           variants={fadeUp}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-600/35 via-sky-600/18 to-emerald-600/12 border border-white/[0.08] p-5 min-h-[176px] flex flex-col justify-between mt-4"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-cyan-600/35 via-sky-600/18 to-emerald-600/12 border border-white/8 p-5 min-h-[176px] flex flex-col justify-between mt-4"
         >
           <div className="absolute -top-8 -right-8 w-40 h-40 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-emerald-400/15 rounded-full blur-2xl pointer-events-none" />
@@ -127,7 +127,7 @@ export default function KenoDashboard() {
             <h1 className="text-2xl font-black text-white leading-tight">
               Pick fast.
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-300 to-emerald-300">
                 Chase big hits.
               </span>
             </h1>
@@ -149,7 +149,7 @@ export default function KenoDashboard() {
             <button
               type="button"
               onClick={() => nav("/keno/history")}
-              className="flex items-center gap-2 bg-white/[0.08] border border-white/[0.1] text-white font-black text-sm px-4 py-2.5 rounded-2xl active:scale-95 transition-all"
+              className="flex items-center gap-2 bg-white/8 border border-white/10 text-white font-black text-sm px-4 py-2.5 rounded-2xl active:scale-95 transition-all"
             >
               <FaHistory className="text-sm text-cyan-300" />
               History
@@ -215,9 +215,9 @@ export default function KenoDashboard() {
                 key={table.key}
                 type="button"
                 onClick={() => nav(table.path)}
-                className={`w-full bg-gradient-to-br ${table.accent} border rounded-2xl p-4 flex items-start gap-3 active:scale-[0.98] transition-all text-left`}
+                className={`w-full bg-linear-to-br ${table.accent} border rounded-2xl p-4 flex items-start gap-3 active:scale-[0.98] transition-all text-left`}
               >
-                <div className="w-11 h-11 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-white/6 border border-white/8 flex items-center justify-center shrink-0">
                   <FiZap className="text-cyan-300 text-lg" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -225,7 +225,7 @@ export default function KenoDashboard() {
                     <p className="text-sm font-black text-white truncate">
                       {table.label}
                     </p>
-                    <span className="text-[10px] font-black text-white/80 bg-white/[0.08] rounded-full px-2 py-1 shrink-0">
+                    <span className="text-[10px] font-black text-white/80 bg-white/8 rounded-full px-2 py-1 shrink-0">
                       {table.badge}
                     </span>
                   </div>

@@ -197,7 +197,7 @@ export default function Keno() {
               aria-label="Go back"
               title="Go back"
               onClick={() => navigate(APP_ROUTES.keno)}
-              className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center"
+              className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center"
             >
               <FiArrowLeft className="text-white text-sm" />
             </button>
@@ -240,7 +240,7 @@ export default function Keno() {
           )}
         </AnimatePresence>
 
-        <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] p-4 flex items-center justify-between gap-4">
+        <div className="rounded-3xl border border-white/6 bg-white/3 p-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Active Style
@@ -300,7 +300,7 @@ export default function Keno() {
 
         {/* Drawing animation */}
         {phase === "drawing" && (
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl px-4 py-3 flex items-center gap-3">
             <span className="w-4 h-4 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin shrink-0" />
             <p className="text-sm text-gray-400">
               Drawing numbers…{" "}
@@ -334,7 +334,7 @@ export default function Keno() {
           <button
             type="button"
             onClick={reset}
-            className="w-full py-4 rounded-2xl bg-white/[0.08] border border-white/[0.12] text-white font-black text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            className="w-full py-4 rounded-2xl bg-white/8 border border-white/12 text-white font-black text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <FiRefreshCw /> Play Again
           </button>

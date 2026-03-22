@@ -310,7 +310,7 @@ export default function DepositMoney() {
             ))}
           </div>
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Deposit Method
             </p>
@@ -329,7 +329,7 @@ export default function DepositMoney() {
                     className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                       method === item.id
                         ? "bg-emerald-500/10 border-emerald-500/30"
-                        : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06]"
+                        : "bg-white/3 border-white/7 hover:bg-white/6"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -377,7 +377,7 @@ export default function DepositMoney() {
             )}
           </div>
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
+          <div className="bg-white/4 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Payment Proof{" "}
               <span className="text-gray-600 normal-case tracking-normal font-normal">
@@ -391,7 +391,7 @@ export default function DepositMoney() {
                 className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
                   proofMode === "link"
                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                    : "bg-white/[0.04] border-white/10 text-gray-500"
+                    : "bg-white/4 border-white/10 text-gray-500"
                 }`}
               >
                 <FiLink className="text-sm" /> Link
@@ -402,7 +402,7 @@ export default function DepositMoney() {
                 className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border ${
                   proofMode === "file"
                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                    : "bg-white/[0.04] border-white/10 text-gray-500"
+                    : "bg-white/4 border-white/10 text-gray-500"
                 }`}
               >
                 <FiPaperclip className="text-sm" /> File
@@ -415,7 +415,7 @@ export default function DepositMoney() {
                 placeholder="https://screenshot-link.com/..."
                 value={proofUrl.startsWith("data:") ? "" : proofUrl}
                 onChange={(e) => setProofUrl(e.target.value)}
-                className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-emerald-500/50 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-emerald-500/50 transition-colors"
               />
             ) : (
               <div>
@@ -455,7 +455,7 @@ export default function DepositMoney() {
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-dashed border-white/20 text-xs text-gray-500 flex items-center justify-center gap-2 hover:bg-white/[0.07] transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-white/4 border border-dashed border-white/20 text-xs text-gray-500 flex items-center justify-center gap-2 hover:bg-white/7 transition-colors"
                   >
                     <FiPaperclip /> Attach image or PDF
                   </button>
@@ -512,7 +512,7 @@ export default function DepositMoney() {
               [1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
+                  className="h-16 bg-white/4 rounded-2xl animate-pulse"
                 />
               ))
             ) : availableAgents.length === 0 ? (
@@ -532,7 +532,7 @@ export default function DepositMoney() {
                     setMethod(methods[0].id);
                     setStep("confirm");
                   }}
-                  className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3.5 text-left transition-all hover:bg-white/[0.07] active:scale-[0.98]"
+                  className="flex items-center gap-3 rounded-2xl border border-white/7 bg-white/4 px-4 py-3.5 text-left transition-all hover:bg-white/7 active:scale-[0.98]"
                 >
                   <img
                     src={
@@ -608,7 +608,7 @@ export default function DepositMoney() {
         }
       />
       <div className="flex flex-col gap-6 px-5 py-6">
-        <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 flex flex-col items-center gap-3">
+        <div className="bg-linear-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 flex flex-col items-center gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Enter Amount
           </p>
@@ -639,7 +639,7 @@ export default function DepositMoney() {
                 className={`py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 border ${
                   amount === p
                     ? "bg-emerald-500 text-white border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-                    : "bg-white/[0.05] text-gray-300 border-white/10 hover:bg-white/10"
+                    : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"
                 }`}
               >
                 {Number(p).toLocaleString()}
@@ -671,7 +671,7 @@ export default function DepositMoney() {
           ].map((text, index) => (
             <div
               key={text}
-              className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3"
+              className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/3 px-3 py-3"
             >
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/15">
                 <span className="text-[10px] font-black text-blue-300">

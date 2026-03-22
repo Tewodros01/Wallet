@@ -21,14 +21,14 @@ const AdminUserDetail = () => {
       <div className="min-h-screen bg-gray-950 flex flex-col text-white">
         <div className="px-5 pt-12 pb-6">
           <div className="w-9 h-9 rounded-2xl bg-white/10 mb-5 animate-pulse" />
-          <div className="w-40 h-5 bg-white/[0.07] rounded-xl animate-pulse mb-2" />
-          <div className="w-24 h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="w-40 h-5 bg-white/7 rounded-xl animate-pulse mb-2" />
+          <div className="w-24 h-3 bg-white/4 rounded animate-pulse" />
         </div>
         <div className="flex flex-col gap-3 px-5">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-24 bg-white/[0.04] rounded-2xl animate-pulse"
+              className="h-24 bg-white/4 rounded-2xl animate-pulse"
             />
           ))}
         </div>
@@ -39,7 +39,7 @@ const AdminUserDetail = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white">
-        <div className="w-16 h-16 rounded-3xl bg-white/[0.04] flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-3xl bg-white/4 flex items-center justify-center mb-4">
           <FiUser className="text-3xl text-gray-600" />
         </div>
         <p className="text-lg font-bold text-gray-400">User not found</p>
@@ -64,7 +64,7 @@ const AdminUserDetail = () => {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col text-white">
       {/* ── Sticky top bar ── */}
-      <div className="sticky top-0 z-40 flex items-center gap-3 px-5 py-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/[0.05]">
+      <div className="sticky top-0 z-40 flex items-center gap-3 px-5 py-4 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -79,7 +79,7 @@ const AdminUserDetail = () => {
           </p>
           <p className="text-[10px] text-gray-500">@{user.username}</p>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.4)]">
+        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.4)]">
           {user.role === "ADMIN" ? (
             <FaCrown className="text-white text-xs" />
           ) : (
@@ -91,7 +91,7 @@ const AdminUserDetail = () => {
       <div className="flex-1 overflow-y-auto">
         {/* ── Hero profile header ── */}
         <div className="relative overflow-hidden px-5 pt-6 pb-4">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/15 via-indigo-600/8 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-br from-blue-600/15 via-indigo-600/8 to-transparent" />
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl" />
           <div className="relative flex items-center gap-4">
             <div className="relative shrink-0">
@@ -103,7 +103,7 @@ const AdminUserDetail = () => {
                 alt={user.username}
                 className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
               />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center border-2 border-gray-950">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center border-2 border-gray-950">
                 {user.role === "ADMIN" ? (
                   <FaCrown className="text-white text-[10px]" />
                 ) : (
@@ -150,7 +150,7 @@ const AdminUserDetail = () => {
 
           {/* User bio */}
           {user.bio && (
-            <div className="relative mt-4 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3">
+            <div className="relative mt-4 bg-white/5 border border-white/8 rounded-2xl px-4 py-3">
               <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">
                 About
               </p>
@@ -200,10 +200,10 @@ const AdminUserDetail = () => {
             ].map(({ icon, label, value, from, to, glow }) => (
               <div
                 key={label}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 flex items-center gap-2.5"
+                className="bg-white/4 border border-white/7 rounded-2xl px-3 py-2.5 flex items-center gap-2.5"
               >
                 <div
-                  className={`w-8 h-8 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
+                  className={`w-8 h-8 rounded-xl bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-xs shrink-0`}
                   style={{ boxShadow: `0 0 12px ${glow}` }}
                 >
                   {icon}
@@ -221,7 +221,7 @@ const AdminUserDetail = () => {
           </div>
 
           {/* Recent Transactions */}
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5">
+          <div className="bg-white/4 border border-white/7 rounded-3xl p-5">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
               Recent Transactions
             </p>
@@ -231,13 +231,13 @@ const AdminUserDetail = () => {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-12 bg-white/[0.04] rounded-lg animate-pulse"
+                    className="h-12 bg-white/4 rounded-lg animate-pulse"
                   />
                 ))}
               </div>
             ) : transactions?.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-12 text-gray-700">
-                <div className="w-12 h-12 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-white/4 flex items-center justify-center">
                   <FiDollarSign className="text-2xl" />
                 </div>
                 <p className="text-sm font-semibold">No transactions yet</p>
@@ -247,7 +247,7 @@ const AdminUserDetail = () => {
                 {transactions?.slice(0, 5).map((tx: Transaction) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-3 bg-white/[0.04] rounded-xl border border-white/[0.05]"
+                    className="flex items-center justify-between p-3 bg-white/4 rounded-xl border border-white/5"
                   >
                     <div>
                       <p className="text-sm font-bold text-white">{tx.title}</p>
