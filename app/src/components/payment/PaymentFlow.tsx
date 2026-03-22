@@ -146,9 +146,16 @@ export function AgentSummaryCard({
           </div>
         )}
         <div>
-          <p className="text-sm font-black text-white">
-            {agent ? `${agent.firstName} ${agent.lastName}` : "Unknown Agent"}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-black text-white">
+              {agent ? `${agent.firstName} ${agent.lastName}` : "Unknown Agent"}
+            </p>
+            {agent?.isVerified && (
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                Verified Agent
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500">{contact}</p>
         </div>
       </div>

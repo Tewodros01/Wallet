@@ -5,6 +5,7 @@ import {
   FiCheck,
   FiChevronRight,
   FiClock,
+  FiInfo,
   FiLink,
   FiPaperclip,
   FiX,
@@ -17,15 +18,13 @@ import {
   PaymentFlowHeader,
   PaymentStatusScreen,
 } from "../components/payment/PaymentFlow";
+import BottomSheet from "../components/ui/BottomSheet";
 import Button from "../components/ui/Button";
 import { AppBar } from "../components/ui/Layout";
 import { APP_ROUTES } from "../config/routes";
 import { useAgents, useDeposit } from "../hooks/usePayments";
 import { getErrorMessage } from "../lib/errors";
-import {
-  FinancialAccountProvider,
-  PaymentMethod,
-} from "../types/enums";
+import { FinancialAccountProvider, PaymentMethod } from "../types/enums";
 import type { FinancialAccount } from "../types/financial-account.types";
 import type { Agent } from "../types/withdrawal.types";
 
@@ -68,29 +67,40 @@ function getMethodAccount(
   switch (method) {
     case PaymentMethod.TELEBIRR:
       return (
-        accounts.find((account) => account.provider === FinancialAccountProvider.TELEBIRR) ??
-        null
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.TELEBIRR,
+        ) ?? null
       );
     case PaymentMethod.MPESA:
       return (
-        accounts.find((account) => account.provider === FinancialAccountProvider.MPESA) ??
-        null
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.MPESA,
+        ) ?? null
       );
     case PaymentMethod.CBE_BIRR:
       return (
-        accounts.find((account) => account.provider === FinancialAccountProvider.CBE_BIRR) ??
-        null
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.CBE_BIRR,
+        ) ?? null
       );
     case PaymentMethod.BANK_CARD:
       return (
-        accounts.find((account) => account.provider === FinancialAccountProvider.BOA) ??
-        accounts.find((account) => account.provider === FinancialAccountProvider.OTHER_BANK) ??
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.BOA,
+        ) ??
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.OTHER_BANK,
+        ) ??
         accounts.find((account) => account.type === "BANK_ACCOUNT") ??
         null
       );
     default:
       return null;
   }
+}
+
+function getAvailableMethods(accounts: FinancialAccount[] | undefined) {
+  return METHODS.filter((item) => getMethodAccount(accounts, item.id));
 }
 
 export default function DepositMoney() {
@@ -106,6 +116,7 @@ export default function DepositMoney() {
   const [proofUrl, setProofUrl] = useState("");
   const [proofMode, setProofMode] = useState<"link" | "file">("link");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -116,10 +127,21 @@ export default function DepositMoney() {
     selectedAgent?.financialAccounts,
     method,
   );
+  const availableMethods = getAvailableMethods(
+    selectedAgent?.financialAccounts,
+  );
+  const availableAgents = agents
+    .map((agent: Agent) => ({
+      agent,
+      methods: getAvailableMethods(agent.financialAccounts),
+    }))
+    .filter(({ methods }) => methods.length > 0);
 
   const handleSendRequest = async () => {
     if (!selectedAgentAccount) {
-      setError(`This agent has no ${selectedMethod.label} account configured yet.`);
+      setError(
+        `This agent has no ${selectedMethod.label} account configured yet.`,
+      );
       return;
     }
 
@@ -144,7 +166,8 @@ export default function DepositMoney() {
       { amount: numAmount, method, proofUrl: finalProofUrl },
       {
         onSuccess: () => setStep("pending"),
-        onError: (err: Error) => setError(getErrorMessage(err, "Deposit failed")),
+        onError: (err: Error) =>
+          setError(getErrorMessage(err, "Deposit failed")),
       },
     );
   };
@@ -191,7 +214,9 @@ export default function DepositMoney() {
           {
             label: "Pay via",
             value: (
-              <span className="font-bold text-white">{selectedMethod.label}</span>
+              <span className="font-bold text-white">
+                {selectedMethod.label}
+              </span>
             ),
           },
           {
@@ -259,12 +284,38 @@ export default function DepositMoney() {
             contact={`@${selectedAgent?.username ?? "unknown"}`}
           />
 
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex flex-col gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+              Process
+            </p>
+            {[
+              { step: "1", text: "Choose a payment method from this agent" },
+              {
+                step: "2",
+                text: "Send the money and attach proof if you have it",
+              },
+              {
+                step: "3",
+                text: "The agent reviews the transfer and adds your coins",
+              },
+            ].map(({ step: s, text }) => (
+              <div key={s} className="flex items-center gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/20">
+                  <span className="text-[10px] font-black text-emerald-400">
+                    {s}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-300">{text}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
               Deposit Method
             </p>
             <div className="grid grid-cols-1 gap-2">
-              {METHODS.map((item) => {
+              {availableMethods.map((item) => {
                 const accountValue = getMethodAccount(
                   selectedAgent?.financialAccounts,
                   item.id,
@@ -305,7 +356,8 @@ export default function DepositMoney() {
                         Account Number
                       </p>
                       <p className="mt-1 font-mono text-sm text-white">
-                        {accountValue?.accountNumber ?? "Not set for this agent"}
+                        {accountValue?.accountNumber ??
+                          "Not set for this agent"}
                       </p>
                       {accountValue?.label && (
                         <p className="mt-1 text-[11px] text-gray-400">
@@ -317,6 +369,12 @@ export default function DepositMoney() {
                 );
               })}
             </div>
+            {availableMethods.length === 0 && (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-xs text-rose-300">
+                This agent does not have any payment methods available right
+                now.
+              </div>
+            )}
           </div>
 
           <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
@@ -406,29 +464,6 @@ export default function DepositMoney() {
             )}
           </div>
 
-          <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4 flex flex-col gap-3">
-            {[
-              { step: "1", text: "Send deposit request to agent" },
-              {
-                step: "2",
-                text: "Transfer cash to agent physically or via mobile money",
-              },
-              {
-                step: "3",
-                text: "Agent approves → coins added to your wallet",
-              },
-            ].map(({ step: s, text }) => (
-              <div key={s} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-black text-emerald-400">
-                    {s}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400">{text}</p>
-              </div>
-            ))}
-          </div>
-
           {error && (
             <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-xs text-rose-400 font-semibold text-center">
               {error}
@@ -437,7 +472,7 @@ export default function DepositMoney() {
 
           <Button
             loading={isPending || uploading}
-            disabled={!selectedAgentAccount}
+            disabled={!selectedAgentAccount || availableMethods.length === 0}
             icon={<FiCheck />}
             onClick={handleSendRequest}
           >
@@ -469,7 +504,8 @@ export default function DepositMoney() {
         />
         <div className="flex flex-col gap-4 px-5 py-6">
           <p className="text-xs text-gray-500">
-            Choose an agent, then pick Telebirr, M-Pesa, CBE, or a bank account in the next step.
+            Choose an agent with an available payment method, then continue to
+            payment.
           </p>
           <div className="flex flex-col gap-2">
             {loadingAgents ? (
@@ -479,48 +515,58 @@ export default function DepositMoney() {
                   className="h-16 bg-white/[0.04] rounded-2xl animate-pulse"
                 />
               ))
-            ) : agents.length === 0 ? (
+            ) : availableAgents.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-gray-600">
                 <FiClock className="text-3xl" />
-                <p className="text-sm font-semibold">No agents available</p>
+                <p className="text-sm font-semibold">
+                  No agents with payment methods available
+                </p>
               </div>
             ) : (
-              agents.map((agent: Agent) => (
+              availableAgents.map(({ agent, methods }) => (
                 <button
                   key={agent.id}
                   type="button"
                   onClick={() => {
                     setAgentId(agent.id);
+                    setMethod(methods[0].id);
                     setStep("confirm");
                   }}
-                  className="flex items-center gap-3 px-4 py-3.5 bg-white/[0.04] border border-white/[0.07] rounded-2xl hover:bg-white/[0.07] active:scale-[0.98] transition-all text-left"
+                  className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3.5 text-left transition-all hover:bg-white/[0.07] active:scale-[0.98]"
                 >
                   <img
                     src={
                       agent.avatar ?? `https://i.pravatar.cc/40?u=${agent.id}`
                     }
                     alt={agent.firstName}
-                    className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10 shrink-0"
+                    className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/10"
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white">
-                      {agent.firstName} {agent.lastName}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-bold text-white">
+                        {agent.firstName} {agent.lastName}
+                      </p>
+                      {agent.isVerified && (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      @{agent.username}
                     </p>
-                    <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-gray-500">
-                      {METHODS.map((item) => {
-                        const account = getMethodAccount(agent.financialAccounts, item.id);
-                        return (
-                          <p key={item.id}>
-                            {item.label}:{" "}
-                            <span className="text-gray-300">
-                              {account?.accountNumber ?? "—"}
-                            </span>
-                          </p>
-                        );
-                      })}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {methods.map((item) => (
+                        <span
+                          key={item.id}
+                          className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-300"
+                        >
+                          {item.label}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                     Agent
                   </span>
                 </button>
@@ -548,6 +594,17 @@ export default function DepositMoney() {
             </button>
             <span className="text-base font-black">Deposit Money</span>
           </div>
+        }
+        right={
+          <button
+            type="button"
+            aria-label="How deposit works"
+            title="How deposit works"
+            onClick={() => setInfoSheetOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 transition-colors hover:bg-white/15"
+          >
+            <FiInfo className="text-sm text-white" />
+          </button>
         }
       />
       <div className="flex flex-col gap-6 px-5 py-6">
@@ -591,15 +648,6 @@ export default function DepositMoney() {
           </div>
         </div>
 
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-start gap-3">
-          <span className="text-blue-400 text-lg shrink-0">ℹ️</span>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Deposits are processed through an{" "}
-            <span className="text-white font-bold">agent</span>. You'll transfer
-            cash to the agent and they'll approve your wallet credit.
-          </p>
-        </div>
-
         <Button
           disabled={!amount || numAmount <= 0}
           icon={<FiChevronRight />}
@@ -608,6 +656,35 @@ export default function DepositMoney() {
           Continue — Select Agent
         </Button>
       </div>
+      <BottomSheet
+        open={infoSheetOpen}
+        onClose={() => setInfoSheetOpen(false)}
+        title="How Deposit Works"
+        subtitle="Simple steps to add coins with an agent"
+      >
+        <div className="flex flex-col gap-3">
+          {[
+            "Enter the amount you want to deposit.",
+            "Pick a verified or available agent.",
+            "Use one of that agent's available payment methods.",
+            "Send proof if needed and wait for approval.",
+          ].map((text, index) => (
+            <div
+              key={text}
+              className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3"
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/15">
+                <span className="text-[10px] font-black text-blue-300">
+                  {index + 1}
+                </span>
+              </div>
+              <p className="pt-0.5 text-xs leading-relaxed text-gray-300">
+                {text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </BottomSheet>
     </div>
   );
 }
