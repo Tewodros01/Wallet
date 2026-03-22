@@ -115,14 +115,12 @@ export function GameProvider({
         isStarted: false,
         isPaused: false,
       });
-    const onStarted      = () => {
-      set((prev) => ({
-        ...prev,
+    const onStarted      = () =>
+      set({
         isStarted: true,
         isPaused: false,
         isStarting: false,
-      }));
-    };
+      });
     const onPaused       = () => set({ isPaused: true });
     const onResumed      = () => set({ isPaused: false });
     const onNumCalled    = (data: { number: number; calledNums: number[]; remaining: number }) =>
