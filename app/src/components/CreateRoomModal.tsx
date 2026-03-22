@@ -15,6 +15,7 @@ type Step = "settings" | "created";
 const ENTRY_FEES = ["Free", "50", "100", "200", "500", "1000"];
 const MAX_PLAYERS = ["10", "20", "50", "100", "200"];
 const CARD_LIMITS = ["1", "2", "3", "5"];
+const ROOM_RAKE_BPS = 1000;
 const CALL_SPEEDS: { label: string; sub: string; value: GameSpeed }[] = [
   { label: "Slow", sub: "6s", value: GameSpeed.SLOW },
   { label: "Normal", sub: "4s", value: GameSpeed.NORMAL },
@@ -93,7 +94,8 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const entryFeeNum = entryFee === "Free" ? 0 : Number(entryFee);
-  const prize = entryFeeNum * Number(maxPlayers);
+  const grossPrize = entryFeeNum * Number(maxPlayers);
+  const prize = grossPrize - Math.floor((grossPrize * ROOM_RAKE_BPS) / 10_000);
   const roomLink = createdId
     ? `${window.location.origin}/game?room=${createdId}`
     : "";
@@ -196,7 +198,7 @@ export default function CreateRoomModal({ onClose, onEnter }: Props) {
                 {entryFee !== "Free" && (
                   <div className="flex items-center justify-between bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
                     <span className="text-xs text-gray-400">
-                      Est. Prize Pool
+                      Est. Prize Pool After Fee
                     </span>
                     <span className="flex items-center gap-1 text-sm font-black text-yellow-300">
                       <FaCoins className="text-xs" />

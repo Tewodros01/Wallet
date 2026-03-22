@@ -22,6 +22,10 @@ export class CreateDepositDto {
   @IsEnum(PaymentMethod)
   method!: PaymentMethod;
 
+  @ApiProperty({ example: 'cm123agent0001xyz' })
+  @IsString()
+  agentId!: string;
+
   @ApiPropertyOptional({ example: 'TXN-REF-12345' })
   @IsOptional()
   @IsString()
@@ -42,6 +46,10 @@ export class CreateWithdrawalDto {
   @ApiProperty({ enum: PaymentMethod })
   @IsEnum(PaymentMethod)
   method!: PaymentMethod;
+
+  @ApiProperty({ example: 'cm123agent0001xyz' })
+  @IsString()
+  agentId!: string;
 
   @ApiProperty({ example: '+251912345678' })
   @IsString()

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomInt } from 'crypto';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoomsService } from '../rooms/rooms.service';
@@ -35,8 +36,11 @@ const SPEED_INTERVAL: Record<GameSpeed, number> = {
 interface RoomState {
   calledNums: number[];
   remaining:  number[];
-  intervalId: NodeJS.Timeout | null;
+  timeoutId: NodeJS.Timeout | null;
+  countdownId: NodeJS.Timeout | null;
+  countdown: number | null;
   speed:      GameSpeed;
+  isCalling: boolean;
 }
 
 type GatewayPlayerCard = {
@@ -150,8 +154,11 @@ export class GameGateway
         const state: RoomState = {
           calledNums,
           remaining: this.buildRemaining(calledNums),
-          intervalId: null,
+          timeoutId: null,
+          countdownId: null,
+          countdown: null,
           speed: room.speed,
+          isCalling: false,
         };
         this.rooms.set(room.id, state);
         if (state.remaining.length > 0) {
@@ -188,8 +195,11 @@ export class GameGateway
     const state: RoomState = {
       calledNums,
       remaining: this.buildRemaining(calledNums),
-      intervalId: null,
+      timeoutId: null,
+      countdownId: null,
+      countdown: null,
       speed: room.speed,
+      isCalling: false,
     };
     this.rooms.set(roomId, state);
 
@@ -232,6 +242,7 @@ export class GameGateway
         calledNums: state.calledNums,
         current:    state.calledNums.at(-1) ?? null,
         remaining:  state.remaining.length,
+        countdown: state.countdown,
       });
     }
 
@@ -274,19 +285,22 @@ export class GameGateway
     // persist status change
     await this.roomsService.startGame(roomId, userId);
 
+    // Ensure the starter is subscribed before countdown events are broadcast.
+    await client.join(roomId);
+
     // init in-memory state
     const state: RoomState = {
       calledNums: [],
       remaining:  this.buildRemaining([]),
-      intervalId: null,
+      timeoutId: null,
+      countdownId: null,
+      countdown: 3,
       speed:      room.speed,
+      isCalling: false,
     };
     this.rooms.set(roomId, state);
 
-    this.server.to(roomId).emit('game:started', { roomId, speed: room.speed });
-
-    // begin auto-calling
-    this.startAutoCaller(roomId, state);
+    this.startCountdown(roomId, state);
 
     return { success: true };
   }
@@ -304,6 +318,10 @@ export class GameGateway
     if (!room || room.hostId !== userId) throw new WsException('Unauthorized');
 
     await this.ensureRoomState(roomId);
+    const state = this.rooms.get(roomId);
+    if (state?.countdown !== null) {
+      throw new WsException('Game countdown is in progress');
+    }
     await this.callNextNumber(roomId);
     return { success: true };
   }
@@ -401,7 +419,7 @@ export class GameGateway
       calledNums: state.calledNums,
     });
 
-    this.rooms.delete(roomId);
+    this.cleanupRoom(roomId);
     return { success: true, prize: result.prize };
   }
 
@@ -476,6 +494,7 @@ export class GameGateway
         calledNums: state.calledNums,
         current: state.calledNums.at(-1) ?? null,
         remaining: state.remaining.length,
+        countdown: state.countdown,
       });
     }
 
@@ -564,25 +583,34 @@ export class GameGateway
       room,
       calledNums: state?.calledNums ?? [],
       remaining:  state?.remaining.length ?? 75,
+      countdown: state?.countdown ?? null,
     };
   }
 
   // ── Auto-caller ────────────────────────────────────────────────────────────
 
   private startAutoCaller(roomId: string, state: RoomState) {
-    if (state.intervalId) clearInterval(state.intervalId);
+    if (state.timeoutId) {
+      clearTimeout(state.timeoutId);
+    }
 
-    state.intervalId = setInterval(async () => {
+    state.timeoutId = setTimeout(async () => {
       try {
         if (state.remaining.length === 0) {
-          this.stopAutoCaller(roomId);
+          this.cleanupRoom(roomId);
           await this.finishRoomWithoutWinner(roomId);
           this.server.to(roomId).emit('game:all_called');
           return;
         }
+
         await this.callNextNumber(roomId);
+
+        const nextState = this.rooms.get(roomId);
+        if (nextState && nextState.countdown === null) {
+          this.startAutoCaller(roomId, nextState);
+        }
       } catch (error) {
-        this.stopAutoCaller(roomId);
+        this.cleanupRoom(roomId);
         await this.cancelRoomDueToRuntimeError(roomId);
         this.server.to(roomId).emit('game:cancelled', {
           roomId,
@@ -601,44 +629,56 @@ export class GameGateway
 
   private stopAutoCaller(roomId: string) {
     const state = this.rooms.get(roomId);
-    if (state?.intervalId) {
-      clearInterval(state.intervalId);
-      state.intervalId = null;
+    if (state?.timeoutId) {
+      clearTimeout(state.timeoutId);
+      state.timeoutId = null;
     }
   }
 
   private async callNextNumber(roomId: string) {
     const state = this.rooms.get(roomId);
-    if (!state || state.remaining.length === 0) return;
+    if (!state || state.remaining.length === 0 || state.countdown !== null) return;
+    if (state.isCalling) return;
 
-    // pick random from remaining
-    const idx = Math.floor(Math.random() * state.remaining.length);
-    const number = state.remaining[idx];
-    const nextCalledNums = [...state.calledNums, number];
+    state.isCalling = true;
 
-    // persist to DB
-    const updatedRounds = await this.prisma.gameRound.updateMany({
-      where: {
-        roomId,
-        room: { status: RoomStatus.PLAYING },
-      },
-      data: { calledNums: nextCalledNums, currentNum: number },
-    });
-    if (updatedRounds.count < 1) {
-      this.stopAutoCaller(roomId);
-      this.rooms.delete(roomId);
-      return;
+    try {
+      const latestState = this.rooms.get(roomId);
+      if (!latestState || latestState.remaining.length === 0) return;
+
+      // pick random from remaining
+      const idx = randomInt(0, latestState.remaining.length);
+      const number = latestState.remaining[idx];
+      const nextCalledNums = [...latestState.calledNums, number];
+
+      // persist to DB
+      const updatedRounds = await this.prisma.gameRound.updateMany({
+        where: {
+          roomId,
+          room: { status: RoomStatus.PLAYING },
+        },
+        data: { calledNums: nextCalledNums, currentNum: number },
+      });
+      if (updatedRounds.count < 1) {
+        this.cleanupRoom(roomId);
+        return;
+      }
+
+      latestState.remaining.splice(idx, 1);
+      latestState.calledNums = nextCalledNums;
+
+      // broadcast
+      this.server.to(roomId).emit('game:number_called', {
+        number,
+        calledNums: latestState.calledNums,
+        remaining:  latestState.remaining.length,
+      });
+    } finally {
+      const currentState = this.rooms.get(roomId);
+      if (currentState) {
+        currentState.isCalling = false;
+      }
     }
-
-    state.remaining.splice(idx, 1);
-    state.calledNums = nextCalledNums;
-
-    // broadcast
-    this.server.to(roomId).emit('game:number_called', {
-      number,
-      calledNums: state.calledNums,
-      remaining:  state.remaining.length,
-    });
   }
 
   private async finishRoomWithoutWinner(roomId: string) {
@@ -670,7 +710,7 @@ export class GameGateway
       });
     });
 
-    this.rooms.delete(roomId);
+    this.cleanupRoom(roomId);
   }
 
   private async cancelRoomDueToRuntimeError(roomId: string) {
@@ -702,6 +742,78 @@ export class GameGateway
       });
     });
 
+    this.cleanupRoom(roomId);
+  }
+
+  private startCountdown(roomId: string, state: RoomState) {
+    this.clearCountdown(state);
+
+    const tick = () => {
+      this.server.to(roomId).emit('game:countdown', {
+        roomId,
+        countdown: state.countdown,
+      });
+
+      if (state.countdown === 1) {
+        this.clearCountdown(state);
+        state.countdown = null;
+        this.server.to(roomId).emit('game:started', { roomId, speed: state.speed });
+        void this.beginCallsAfterCountdown(roomId, state);
+        return;
+      }
+
+      state.countdown = (state.countdown ?? 1) - 1;
+      state.countdownId = setTimeout(tick, 1000);
+    };
+
+    tick();
+  }
+
+  private async beginCallsAfterCountdown(roomId: string, state: RoomState) {
+    try {
+      if (state.remaining.length === 0) {
+        this.cleanupRoom(roomId);
+        await this.finishRoomWithoutWinner(roomId);
+        this.server.to(roomId).emit('game:all_called');
+        return;
+      }
+
+      await this.callNextNumber(roomId);
+
+      const nextState = this.rooms.get(roomId);
+      if (nextState && nextState.countdown === null) {
+        this.startAutoCaller(roomId, nextState);
+      }
+    } catch (error) {
+      this.cleanupRoom(roomId);
+      await this.cancelRoomDueToRuntimeError(roomId);
+      this.server.to(roomId).emit('game:cancelled', {
+        roomId,
+        message: 'Game stopped because of a server error.',
+      });
+      this.server.to(roomId).emit('exception', {
+        message: 'Game stopped because of a server error.',
+      });
+      this.logger.error(
+        `Failed to begin calls for room ${roomId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
+  private clearCountdown(state: RoomState) {
+    if (state.countdownId) {
+      clearTimeout(state.countdownId);
+      state.countdownId = null;
+    }
+  }
+
+  private cleanupRoom(roomId: string) {
+    const state = this.rooms.get(roomId);
+    if (!state) return;
+
+    this.stopAutoCaller(roomId);
+    this.clearCountdown(state);
     this.rooms.delete(roomId);
   }
 }

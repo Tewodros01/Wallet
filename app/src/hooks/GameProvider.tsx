@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { GameContext, INITIAL, type GameState } from "./GameContext";
+import { useGameSound } from "./useSound";
 import { connectSocket } from "../lib/socket";
+import { announceNumber, cancelAnnouncement } from "../lib/announcer";
+import { haptic } from "../lib/haptic";
+import { useSoundStore } from "../store/sound.store";
 import type { PlayerCard, RoomStateResponse } from "../types/game.types";
 
 interface SocketAck {
@@ -38,6 +42,9 @@ export function GameProvider({
     markedNumsByCardId: toMarkedMap(initialCards),
   });
   const socketRef = useRef(connectSocket());
+  const announcedLenRef = useRef<number | null>(null);
+  const { play } = useGameSound();
+  const muted = useSoundStore((s) => s.muted);
 
   const set = useCallback((patch: Partial<GameState>) => {
     setState((prev) => ({ ...prev, ...patch }));
@@ -92,13 +99,41 @@ export function GameProvider({
             : (cards[0]?.id ?? null),
         markedNumsByCardId: toMarkedMap(cards),
       }));
-    const onState        = (data: { calledNums: number[]; current: number | null; remaining: number }) =>
-      set({ calledNums: data.calledNums, currentNum: data.current, remaining: data.remaining, isStarted: true });
-    const onStarted      = () => set({ isStarted: true, isPaused: false });
+    const onState        = (data: { calledNums: number[]; current: number | null; remaining: number; countdown?: number | null }) =>
+      set({
+        calledNums: data.calledNums,
+        currentNum: data.current,
+        remaining: data.remaining,
+        countdown: data.countdown ?? null,
+        isStarting: false,
+        isStarted: (data.countdown ?? null) === null,
+      });
+    const onCountdown    = (data: { countdown: number | null }) =>
+      set({
+        countdown: data.countdown,
+        isStarting: false,
+        isStarted: false,
+        isPaused: false,
+      });
+    const onStarted      = () => {
+      set((prev) => ({
+        ...prev,
+        isStarted: true,
+        isPaused: false,
+        isStarting: false,
+      }));
+    };
     const onPaused       = () => set({ isPaused: true });
     const onResumed      = () => set({ isPaused: false });
     const onNumCalled    = (data: { number: number; calledNums: number[]; remaining: number }) =>
-      set({ currentNum: data.number, calledNums: data.calledNums, remaining: data.remaining });
+      set({
+        currentNum: data.number,
+        calledNums: data.calledNums,
+        remaining: data.remaining,
+        isStarted: true,
+        countdown: null,
+        isStarting: false,
+      });
     const onMarked       = (data: { cardId: string; number: number; markedNums: number[] }) =>
       setState((prev) => ({
         ...prev,
@@ -113,6 +148,8 @@ export function GameProvider({
       set({
         isFinished: true,
         isStarted: false,
+        countdown: null,
+        isStarting: false,
         error: data?.message ?? "Game was cancelled",
       });
     const onPlayerJoined = ({ count }: { count: number }) => set({ playerCount: count });
@@ -129,6 +166,7 @@ export function GameProvider({
 
     s.on("player:cards",       onCards);
     s.on("game:state",         onState);
+    s.on("game:countdown",     onCountdown);
     s.on("game:started",       onStarted);
     s.on("game:paused",        onPaused);
     s.on("game:resumed",       onResumed);
@@ -166,6 +204,7 @@ export function GameProvider({
       s.off("connect_error",      onConnectError);
       s.off("player:cards",       onCards);
       s.off("game:state",         onState);
+      s.off("game:countdown",     onCountdown);
       s.off("game:started",       onStarted);
       s.off("game:paused",        onPaused);
       s.off("game:resumed",       onResumed);
@@ -179,9 +218,35 @@ export function GameProvider({
     };
   }, [participationMode, roomId, set]);
 
+  useEffect(() => {
+    if (announcedLenRef.current === null) {
+      announcedLenRef.current = state.calledNums.length;
+      return;
+    }
+
+    if (state.calledNums.length > announcedLenRef.current) {
+      const latest = state.calledNums[state.calledNums.length - 1];
+      play("ding");
+      haptic.medium();
+      announceNumber(latest, muted);
+    }
+
+    announcedLenRef.current = state.calledNums.length;
+  }, [muted, play, state.calledNums]);
+
+  useEffect(() => () => cancelAnnouncement(), []);
+
   const startGame  = useCallback(() => {
+    set({ isStarting: true, countdown: null, isStarted: false, error: null });
     socketRef.current.emit("game:start", { roomId }, (res: SocketAck) => {
-      if (res?.error) set({ error: res.error.message ?? "Failed to start game" });
+      if (res?.error) {
+        set({
+          error: res.error.message ?? "Failed to start game",
+          countdown: null,
+          isStarted: false,
+          isStarting: false,
+        });
+      }
     });
   }, [roomId, set]);
   const callNext   = useCallback(() => socketRef.current.emit("game:call_next", { roomId }), [roomId]);

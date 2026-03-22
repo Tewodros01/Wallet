@@ -166,6 +166,8 @@ model User {
   deposits     Deposit[]
   withdrawals  Withdrawal[]
   financialAccounts FinancialAccount[]
+  assignedDeposits    Deposit[]    @relation("DepositAgent")
+  assignedWithdrawals Withdrawal[] @relation("WithdrawalAgent")
 
   // game relations
   hostedRooms  GameRoom[]    @relation("RoomHost")
@@ -398,6 +400,8 @@ model Deposit {
   id            String        @id @default(cuid())
   userId        String
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId       String?
+  agent         User?         @relation("DepositAgent", fields: [agentId], references: [id], onDelete: Restrict)
   amount        Int           // in coins
   method        PaymentMethod
   reference     String?       @unique  // payment provider reference
@@ -409,6 +413,7 @@ model Deposit {
   updatedAt     DateTime      @updatedAt
 
   @@index([userId])
+  @@index([agentId])
   @@index([status])
   @@index([createdAt])
 }
@@ -417,7 +422,11 @@ model Withdrawal {
   id            String           @id @default(cuid())
   userId        String
   user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId       String?
+  agent         User?            @relation("WithdrawalAgent", fields: [agentId], references: [id], onDelete: Restrict)
   amount        Int              // in coins
+  feeAmount     Int              @default(0)
+  payoutAmount  Int              @default(0)
   method        PaymentMethod
   accountNumber String           // destination account
   status        WithdrawalStatus @default(PENDING)
@@ -428,6 +437,7 @@ model Withdrawal {
   updatedAt     DateTime         @updatedAt
 
   @@index([userId])
+  @@index([agentId])
   @@index([status])
   @@index([createdAt])
 }

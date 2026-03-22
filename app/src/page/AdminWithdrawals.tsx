@@ -146,6 +146,22 @@ export default function AdminWithdrawals() {
                         {item.method ?? "—"}
                       </p>
                     </div>
+                    <div className="bg-white/4 rounded-xl px-3 py-2">
+                      <p className="text-[9px] text-gray-500 uppercase tracking-wide">
+                        Fee
+                      </p>
+                      <p className="text-sm font-bold text-white">
+                        {Number(item.feeAmount ?? 0).toLocaleString()} coins
+                      </p>
+                    </div>
+                    <div className="bg-white/4 rounded-xl px-3 py-2">
+                      <p className="text-[9px] text-gray-500 uppercase tracking-wide">
+                        Net Payout
+                      </p>
+                      <p className="text-sm font-bold text-emerald-300">
+                        {Number(item.payoutAmount ?? item.amount).toLocaleString()} coins
+                      </p>
+                    </div>
                     {item.accountNumber && (
                       <div className="bg-white/4 rounded-xl px-3 py-2 col-span-2">
                         <p className="text-[9px] text-gray-500 uppercase tracking-wide">

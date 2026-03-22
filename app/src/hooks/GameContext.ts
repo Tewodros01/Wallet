@@ -6,6 +6,8 @@ export type GameState = {
   calledNums:  number[];
   currentNum:  number | null;
   remaining:   number;
+  countdown:   number | null;
+  isStarting:  boolean;
   cards:       PlayerCard[];
   activeCardId: string | null;
   markedNumsByCardId: Record<string, Set<number>>;
@@ -32,6 +34,8 @@ export const INITIAL: GameState = {
   calledNums:  [],
   currentNum:  null,
   remaining:   75,
+  countdown:   null,
+  isStarting:  false,
   cards:       [],
   activeCardId: null,
   markedNumsByCardId: {},

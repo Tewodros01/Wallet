@@ -5,15 +5,24 @@ import {
 import {
   NotificationType,
   DepositStatus,
+  Role,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
 import { PaymentsService } from './payments.service';
 
+const AGENT_USER = { sub: 'agent-1', email: 'agent@example.com', role: Role.AGENT };
+
 describe('PaymentsService', () => {
   const createService = () => {
     const prisma = {
       $transaction: jest.fn(),
+      user: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'agent-1',
+          financialAccounts: [{ provider: 'TELEBIRR', type: 'MOBILE_WALLET' }],
+        }),
+      },
       notification: {
         create: jest.fn().mockResolvedValue(undefined),
       },
@@ -119,6 +128,7 @@ describe('PaymentsService', () => {
     const result = await service.createWithdrawal(
       {
         amount: 100,
+        agentId: 'agent-1',
         method: 'TELEBIRR' as any,
         accountNumber: '+251900000000',
       },
@@ -160,7 +170,9 @@ describe('PaymentsService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 'wd-1',
           userId: 'user-9',
+          agentId: 'agent-1',
           amount: 250,
+          payoutAmount: 250,
           method: 'CBE_BIRR',
           status: WithdrawalStatus.PROCESSING,
         }),
@@ -171,7 +183,7 @@ describe('PaymentsService', () => {
       async (callback: (db: unknown) => unknown) => callback(tx),
     );
 
-    const result = await service.agentRejectWithdrawal('wd-1');
+    const result = await service.agentRejectWithdrawal('wd-1', AGENT_USER);
 
     expect(result).toEqual({ success: true });
     expect(ledgerService.applyEntry).toHaveBeenCalledWith(
@@ -203,6 +215,7 @@ describe('PaymentsService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 'dep-1',
           userId: 'user-4',
+          agentId: 'agent-1',
           amount: 300,
           method: 'TELEBIRR',
           status: DepositStatus.PENDING,
@@ -214,9 +227,9 @@ describe('PaymentsService', () => {
       async (callback: (db: unknown) => unknown) => callback(tx),
     );
 
-    await expect(service.agentApproveDeposit('dep-1')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.agentApproveDeposit('dep-1', AGENT_USER),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(ledgerService.applyEntry).not.toHaveBeenCalled();
   });
 
@@ -227,6 +240,7 @@ describe('PaymentsService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 'wd-2',
           userId: 'user-8',
+          agentId: 'agent-1',
           amount: 250,
           method: 'CBE_BIRR',
           status: WithdrawalStatus.PROCESSING,
@@ -238,9 +252,9 @@ describe('PaymentsService', () => {
       async (callback: (db: unknown) => unknown) => callback(tx),
     );
 
-    await expect(service.agentRejectWithdrawal('wd-2')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.agentRejectWithdrawal('wd-2', AGENT_USER),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(ledgerService.applyEntry).not.toHaveBeenCalled();
   });
 
@@ -261,6 +275,7 @@ describe('PaymentsService', () => {
       service.createWithdrawal(
         {
           amount: 100,
+          agentId: 'agent-1',
           method: 'TELEBIRR' as any,
           accountNumber: '+251900000000',
         },

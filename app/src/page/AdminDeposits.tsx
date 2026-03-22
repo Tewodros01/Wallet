@@ -129,6 +129,16 @@ export default function AdminDeposits() {
                         {item.method ?? "—"}
                       </p>
                     </div>
+                    <div className="bg-white/4 rounded-xl px-3 py-2 col-span-2">
+                      <p className="text-[9px] text-gray-500 uppercase tracking-wide">
+                        Assigned Agent
+                      </p>
+                      <p className="text-sm font-bold text-white">
+                        {item.agent
+                          ? `${item.agent.firstName} ${item.agent.lastName}`
+                          : "Unassigned"}
+                      </p>
+                    </div>
                     {item.reference && (
                       <div className="bg-white/4 rounded-xl px-3 py-2 col-span-2">
                         <p className="text-[9px] text-gray-500 uppercase tracking-wide">

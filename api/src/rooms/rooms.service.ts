@@ -170,6 +170,8 @@ type AvailableRoomCardDto = {
   board: number[][];
 };
 
+const ROOM_RAKE_BPS = 1000;
+
 @Injectable()
 export class RoomsService {
   private readonly logger = new Logger(RoomsService.name);
@@ -809,6 +811,8 @@ export class RoomsService {
     cardCount = 1,
   ): Promise<void> {
     const totalEntryFee = room.entryFee * cardCount;
+    const rake = Math.floor((totalEntryFee * ROOM_RAKE_BPS) / 10_000);
+    const prizeContribution = totalEntryFee - rake;
 
     await this.ledgerService.applyEntry(tx, {
       userId,
@@ -824,7 +828,7 @@ export class RoomsService {
 
     await tx.gameRoom.update({
       where: { id: room.id },
-      data: { prizePool: { increment: totalEntryFee } },
+      data: { prizePool: { increment: prizeContribution } },
     });
   }
 

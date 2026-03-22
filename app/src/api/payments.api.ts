@@ -17,6 +17,7 @@ import type {
 export interface DepositPayload {
   amount: number;
   method: PaymentMethod;
+  agentId: string;
   reference?: string;
   proofUrl?: string;
 }
@@ -24,6 +25,7 @@ export interface DepositPayload {
 export interface WithdrawalPayload {
   amount: number;
   method: PaymentMethod;
+  agentId: string;
   accountNumber: string;
 }
 

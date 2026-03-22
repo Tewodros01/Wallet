@@ -9,11 +9,9 @@ import { getLetter, LETTER_TEXT } from "../../features/bingo/bingoData";
 import { useGame } from "../../hooks/useGame";
 import { useRoom } from "../../hooks/useRooms";
 import { useGameSound } from "../../hooks/useSound";
-import { announceNumber, cancelAnnouncement } from "../../lib/announcer";
 import { fireSideConfetti } from "../../lib/confetti";
 import { haptic } from "../../lib/haptic";
 import { useAuthStore } from "../../store/auth.store";
-import { useSoundStore } from "../../store/sound.store";
 import type { GameRoomPlayer } from "../../types/game.types";
 import {
   BingoBall,
@@ -29,14 +27,14 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
   const { state, startGame, callNext, pauseGame, resumeGame } = useGame();
   const { data: room, refetch } = useRoom(roomId);
   const { play } = useGameSound();
-  const muted = useSoundStore((s) => s.muted);
-  const prevLen = useRef(0);
   const didWin = useRef(false);
 
   const {
     calledNums,
     currentNum,
     remaining,
+    countdown,
+    isStarting,
     isStarted,
     isPaused,
     isFinished,
@@ -51,17 +49,6 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
   const canStart = liveCount >= 1;
   const letter = currentNum ? getLetter(currentNum) : null;
 
-  // Play ding + speak number on each new call
-  useEffect(() => {
-    if (calledNums.length > prevLen.current) {
-      const latest = calledNums[calledNums.length - 1];
-      play("ding");
-      haptic.medium();
-      announceNumber(latest, muted);
-      prevLen.current = calledNums.length;
-    }
-  }, [calledNums, play, muted]);
-
   // Confetti + sound on game end
   useEffect(() => {
     if ((isFinished || winner) && !didWin.current) {
@@ -71,9 +58,6 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
       fireSideConfetti();
     }
   }, [isFinished, winner, play]);
-
-  // Cancel speech on unmount
-  useEffect(() => () => cancelAnnouncement(), []);
 
   if (isFinished || winner) {
     return (
@@ -145,7 +129,41 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
             Current Call
           </p>
-          {currentNum ? (
+          {isStarting ? (
+            <>
+              <motion.div
+                initial={{ scale: 0.96, opacity: 0.7 }}
+                animate={{ scale: 1.04, opacity: 1 }}
+                transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.7 }}
+                className="w-24 h-24 rounded-full bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-200 text-sm font-black shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+              >
+                Loading
+              </motion.div>
+              <div className="text-sm text-cyan-300 font-bold">
+                Starting game...
+              </div>
+            </>
+          ) : countdown !== null ? (
+            <>
+              <motion.div
+                key={`countdown-${countdown}`}
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 320, damping: 20 }}
+                className="w-24 h-24 rounded-full bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-200 text-4xl font-black shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+              >
+                {countdown}
+              </motion.div>
+              <motion.div
+                key={`countdown-label-${countdown}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-cyan-300 font-bold"
+              >
+                Starting in {countdown}...
+              </motion.div>
+            </>
+          ) : currentNum ? (
             <>
               <motion.div
                 key={currentNum}
@@ -175,9 +193,14 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
               )}
             </>
           ) : (
-            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-600 text-sm">
-              {isStarted ? "—" : "Not started"}
-            </div>
+            <>
+              <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 text-sm font-bold">
+                WAIT
+              </div>
+              <div className="text-sm text-gray-400 font-bold">
+                {isStarted ? "Waiting for first number..." : "Waiting for game to start..."}
+              </div>
+            </>
           )}
         </div>
 
@@ -269,9 +292,11 @@ export default function CallerDashboard({ roomId, isHost = false }: Props) {
                     play("ding");
                     haptic.heavy();
                   }}
-                  disabled={!canStart}
+                  disabled={!canStart || countdown !== null || isStarting}
                 >
-                  Start Game ({liveCount} player{liveCount !== 1 ? "s" : ""})
+                  {isStarting || countdown !== null
+                    ? "Start Game"
+                    : `Start Game (${liveCount} player${liveCount !== 1 ? "s" : ""})`}
                 </Button>
               )}
             </div>

@@ -6,21 +6,27 @@ export interface AdminDeposit {
   id: string;
   status: string;
   amount: number;
+  agentId?: string | null;
   method?: string | null;
   reference?: string | null;
   proofUrl?: string | null;
   createdAt: string;
   user?: User;
+  agent?: User;
 }
 
 export interface AdminWithdrawal {
   id: string;
   status: string;
   amount: number;
+  agentId?: string | null;
+  feeAmount?: number;
+  payoutAmount?: number;
   method?: string | null;
   accountNumber?: string | null;
   createdAt: string;
   user?: User;
+  agent?: User;
 }
 
 export interface AdminStats {

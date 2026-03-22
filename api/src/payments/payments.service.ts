@@ -4,15 +4,20 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'crypto';
 import {
   DepositStatus,
+  FinancialAccountProvider,
   MissionCategory,
   NotificationType,
+  PaymentMethod,
   Prisma,
+  Role,
   TransactionType,
   WithdrawalStatus,
 } from 'generated/prisma/client';
 import { AgentsService } from '../agents/agents.service';
+import { ActiveUser } from '../auth/decorators/get-user.decorators';
 import {
   normalizeAvatarUrls,
   normalizePublicAssetFields,
@@ -22,16 +27,19 @@ import { MissionsService } from '../missions/missions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramService } from '../telegram/telegram.service';
-import {
-  CreateDepositDto,
-  CreateWithdrawalDto,
-} from './dto/payment.dto';
+import { CreateDepositDto, CreateWithdrawalDto } from './dto/payment.dto';
 
 const MIN_DEPOSIT = 10;
 const MAX_DEPOSIT = 1_000_000;
 const MIN_WITHDRAWAL = 50;
 const MAX_WITHDRAWAL = 500_000;
 const DAILY_BONUS_PRIZES = [25, 50, 75, 100, 200, 300, 500, 1000] as const;
+const BANK_WITHDRAWAL_FEE_BPS = 150;
+const ZERO_FEE_METHODS: ReadonlySet<PaymentMethod> = new Set([
+  'TELEBIRR',
+  'MPESA',
+  'CBE_BIRR',
+]);
 
 const KENO_PAYOUTS: Record<number, Record<number, number>> = {
   1: { 1: 3 },
@@ -39,10 +47,10 @@ const KENO_PAYOUTS: Record<number, Record<number, number>> = {
   3: { 2: 2, 3: 40 },
   4: { 2: 1, 3: 5, 4: 100 },
   5: { 3: 3, 4: 20, 5: 500 },
-  6: { 3: 2, 4: 8, 5: 100, 6: 1500 },
-  7: { 3: 1, 4: 5, 5: 40, 6: 400, 7: 5000 },
-  8: { 4: 3, 5: 20, 6: 100, 7: 1000, 8: 10000 },
-  9: { 4: 2, 5: 10, 6: 50, 7: 500, 8: 5000, 9: 25000 },
+  6: { 3: 2, 4: 8, 5: 75, 6: 1000 },
+  7: { 3: 1, 4: 5, 5: 20, 6: 120, 7: 1500 },
+  8: { 4: 3, 5: 12, 6: 50, 7: 300, 8: 3500 },
+  9: { 4: 2, 5: 8, 6: 35, 7: 150, 8: 1200, 9: 8000 },
   10: { 5: 5, 6: 20, 7: 100, 8: 1000, 9: 10000, 10: 100000 },
 };
 
@@ -64,6 +72,8 @@ const financialAccountOrderBy: Prisma.FinancialAccountOrderByWithRelationInput[]
 
 @Injectable()
 export class PaymentsService {
+  private static readonly SERIALIZABLE_RETRIES = 3;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ledgerService: LedgerService,
@@ -85,6 +95,80 @@ export class PaymentsService {
     return normalizePublicAssetFields(value, this.publicApiUrl, ['proofUrl']);
   }
 
+  private async assertAgentSupportsMethod(
+    agentId: string,
+    method: CreateDepositDto['method'],
+  ) {
+    const agent = await this.prisma.user.findFirst({
+      where: { id: agentId, role: Role.AGENT, deletedAt: null },
+      select: {
+        id: true,
+        financialAccounts: {
+          where: { isActive: true },
+          select: { provider: true, type: true },
+        },
+      },
+    });
+
+    if (!agent) {
+      throw new BadRequestException('Selected agent was not found');
+    }
+
+    const supportsMethod = agent.financialAccounts.some((account) => {
+      switch (method) {
+        case 'TELEBIRR':
+          return account.provider === FinancialAccountProvider.TELEBIRR;
+        case 'MPESA':
+          return account.provider === FinancialAccountProvider.MPESA;
+        case 'CBE_BIRR':
+          return account.provider === FinancialAccountProvider.CBE_BIRR;
+        case 'BANK_CARD':
+          return (
+            account.provider === FinancialAccountProvider.BOA ||
+            account.provider === FinancialAccountProvider.OTHER_BANK ||
+            account.type === 'BANK_ACCOUNT'
+          );
+        default:
+          return false;
+      }
+    });
+
+    if (!supportsMethod) {
+      throw new BadRequestException(
+        'Selected agent does not support that payment method',
+      );
+    }
+  }
+
+  private calculateWithdrawalFee(
+    amount: number,
+    method: CreateWithdrawalDto['method'],
+  ) {
+    if (ZERO_FEE_METHODS.has(method)) {
+      return 0;
+    }
+
+    return Math.ceil((amount * BANK_WITHDRAWAL_FEE_BPS) / 10_000);
+  }
+
+  private assertRequestAccess(
+    user: ActiveUser,
+    assignedAgentId: string | null,
+    label: 'deposit' | 'withdrawal',
+  ) {
+    if (user.role === Role.ADMIN) return;
+
+    if (user.role !== Role.AGENT) {
+      throw new BadRequestException('Only agents can process requests');
+    }
+
+    if (!assignedAgentId || assignedAgentId !== user.sub) {
+      throw new BadRequestException(
+        `You cannot process a ${label} assigned to another agent`,
+      );
+    }
+  }
+
   // ── Deposits ──────────────────────────────────────────────────────────────
 
   async createDeposit(dto: CreateDepositDto, userId: string) {
@@ -95,9 +179,11 @@ export class PaymentsService {
         `Maximum deposit is ${MAX_DEPOSIT.toLocaleString()} coins`,
       );
     try {
+      await this.assertAgentSupportsMethod(dto.agentId, dto.method);
       const deposit = await this.prisma.deposit.create({
         data: {
           userId,
+          agentId: dto.agentId,
           amount: dto.amount,
           method: dto.method,
           reference: dto.reference,
@@ -105,7 +191,8 @@ export class PaymentsService {
         },
       });
       return this.normalizePaymentAssets(deposit);
-    } catch {
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(
         'Failed to create deposit request',
       );
@@ -192,11 +279,18 @@ export class PaymentsService {
         `Maximum withdrawal is ${MAX_WITHDRAWAL.toLocaleString()} coins`,
       );
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      await this.assertAgentSupportsMethod(dto.agentId, dto.method);
+      const feeAmount = this.calculateWithdrawalFee(dto.amount, dto.method);
+      const payoutAmount = Math.max(0, dto.amount - feeAmount);
+
+      const result = await this.runSerializableTransaction(async (tx) => {
         const withdrawal = await tx.withdrawal.create({
           data: {
             userId,
+            agentId: dto.agentId,
             amount: dto.amount,
+            feeAmount,
+            payoutAmount,
             method: dto.method,
             accountNumber: dto.accountNumber,
             status: WithdrawalStatus.PENDING,
@@ -223,7 +317,7 @@ export class PaymentsService {
 
       void this.telegramService.trySendMessageToUser(
         userId,
-        `Your withdrawal request for ${dto.amount.toLocaleString()} coins is now processing.`,
+        `Your withdrawal request for ${dto.amount.toLocaleString()} coins is now processing. Estimated payout: ${payoutAmount.toLocaleString()} coins.`,
       );
 
       return result;
@@ -246,9 +340,7 @@ export class PaymentsService {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const coins =
-          DAILY_BONUS_PRIZES[
-            Math.floor(Math.random() * DAILY_BONUS_PRIZES.length)
-          ];
+          DAILY_BONUS_PRIZES[randomInt(0, DAILY_BONUS_PRIZES.length)];
 
         // enforce 24-hour cooldown
         const lastBonus = await tx.transaction.findFirst({
@@ -299,7 +391,7 @@ export class PaymentsService {
     // server generates the draw — never trust client-supplied drawn numbers
     const pool = Array.from({ length: 80 }, (_, i) => i + 1);
     for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = randomInt(0, i + 1);
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     const drawn = pool.slice(0, 20);
@@ -372,13 +464,14 @@ export class PaymentsService {
 
   // ── Agent: approve/reject deposits & withdrawals ──────────────────────────
 
-  async agentApproveDeposit(depositId: string) {
+  async agentApproveDeposit(depositId: string, actor: ActiveUser) {
     try {
       const deposit = await this.prisma.$transaction(async (tx) => {
         const pendingDeposit = await tx.deposit.findUnique({
           where: { id: depositId },
         });
         if (!pendingDeposit) throw new BadRequestException('Deposit not found');
+        this.assertRequestAccess(actor, pendingDeposit.agentId, 'deposit');
 
         const updated = await tx.deposit.updateMany({
           where: { id: depositId, status: DepositStatus.PENDING },
@@ -427,13 +520,14 @@ export class PaymentsService {
     }
   }
 
-  async agentRejectDeposit(depositId: string) {
+  async agentRejectDeposit(depositId: string, actor: ActiveUser) {
     try {
       const deposit = await this.prisma.$transaction(async (tx) => {
         const pendingDeposit = await tx.deposit.findUnique({
           where: { id: depositId },
         });
         if (!pendingDeposit) throw new BadRequestException('Deposit not found');
+        this.assertRequestAccess(actor, pendingDeposit.agentId, 'deposit');
 
         const updated = await tx.deposit.updateMany({
           where: { id: depositId, status: DepositStatus.PENDING },
@@ -465,7 +559,7 @@ export class PaymentsService {
     }
   }
 
-  async agentApproveWithdrawal(withdrawalId: string) {
+  async agentApproveWithdrawal(withdrawalId: string, actor: ActiveUser) {
     try {
       const w = await this.prisma.$transaction(async (tx) => {
         const pendingWithdrawal = await tx.withdrawal.findUnique({
@@ -474,6 +568,11 @@ export class PaymentsService {
         if (!pendingWithdrawal) {
           throw new BadRequestException('Withdrawal not found');
         }
+        this.assertRequestAccess(
+          actor,
+          pendingWithdrawal.agentId,
+          'withdrawal',
+        );
 
         const updated = await tx.withdrawal.updateMany({
           where: {
@@ -496,7 +595,7 @@ export class PaymentsService {
       const notif = {
         type: NotificationType.WITHDRAWAL,
         title: 'Withdrawal Approved ✅',
-        body: `Your withdrawal of ${Number(w.amount).toLocaleString()} coins has been approved. Cash will be sent to your account shortly.`,
+        body: `Your withdrawal of ${Number(w.amount).toLocaleString()} coins has been approved. ${Number(w.payoutAmount ?? w.amount).toLocaleString()} coins will be sent to your account shortly.`,
       };
       await this.prisma.notification
         .create({ data: { userId: w.userId, ...notif } })
@@ -504,7 +603,7 @@ export class PaymentsService {
       this.notifGateway.pushToUser(w.userId, notif);
       void this.telegramService.trySendMessageToUser(
         w.userId,
-        `Withdrawal approved. ${Number(w.amount).toLocaleString()} coins will be sent to your ${w.method} account shortly.`,
+        `Withdrawal approved. ${Number(w.payoutAmount ?? w.amount).toLocaleString()} coins will be sent to your ${w.method} account shortly.`,
       );
       return { success: true };
     } catch (error) {
@@ -513,7 +612,7 @@ export class PaymentsService {
     }
   }
 
-  async agentRejectWithdrawal(withdrawalId: string) {
+  async agentRejectWithdrawal(withdrawalId: string, actor: ActiveUser) {
     try {
       const w = await this.prisma.$transaction(async (tx) => {
         const pendingWithdrawal = await tx.withdrawal.findUnique({
@@ -522,6 +621,11 @@ export class PaymentsService {
         if (!pendingWithdrawal) {
           throw new BadRequestException('Withdrawal not found');
         }
+        this.assertRequestAccess(
+          actor,
+          pendingWithdrawal.agentId,
+          'withdrawal',
+        );
 
         const updated = await tx.withdrawal.updateMany({
           where: {
@@ -566,9 +670,12 @@ export class PaymentsService {
     }
   }
 
-  async getAgentRequests() {
+  async getAgentRequests(actor: ActiveUser) {
+    const where = actor.role === Role.ADMIN ? {} : { agentId: actor.sub };
+
     const [deposits, withdrawals] = await Promise.all([
       this.prisma.deposit.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: {
@@ -582,13 +689,34 @@ export class PaymentsService {
               role: true,
             },
           },
+          agent: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              role: true,
+            },
+          },
         },
       }),
       this.prisma.withdrawal.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: {
           user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              role: true,
+            },
+          },
+          agent: {
             select: {
               id: true,
               username: true,
@@ -620,6 +748,16 @@ export class PaymentsService {
             role: true,
           },
         },
+        agent: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -642,9 +780,49 @@ export class PaymentsService {
             role: true,
           },
         },
+        agent: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
       },
     });
 
     return normalizeAvatarUrls(withdrawals, this.publicApiUrl);
+  }
+
+  private async runSerializableTransaction<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (
+      let attempt = 1;
+      attempt <= PaymentsService.SERIALIZABLE_RETRIES;
+      attempt += 1
+    ) {
+      try {
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt < PaymentsService.SERIALIZABLE_RETRIES
+        ) {
+          const delayMs = 40 * attempt + randomInt(0, 30);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new InternalServerErrorException('Transaction failed after retries');
   }
 }

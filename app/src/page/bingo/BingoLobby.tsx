@@ -128,11 +128,11 @@ export default function BingoLobby({
 
         <BingoLobbyHero
           rooms={roomsData}
-          waiting={waiting}
-          playing={playing}
           onCreateOpen={onCreateOpen}
           onJoinCodeOpen={() => setShowJoinCode(true)}
         />
+
+        <BingoLobbyStatsStrip rooms={roomsData} waiting={waiting} />
 
         <BingoLobbyFilters
           search={search}
@@ -144,8 +144,6 @@ export default function BingoLobby({
           onFilterChange={onFilterChange}
           onFilterTap={() => haptic.light()}
         />
-
-        <BingoLobbyStatsStrip rooms={roomsData} waiting={waiting} />
 
         <div className="flex flex-col gap-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">

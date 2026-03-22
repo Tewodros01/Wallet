@@ -1,10 +1,25 @@
-import { Body, Controller, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Role } from 'generated/prisma/client';
-import { Roles } from '../auth/decorators/roles.decorator';
+import type { ActiveUser } from '../auth/decorators/get-user.decorators';
 import { GetUser } from '../auth/decorators/get-user.decorators';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
@@ -39,21 +54,23 @@ export class PaymentsController {
 
   @ApiOperation({ summary: 'Upload payment proof image/PDF' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', {
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-    fileFilter: (_req, file, cb) => {
-      try {
-        validateUploadMimeType(
-          file.mimetype,
-          PROOF_UPLOAD_MIME_TYPES,
-          'Only JPG, PNG, WEBP, GIF, and PDF files are allowed',
-        );
-        cb(null, true);
-      } catch (error) {
-        return cb(error as Error, false);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+      fileFilter: (_req, file, cb) => {
+        try {
+          validateUploadMimeType(
+            file.mimetype,
+            PROOF_UPLOAD_MIME_TYPES,
+            'Only JPG, PNG, WEBP, GIF, and PDF files are allowed',
+          );
+          cb(null, true);
+        } catch (error) {
+          return cb(error as Error, false);
+        }
+      },
+    }),
+  )
   @Post('proof/upload')
   uploadProof(@UploadedFile() file: Express.Multer.File) {
     return {
@@ -83,10 +100,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Transfer coins to another user' })
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   @Post('transfer')
-  transferCoins(
-    @Body() dto: TransferCoinsDto,
-    @GetUser('sub') userId: string,
-  ) {
+  transferCoins(@Body() dto: TransferCoinsDto, @GetUser('sub') userId: string) {
     return this.paymentsService.transferCoins(
       userId,
       dto.recipientUsername,
@@ -120,10 +134,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Play Keno round' })
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   @Post('keno/play')
-  playKeno(
-    @Body() dto: PlayKenoDto,
-    @GetUser('sub') userId: string,
-  ) {
+  playKeno(@Body() dto: PlayKenoDto, @GetUser('sub') userId: string) {
     return this.paymentsService.playKeno(userId, dto.bet, dto.picks);
   }
 
@@ -137,8 +148,8 @@ export class PaymentsController {
   @Roles(Role.AGENT, Role.ADMIN)
   @UseGuards(RolesGuard)
   @Get('agent/requests')
-  getAgentRequests() {
-    return this.paymentsService.getAgentRequests();
+  getAgentRequests(@GetUser() user: ActiveUser) {
+    return this.paymentsService.getAgentRequests(user);
   }
 
   @ApiOperation({ summary: 'Agent: approve deposit' })
@@ -146,8 +157,8 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/deposits/:id/approve')
-  approveDeposit(@Param('id') id: string) {
-    return this.paymentsService.agentApproveDeposit(id);
+  approveDeposit(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentApproveDeposit(id, user);
   }
 
   @ApiOperation({ summary: 'Agent: reject deposit' })
@@ -155,8 +166,8 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/deposits/:id/reject')
-  rejectDeposit(@Param('id') id: string) {
-    return this.paymentsService.agentRejectDeposit(id);
+  rejectDeposit(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentRejectDeposit(id, user);
   }
 
   @ApiOperation({ summary: 'Agent: approve withdrawal' })
@@ -164,8 +175,8 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/withdrawals/:id/approve')
-  approveWithdrawal(@Param('id') id: string) {
-    return this.paymentsService.agentApproveWithdrawal(id);
+  approveWithdrawal(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentApproveWithdrawal(id, user);
   }
 
   @ApiOperation({ summary: 'Agent: reject withdrawal' })
@@ -173,8 +184,8 @@ export class PaymentsController {
   @UseGuards(RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 30 } })
   @Post('agent/withdrawals/:id/reject')
-  rejectWithdrawal(@Param('id') id: string) {
-    return this.paymentsService.agentRejectWithdrawal(id);
+  rejectWithdrawal(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentRejectWithdrawal(id, user);
   }
 
   // ── Admin endpoints ──────────────────────────────────────────────────────
@@ -187,7 +198,10 @@ export class PaymentsController {
     return this.paymentsService.getAdminDeposits();
   }
 
-  @ApiOperation({ summary: 'Admin: analytics — daily deposit/withdrawal totals for last 30 days' })
+  @ApiOperation({
+    summary:
+      'Admin: analytics — daily deposit/withdrawal totals for last 30 days',
+  })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Get('admin/analytics')
@@ -212,7 +226,10 @@ export class PaymentsController {
     ]);
 
     // Build a map of day → totals
-    const days: Record<string, { date: string; deposits: number; withdrawals: number; newUsers: number }> = {};
+    const days: Record<
+      string,
+      { date: string; deposits: number; withdrawals: number; newUsers: number }
+    > = {};
     for (let i = 0; i < 30; i++) {
       const d = new Date(since);
       d.setDate(d.getDate() + i);
@@ -248,31 +265,31 @@ export class PaymentsController {
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Post('admin/deposits/:id/approve')
-  adminApproveDeposit(@Param('id') id: string) {
-    return this.paymentsService.agentApproveDeposit(id);
+  adminApproveDeposit(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentApproveDeposit(id, user);
   }
 
   @ApiOperation({ summary: 'Admin: reject deposit' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Post('admin/deposits/:id/reject')
-  adminRejectDeposit(@Param('id') id: string) {
-    return this.paymentsService.agentRejectDeposit(id);
+  adminRejectDeposit(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentRejectDeposit(id, user);
   }
 
   @ApiOperation({ summary: 'Admin: approve withdrawal' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Post('admin/withdrawals/:id/approve')
-  adminApproveWithdrawal(@Param('id') id: string) {
-    return this.paymentsService.agentApproveWithdrawal(id);
+  adminApproveWithdrawal(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentApproveWithdrawal(id, user);
   }
 
   @ApiOperation({ summary: 'Admin: reject withdrawal' })
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
   @Post('admin/withdrawals/:id/reject')
-  adminRejectWithdrawal(@Param('id') id: string) {
-    return this.paymentsService.agentRejectWithdrawal(id);
+  adminRejectWithdrawal(@Param('id') id: string, @GetUser() user: ActiveUser) {
+    return this.paymentsService.agentRejectWithdrawal(id, user);
   }
 }

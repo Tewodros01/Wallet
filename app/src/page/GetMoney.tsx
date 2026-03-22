@@ -21,10 +21,15 @@ import { APP_ROUTES } from "../config/routes";
 import { useAgents, useWithdraw } from "../hooks/usePayments";
 import { getErrorMessage } from "../lib/errors";
 import { useWalletStore } from "../store/wallet.store";
-import { PaymentMethod } from "../types/enums";
+import {
+  FinancialAccountProvider,
+  PaymentMethod,
+} from "../types/enums";
+import type { FinancialAccount } from "../types/financial-account.types";
 import type { Agent } from "../types/withdrawal.types";
 
 const PRESETS = ["100", "500", "1000", "2000", "5000"];
+const BANK_WITHDRAWAL_FEE_BPS = 150;
 
 const METHODS: {
   id: PaymentMethod;
@@ -70,6 +75,56 @@ const METHODS: {
 
 type Step = "amount" | "agent" | "confirm" | "pending";
 
+function calculateWithdrawalFee(amount: number, method: PaymentMethod) {
+  if (method !== PaymentMethod.BANK_CARD) return 0;
+  return Math.ceil((amount * BANK_WITHDRAWAL_FEE_BPS) / 10_000);
+}
+
+function getMethodAccount(
+  accounts: FinancialAccount[] | undefined,
+  method: PaymentMethod,
+) {
+  if (!accounts?.length) return null;
+
+  switch (method) {
+    case PaymentMethod.TELEBIRR:
+      return (
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.TELEBIRR,
+        ) ?? null
+      );
+    case PaymentMethod.MPESA:
+      return (
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.MPESA,
+        ) ?? null
+      );
+    case PaymentMethod.CBE_BIRR:
+      return (
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.CBE_BIRR,
+        ) ?? null
+      );
+    case PaymentMethod.BANK_CARD:
+      return (
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.BOA,
+        ) ??
+        accounts.find(
+          (account) => account.provider === FinancialAccountProvider.OTHER_BANK,
+        ) ??
+        accounts.find((account) => account.type === "BANK_ACCOUNT") ??
+        null
+      );
+    default:
+      return null;
+  }
+}
+
+function getAvailableMethods(accounts: FinancialAccount[] | undefined) {
+  return METHODS.filter((item) => getMethodAccount(accounts, item.id));
+}
+
 export default function GetMoney() {
   const navigate = useNavigate();
   const { balance, setBalance } = useWalletStore();
@@ -88,12 +143,26 @@ export default function GetMoney() {
   const insufficient = numAmount > balance;
   const selectedAgent = agents.find((a: Agent) => a.id === agentId);
   const selectedMethod = METHODS.find((m) => m.id === method)!;
+  const availableMethods = getAvailableMethods(selectedAgent?.financialAccounts);
+  const availableAgents = agents
+    .map((agent: Agent) => ({
+      agent,
+      methods: getAvailableMethods(agent.financialAccounts),
+    }))
+    .filter(({ methods }) => methods.length > 0);
+  const feeAmount = calculateWithdrawalFee(numAmount, method);
+  const payoutAmount = Math.max(0, numAmount - feeAmount);
 
   const handleSendRequest = () => {
     if (!selectedAgent || !accountNum.trim()) return;
     setError(null);
     withdraw(
-      { amount: numAmount, method, accountNumber: accountNum.trim() },
+      {
+        amount: numAmount,
+        agentId: selectedAgent.id,
+        method,
+        accountNumber: accountNum.trim(),
+      },
       {
         onSuccess: () => {
           setBalance(Math.max(0, balance - numAmount));
@@ -135,6 +204,22 @@ export default function GetMoney() {
               <span className="flex items-center gap-1 font-black text-yellow-300">
                 <FaCoins className="text-xs text-yellow-400" />
                 {numAmount.toLocaleString()} coins
+              </span>
+            ),
+          },
+          {
+            label: "Fee",
+            value: (
+              <span className="font-bold text-white">
+                {feeAmount.toLocaleString()} coins
+              </span>
+            ),
+          },
+          {
+            label: "You Receive",
+            value: (
+              <span className="font-bold text-emerald-400">
+                {payoutAmount.toLocaleString()} coins
               </span>
             ),
           },
@@ -210,7 +295,10 @@ export default function GetMoney() {
             />
             <p className="text-[11px] text-gray-600">
               The agent will send cash to this account via{" "}
-              {selectedMethod.label}.
+              {selectedMethod.label}. Estimated payout:{" "}
+              <span className="font-semibold text-white">
+                {payoutAmount.toLocaleString()} coins
+              </span>
             </p>
           </div>
 
@@ -219,7 +307,7 @@ export default function GetMoney() {
               Receive Cash Via
             </p>
             <div className="flex flex-col gap-2">
-              {METHODS.map((m) => (
+              {availableMethods.map((m) => (
                 <button
                   key={m.id}
                   type="button"
@@ -297,18 +385,19 @@ export default function GetMoney() {
                   className="h-16 bg-white/4 rounded-2xl animate-pulse"
                 />
               ))
-            ) : agents.length === 0 ? (
+            ) : availableAgents.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-gray-600">
                 <FiArrowUp className="text-3xl" />
                 <p className="text-sm font-semibold">No agents available</p>
               </div>
             ) : (
-              agents.map((agent: Agent) => (
+              availableAgents.map(({ agent, methods }) => (
                 <button
                   key={agent.id}
                   type="button"
                   onClick={() => {
                     setAgentId(agent.id);
+                    setMethod(methods[0].id);
                     setStep("confirm");
                   }}
                   className="flex items-center gap-3 px-4 py-3.5 bg-white/4 border border-white/7 rounded-2xl hover:bg-white/7 active:scale-[0.98] transition-all text-left"

@@ -5,7 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'crypto';
 import {
+  Prisma,
   MissionCategory,
   TournamentStatus,
   TransactionType,
@@ -16,8 +18,12 @@ import { MissionsService } from '../missions/missions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTournamentDto } from './dto/tournament.dto';
 
+const TOURNAMENT_RAKE_BPS = 1000;
+
 @Injectable()
 export class TournamentsService {
+  private static readonly SERIALIZABLE_RETRIES = 3;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly missionsService: MissionsService,
@@ -62,26 +68,31 @@ export class TournamentsService {
   }
 
   async join(tournamentId: string, userId: string) {
-    const t = await this.prisma.tournament.findUnique({
-      where: { id: tournamentId },
-      include: { _count: { select: { players: true } } },
-    });
-    if (!t) throw new NotFoundException('Tournament not found');
-    if (
-      t.status === TournamentStatus.FINISHED ||
-      t.status === TournamentStatus.CANCELLED
-    )
-      throw new BadRequestException('Tournament is no longer open');
-    if (t._count.players >= t.maxPlayers)
-      throw new BadRequestException('Tournament is full');
+    const result = await this.runSerializableTransaction(async (tx) => {
+      const t = await tx.tournament.findUnique({
+        where: { id: tournamentId },
+        include: { _count: { select: { players: true } } },
+      });
+      if (!t) throw new NotFoundException('Tournament not found');
+      if (
+        t.status === TournamentStatus.FINISHED ||
+        t.status === TournamentStatus.CANCELLED
+      ) {
+        throw new BadRequestException('Tournament is no longer open');
+      }
+      if (t._count.players >= t.maxPlayers) {
+        throw new BadRequestException('Tournament is full');
+      }
 
-    const existing = await this.prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId, userId } },
-    });
-    if (existing) throw new BadRequestException('Already joined');
+      const existing = await tx.tournamentPlayer.findUnique({
+        where: { tournamentId_userId: { tournamentId, userId } },
+      });
+      if (existing) throw new BadRequestException('Already joined');
 
-    const result = await this.prisma.$transaction(async (tx) => {
       if (t.entryFee > 0) {
+        const rake = Math.floor((t.entryFee * TOURNAMENT_RAKE_BPS) / 10_000);
+        const prizeContribution = t.entryFee - rake;
+
         await this.ledgerService.applyEntry(tx, {
           userId,
           title: `Tournament entry: ${t.name}`,
@@ -91,7 +102,7 @@ export class TournamentsService {
         });
         await tx.tournament.update({
           where: { id: tournamentId },
-          data: { prize: { increment: t.entryFee } },
+          data: { prize: { increment: prizeContribution } },
         });
       }
       await tx.tournamentPlayer.create({ data: { tournamentId, userId } });
@@ -221,5 +232,35 @@ export class TournamentsService {
 
       return { success: true, winner: winnerUserId, prize: t.prize };
     });
+  }
+
+  private async runSerializableTransaction<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (
+      let attempt = 1;
+      attempt <= TournamentsService.SERIALIZABLE_RETRIES;
+      attempt += 1
+    ) {
+      try {
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt < TournamentsService.SERIALIZABLE_RETRIES
+        ) {
+          const delayMs = 40 * attempt + randomInt(0, 30);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new InternalServerErrorException('Transaction failed after retries');
   }
 }

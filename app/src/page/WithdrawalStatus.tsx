@@ -168,9 +168,21 @@ export default function WithdrawalStatus() {
                       </p>
                     </div>
                     <div>
+                      <p className="text-gray-500">Net Payout</p>
+                      <p className="text-emerald-400 font-semibold">
+                        {Number(w.payoutAmount ?? w.amount).toLocaleString()} coins
+                      </p>
+                    </div>
+                    <div>
                       <p className="text-gray-500">Account</p>
                       <p className="text-white font-semibold truncate">
                         {w.accountNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Fee</p>
+                      <p className="text-white font-semibold">
+                        {Number(w.feeAmount ?? 0).toLocaleString()} coins
                       </p>
                     </div>
                     <div>

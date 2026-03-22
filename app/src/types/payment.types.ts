@@ -3,12 +3,14 @@ import {
   PaymentMethod,
   WithdrawalStatus,
 } from "./enums";
+import type { User } from "./user.types";
 
 // ─── Payment Types ────────────────────────────────────────────────────────────
 
 export interface Deposit {
   id: string;
   userId: string;
+  agentId: string | null;
   amount: number;
   method: PaymentMethod;
   reference: string | null;
@@ -18,11 +20,13 @@ export interface Deposit {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  agent?: User | null;
 }
 
 export interface CreateDepositRequest {
   amount: number;
   method: PaymentMethod;
+  agentId: string;
   reference?: string;
   proofUrl?: string;
 }
@@ -36,7 +40,10 @@ export interface UpdateDepositRequest {
 export interface Withdrawal {
   id: string;
   userId: string;
+  agentId: string | null;
   amount: number;
+  feeAmount: number;
+  payoutAmount: number;
   method: PaymentMethod;
   accountNumber: string;
   status: WithdrawalStatus;
@@ -45,11 +52,13 @@ export interface Withdrawal {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  agent?: User | null;
 }
 
 export interface CreateWithdrawalRequest {
   amount: number;
   method: PaymentMethod;
+  agentId: string;
   accountNumber: string;
 }
 

@@ -78,17 +78,26 @@ export class LedgerService {
       );
     }
 
-    const currentBalance = await this.getBalance(tx, input.userId);
-    const nextBalance = currentBalance + input.balanceDelta;
-    if (nextBalance < 0) {
-      throw new BadRequestException('Insufficient coin balance');
-    }
-
     if (input.balanceDelta !== 0) {
-      await tx.user.update({
-        where: { id: input.userId },
-        data: { coinsBalance: { increment: input.balanceDelta } },
-      });
+      if (input.balanceDelta < 0) {
+        const debitAmount = Math.abs(input.balanceDelta);
+        const updatedUsers = await tx.user.updateMany({
+          where: {
+            id: input.userId,
+            coinsBalance: { gte: debitAmount },
+          },
+          data: { coinsBalance: { increment: input.balanceDelta } },
+        });
+
+        if (updatedUsers.count !== 1) {
+          throw new BadRequestException('Insufficient coin balance');
+        }
+      } else {
+        await tx.user.update({
+          where: { id: input.userId },
+          data: { coinsBalance: { increment: input.balanceDelta } },
+        });
+      }
     }
 
     await tx.transaction.create({
@@ -114,6 +123,6 @@ export class LedgerService {
       });
     }
 
-    return nextBalance;
+    return this.getBalance(tx, input.userId);
   }
 }

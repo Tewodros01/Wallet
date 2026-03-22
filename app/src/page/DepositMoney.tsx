@@ -138,7 +138,7 @@ export default function DepositMoney() {
     .filter(({ methods }) => methods.length > 0);
 
   const handleSendRequest = async () => {
-    if (!selectedAgentAccount) {
+    if (!selectedAgent || !selectedAgentAccount) {
       setError(
         `This agent has no ${selectedMethod.label} account configured yet.`,
       );
@@ -163,7 +163,12 @@ export default function DepositMoney() {
     }
 
     deposit(
-      { amount: numAmount, method, proofUrl: finalProofUrl },
+      {
+        amount: numAmount,
+        agentId: selectedAgent.id,
+        method,
+        proofUrl: finalProofUrl,
+      },
       {
         onSuccess: () => setStep("pending"),
         onError: (err: Error) =>
