@@ -23,7 +23,7 @@ export default function BottomSheet({
   return (
     <div className="fixed inset-0 z-[80] bg-black/60" onClick={onClose}>
       <div
-        className="absolute inset-x-0 bottom-0 rounded-t-[28px] border-t border-white/10 bg-gray-950 p-5 shadow-[0_-12px_40px_rgba(0,0,0,0.45)]"
+        className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[82vh] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-gray-950 p-5 shadow-[0_-12px_40px_rgba(0,0,0,0.45)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/15" />
@@ -41,7 +41,9 @@ export default function BottomSheet({
             <FiX className="text-sm text-white" />
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {children}
+        </div>
         {footer}
       </div>
     </div>
