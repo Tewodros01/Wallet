@@ -338,7 +338,7 @@ export class PaymentsService {
 
   async claimDailyBonus(userId: string) {
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      const result = await this.runSerializableTransaction(async (tx) => {
         const coins =
           DAILY_BONUS_PRIZES[randomInt(0, DAILY_BONUS_PRIZES.length)];
 

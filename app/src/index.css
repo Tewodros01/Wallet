@@ -9,6 +9,54 @@
     font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+
+  html {
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+}
+
+html.app-theme-light,
+html.app-theme-light body {
+  background-color: #eef2ff;
+  color: #0f172a;
+}
+
+html.app-theme-light .bg-gray-950,
+html.app-theme-light .bg-gray-950\/90,
+html.app-theme-light .bg-gray-950\/95,
+html.app-theme-light .bg-gray-900\/90 {
+  background-color: rgba(248, 250, 252, 0.96) !important;
+}
+
+html.app-theme-light .text-white {
+  color: #0f172a !important;
+}
+
+html.app-theme-light .text-gray-500,
+html.app-theme-light .text-gray-600 {
+  color: #64748b !important;
+}
+
+html.app-theme-light .text-gray-400,
+html.app-theme-light .text-slate-300 {
+  color: #475569 !important;
+}
+
+html.app-theme-light .bg-white\/4,
+html.app-theme-light .bg-white\/5,
+html.app-theme-light .bg-white\/6,
+html.app-theme-light .bg-white\/7,
+html.app-theme-light .bg-white\/8,
+html.app-theme-light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.app-theme-light .border-white\/5,
+html.app-theme-light .border-white\/6,
+html.app-theme-light .border-white\/7,
+html.app-theme-light .border-white\/8,
+html.app-theme-light .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 /* scrollbar hide */

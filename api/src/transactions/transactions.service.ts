@@ -225,7 +225,12 @@ export class TransactionsService {
         });
       });
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException('Failed to delete transaction');
     }
   }
@@ -302,28 +307,16 @@ export class TransactionsService {
     },
   ) {
     if (dto.type === TransactionType.INCOME) {
-      await tx.wallet.update({
-        where: { id: dto.walletId },
-        data: { balance: { increment: dto.amount } },
-      });
+      await this.applyWalletBalanceDelta(tx, dto.walletId, dto.amount);
     } else if (dto.type === TransactionType.EXPENSE) {
-      await tx.wallet.update({
-        where: { id: dto.walletId },
-        data: { balance: { decrement: dto.amount } },
-      });
+      await this.applyWalletBalanceDelta(tx, dto.walletId, -dto.amount);
     } else if (
       dto.type === TransactionType.TRANSFER &&
       dto.sourceWalletId &&
       dto.destinationWalletId
     ) {
-      await tx.wallet.update({
-        where: { id: dto.sourceWalletId },
-        data: { balance: { decrement: dto.amount } },
-      });
-      await tx.wallet.update({
-        where: { id: dto.destinationWalletId },
-        data: { balance: { increment: dto.amount } },
-      });
+      await this.applyWalletBalanceDelta(tx, dto.sourceWalletId, -dto.amount);
+      await this.applyWalletBalanceDelta(tx, dto.destinationWalletId, dto.amount);
     }
   }
 
@@ -340,28 +333,93 @@ export class TransactionsService {
     const amount = Number(existing.amount);
 
     if (existing.type === TransactionType.INCOME) {
-      await tx.wallet.update({
-        where: { id: existing.wallet.id },
-        data: { balance: { decrement: amount } },
-      });
+      await this.applyWalletBalanceDelta(tx, existing.wallet.id, -amount);
     } else if (existing.type === TransactionType.EXPENSE) {
-      await tx.wallet.update({
-        where: { id: existing.wallet.id },
-        data: { balance: { increment: amount } },
-      });
+      await this.applyWalletBalanceDelta(tx, existing.wallet.id, amount);
     } else if (existing.type === TransactionType.TRANSFER) {
       if (existing.sourceWallet) {
-        await tx.wallet.update({
-          where: { id: existing.sourceWallet.id },
-          data: { balance: { increment: amount } },
-        });
+        await this.applyWalletBalanceDelta(tx, existing.sourceWallet.id, amount);
       }
       if (existing.destinationWallet) {
-        await tx.wallet.update({
-          where: { id: existing.destinationWallet.id },
-          data: { balance: { decrement: amount } },
-        });
+        await this.applyWalletBalanceDelta(
+          tx,
+          existing.destinationWallet.id,
+          -amount,
+        );
       }
     }
+  }
+
+  private async applyWalletBalanceDelta(
+    tx: Prisma.TransactionClient,
+    walletId: string,
+    delta: number,
+  ) {
+    if (delta === 0) return;
+
+    const wallet = await tx.wallet.findUnique({
+      where: { id: walletId },
+      select: { id: true, userId: true, isDefault: true },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException(`Wallet ${walletId} not found`);
+    }
+
+    const amount = Math.abs(delta);
+    const amountDecimal = new Prisma.Decimal(amount);
+    const deltaDecimal = new Prisma.Decimal(delta);
+
+    if (delta < 0) {
+      const updatedWallets = await tx.wallet.updateMany({
+        where: {
+          id: walletId,
+          balance: { gte: amountDecimal },
+        },
+        data: { balance: { increment: deltaDecimal } },
+      });
+
+      if (updatedWallets.count !== 1) {
+        throw new BadRequestException('Insufficient wallet balance');
+      }
+    } else {
+      await tx.wallet.update({
+        where: { id: walletId },
+        data: { balance: { increment: deltaDecimal } },
+      });
+    }
+
+    if (wallet.isDefault) {
+      await this.applyUserCoinDelta(tx, wallet.userId, delta);
+    }
+  }
+
+  private async applyUserCoinDelta(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    delta: number,
+  ) {
+    if (delta === 0) return;
+
+    if (delta < 0) {
+      const updatedUsers = await tx.user.updateMany({
+        where: {
+          id: userId,
+          coinsBalance: { gte: Math.abs(delta) },
+        },
+        data: { coinsBalance: { increment: delta } },
+      });
+
+      if (updatedUsers.count !== 1) {
+        throw new BadRequestException('Insufficient coin balance');
+      }
+
+      return;
+    }
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { coinsBalance: { increment: delta } },
+    });
   }
 }

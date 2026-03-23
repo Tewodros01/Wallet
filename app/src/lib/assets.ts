@@ -6,3 +6,12 @@ export function getPublicAssetUrl(path?: string | null) {
   const publicBase = apiBase.replace(/\/api\/v1\/?$/, "");
   return new URL(path, `${publicBase}/`).toString();
 }
+
+export function getAvatarInitials(
+  firstName?: string | null,
+  lastName?: string | null,
+  fallback = "?",
+) {
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim();
+  return initials || fallback;
+}

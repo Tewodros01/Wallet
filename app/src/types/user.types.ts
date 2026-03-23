@@ -56,10 +56,11 @@ export interface UserStats {
 
 export interface Session {
   id: string;
-  userId: string;
-  refreshToken: string;
+  userId?: string;
+  refreshToken?: string;
   userAgent: string | null;
   ipAddress: string | null;
   expiresAt: string;
   createdAt: string;
+  isCurrent?: boolean;
 }

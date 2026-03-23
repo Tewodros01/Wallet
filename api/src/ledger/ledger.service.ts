@@ -79,6 +79,8 @@ export class LedgerService {
     }
 
     if (input.balanceDelta !== 0) {
+      const walletDelta = new Prisma.Decimal(input.balanceDelta);
+
       if (input.balanceDelta < 0) {
         const debitAmount = Math.abs(input.balanceDelta);
         const updatedUsers = await tx.user.updateMany({
@@ -88,14 +90,25 @@ export class LedgerService {
           },
           data: { coinsBalance: { increment: input.balanceDelta } },
         });
+        const updatedWallets = await tx.wallet.updateMany({
+          where: {
+            id: wallet.id,
+            balance: { gte: new Prisma.Decimal(debitAmount) },
+          },
+          data: { balance: { increment: walletDelta } },
+        });
 
-        if (updatedUsers.count !== 1) {
+        if (updatedUsers.count !== 1 || updatedWallets.count !== 1) {
           throw new BadRequestException('Insufficient coin balance');
         }
       } else {
         await tx.user.update({
           where: { id: input.userId },
           data: { coinsBalance: { increment: input.balanceDelta } },
+        });
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: walletDelta } },
         });
       }
     }
@@ -115,14 +128,6 @@ export class LedgerService {
         gameRoomId: input.gameRoomId,
       },
     });
-
-    if (input.balanceDelta !== 0) {
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: input.balanceDelta } },
-      });
-    }
-
     return this.getBalance(tx, input.userId);
   }
 }

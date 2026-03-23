@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usersApi, type UpdateUserPayload } from "../api/users.api";
 import { useAuthStore } from "../store/auth.store";
 
+export { useAgentStats } from "./useAgents";
+
 export const userKeys = {
   me:          ["users", "me"]          as const,
   stats:       ["users", "me", "stats"] as const,
@@ -79,13 +81,6 @@ export const useUser = (id: string) =>
   useQuery({
     queryKey: ["users", id],
     queryFn: () => usersApi.getById(id),
-    enabled: !!id,
-  });
-
-export const useAgentStats = (id: string) =>
-  useQuery({
-    queryKey: ["users", id, "agent-stats"],
-    queryFn: () => usersApi.getAgentStats(id),
     enabled: !!id,
   });
 

@@ -405,6 +405,22 @@ export class RoomsService {
     }
   }
 
+  async finishWithoutWinner(roomId: string): Promise<void> {
+    await this.closePlayingRoomWithRefunds(
+      roomId,
+      RoomStatus.FINISHED,
+      PlayerStatus.LOST,
+    );
+  }
+
+  async cancelDueToRuntimeError(roomId: string): Promise<void> {
+    await this.closePlayingRoomWithRefunds(
+      roomId,
+      RoomStatus.CANCELLED,
+      PlayerStatus.LEFT,
+    );
+  }
+
   async join(
     roomId: string,
     userId: string,
@@ -829,6 +845,76 @@ export class RoomsService {
     await tx.gameRoom.update({
       where: { id: room.id },
       data: { prizePool: { increment: prizeContribution } },
+    });
+  }
+
+  private async closePlayingRoomWithRefunds(
+    roomId: string,
+    roomStatus: Extract<RoomStatus, 'FINISHED' | 'CANCELLED'>,
+    playerStatus: Extract<PlayerStatus, 'LOST' | 'LEFT'>,
+  ): Promise<void> {
+    await this.runSerializableTransaction(async (tx) => {
+      const room = await this.getRoomSummaryOrThrowTx(tx, roomId);
+      if (room.status !== RoomStatus.PLAYING) {
+        return;
+      }
+
+      const finishedAt = new Date();
+      const updatedRoom = await tx.gameRoom.updateMany({
+        where: {
+          id: roomId,
+          status: RoomStatus.PLAYING,
+        },
+        data: {
+          status: roomStatus,
+          finishedAt,
+          prizePool: 0,
+        },
+      });
+
+      if (updatedRoom.count !== 1) {
+        return;
+      }
+
+      const activePlayers = await tx.roomPlayer.findMany({
+        where: {
+          roomId,
+          status: {
+            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+          },
+        },
+        select: {
+          userId: true,
+          _count: { select: { cards: true } },
+        },
+      });
+
+      for (const player of activePlayers) {
+        const refundAmount = room.entryFee * player._count.cards;
+        if (refundAmount <= 0) continue;
+
+        await this.ledgerService.applyEntry(tx, {
+          userId: player.userId,
+          title: `Room Refund: ${room.name}`,
+          amount: refundAmount,
+          balanceDelta: refundAmount,
+          type: TransactionType.INCOME,
+          gameRoomId: room.id,
+        });
+      }
+
+      await tx.roomPlayer.updateMany({
+        where: {
+          roomId,
+          status: {
+            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+          },
+        },
+        data: {
+          status: playerStatus,
+          finishedAt,
+        },
+      });
     });
   }
 

@@ -1,7 +1,6 @@
 export const STORAGE_KEYS = {
   auth: "auth",
   wallet: "wallet",
-  onboardingDone: "onboarding_done",
 } as const;
 
 export const APP_ROUTES = {

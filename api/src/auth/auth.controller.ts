@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -139,8 +140,11 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get active sessions' })
   @Get('sessions')
-  getSessions(@GetUser('sub') userId: string) {
-    return this.authService.getSessions(userId);
+  getSessions(
+    @GetUser('sub') userId: string,
+    @Headers('x-session-token') currentSessionToken?: string,
+  ) {
+    return this.authService.getSessions(userId, currentSessionToken);
   }
 
   @UseGuards(JwtAuthGuard)

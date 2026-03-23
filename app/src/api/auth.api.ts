@@ -37,7 +37,14 @@ export const authApi = {
   sendTelegramMessage: (payload: TelegramSendMessagePayload) =>
     api.post("/auth/telegram/message", payload).then((r) => r.data),
 
-  getSessions: () => api.get("/auth/sessions").then((r) => r.data),
+  getSessions: (currentSessionToken?: string) =>
+    api
+      .get("/auth/sessions", {
+        headers: currentSessionToken
+          ? { "x-session-token": currentSessionToken }
+          : undefined,
+      })
+      .then((r) => r.data),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post("/auth/change-password", { currentPassword, newPassword }).then((r) => r.data),

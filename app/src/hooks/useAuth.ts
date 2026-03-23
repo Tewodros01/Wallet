@@ -7,6 +7,7 @@ import type { LoginPayload, RegisterPayload } from "../types/auth.types";
 export const authKeys = {
   profile: ["auth", "profile"] as const,
   sessions: ["auth", "sessions"] as const,
+  telegramStatus: ["auth", "telegram", "status"] as const,
 };
 
 export const useLogin = () => {
@@ -40,7 +41,7 @@ export const useTelegramLogin = () => {
 };
 
 export const useLogout = () => {
-  const { refreshToken } = useAuthStore();
+  const refreshToken = useAuthStore((s) => s.refreshToken);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -60,27 +61,41 @@ export const useProfile = () =>
   });
 
 export const useSessions = () =>
-  useQuery({
-    queryKey: authKeys.sessions,
-    queryFn: authApi.getSessions,
-  });
+  {
+    const refreshToken = useAuthStore((s) => s.refreshToken);
+
+    return useQuery({
+      queryKey: [...authKeys.sessions, refreshToken] as const,
+      queryFn: () => authApi.getSessions(refreshToken ?? undefined),
+    });
+  };
 
 export const useTelegramStatus = () =>
   useQuery({
-    queryKey: ["auth", "telegram", "status"],
+    queryKey: authKeys.telegramStatus,
     queryFn: authApi.getTelegramStatus,
   });
 
 export const useSendTelegramMessage = () =>
   useMutation({
-    mutationFn: ({ text, parseMode }: { text: string; parseMode?: "HTML" | "MarkdownV2" }) =>
-      authApi.sendTelegramMessage({ text, parseMode }),
+    mutationFn: ({
+      text,
+      parseMode,
+    }: {
+      text: string;
+      parseMode?: "HTML" | "MarkdownV2";
+    }) => authApi.sendTelegramMessage({ text, parseMode }),
   });
 
 export const useChangePassword = () =>
   useMutation({
-    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
-      authApi.changePassword(currentPassword, newPassword),
+    mutationFn: ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => authApi.changePassword(currentPassword, newPassword),
   });
 
 export const useRevokeSession = () => {
@@ -95,6 +110,9 @@ export const useRevokeAllSessions = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => authApi.logoutAll(),
-    onSuccess: () => { clearClientSession(); qc.clear(); },
+    onSuccess: () => {
+      clearClientSession();
+      qc.clear();
+    },
   });
 };

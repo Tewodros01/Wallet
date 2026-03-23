@@ -167,6 +167,124 @@ describe('RoomsService', () => {
     );
   });
 
+  it('refunds paid cards when a live room exhausts numbers without a winner', async () => {
+    const { service, ledgerService } = createService();
+    const tx = {
+      gameRoom: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      roomPlayer: {
+        findMany: jest.fn().mockResolvedValue([
+          { userId: 'user-1', _count: { cards: 2 } },
+          { userId: 'user-2', _count: { cards: 1 } },
+        ]),
+        updateMany: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+
+    jest
+      .spyOn(service as any, 'runSerializableTransaction')
+      .mockImplementation(async (operation: (db: unknown) => unknown) => operation(tx));
+    jest.spyOn(service as any, 'getRoomSummaryOrThrowTx').mockResolvedValue({
+      id: 'room-live-1',
+      name: 'No Winner Room',
+      status: RoomStatus.PLAYING,
+      entryFee: 25,
+    });
+
+    await service.finishWithoutWinner('room-live-1');
+
+    expect(tx.gameRoom.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'room-live-1',
+        status: RoomStatus.PLAYING,
+      },
+      data: expect.objectContaining({
+        status: RoomStatus.FINISHED,
+        prizePool: 0,
+      }),
+    });
+    expect(ledgerService.applyEntry).toHaveBeenNthCalledWith(
+      1,
+      tx,
+      expect.objectContaining({
+        userId: 'user-1',
+        amount: 50,
+        balanceDelta: 50,
+        gameRoomId: 'room-live-1',
+      }),
+    );
+    expect(ledgerService.applyEntry).toHaveBeenNthCalledWith(
+      2,
+      tx,
+      expect.objectContaining({
+        userId: 'user-2',
+        amount: 25,
+        balanceDelta: 25,
+        gameRoomId: 'room-live-1',
+      }),
+    );
+    expect(tx.roomPlayer.updateMany).toHaveBeenCalledWith({
+      where: {
+        roomId: 'room-live-1',
+        status: {
+          in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+        },
+      },
+      data: expect.objectContaining({
+        status: PlayerStatus.LOST,
+      }),
+    });
+  });
+
+  it('refunds paid cards when a live room is cancelled after a runtime error', async () => {
+    const { service, ledgerService } = createService();
+    const tx = {
+      gameRoom: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      roomPlayer: {
+        findMany: jest.fn().mockResolvedValue([
+          { userId: 'user-9', _count: { cards: 3 } },
+        ]),
+        updateMany: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+
+    jest
+      .spyOn(service as any, 'runSerializableTransaction')
+      .mockImplementation(async (operation: (db: unknown) => unknown) => operation(tx));
+    jest.spyOn(service as any, 'getRoomSummaryOrThrowTx').mockResolvedValue({
+      id: 'room-live-2',
+      name: 'Runtime Error Room',
+      status: RoomStatus.PLAYING,
+      entryFee: 10,
+    });
+
+    await service.cancelDueToRuntimeError('room-live-2');
+
+    expect(ledgerService.applyEntry).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        userId: 'user-9',
+        amount: 30,
+        balanceDelta: 30,
+        gameRoomId: 'room-live-2',
+      }),
+    );
+    expect(tx.roomPlayer.updateMany).toHaveBeenCalledWith({
+      where: {
+        roomId: 'room-live-2',
+        status: {
+          in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
+        },
+      },
+      data: expect.objectContaining({
+        status: PlayerStatus.LEFT,
+      }),
+    });
+  });
+
   it('charges entry fees through the ledger when selecting room cards', async () => {
     const { service, ledgerService } = createService();
     const tx = {

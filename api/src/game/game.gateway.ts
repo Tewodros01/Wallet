@@ -23,7 +23,7 @@ import {
   normalizeCalledNums,
   normalizeMarkedNums,
 } from '../rooms/bingo.util';
-import { GameSpeed, PlayerStatus, RoomStatus } from 'generated/prisma/client';
+import { GameSpeed, RoomStatus } from 'generated/prisma/client';
 
 // ── Speed → interval ms ──────────────────────────────────────────────────────
 const SPEED_INTERVAL: Record<GameSpeed, number> = {
@@ -682,65 +682,13 @@ export class GameGateway
   }
 
   private async finishRoomWithoutWinner(roomId: string) {
-    const finishedAt = new Date();
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.gameRoom.updateMany({
-        where: {
-          id: roomId,
-          status: RoomStatus.PLAYING,
-        },
-        data: {
-          status: RoomStatus.FINISHED,
-          finishedAt,
-        },
-      });
-
-      await tx.roomPlayer.updateMany({
-        where: {
-          roomId,
-          status: {
-            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
-          },
-        },
-        data: {
-          status: PlayerStatus.LOST,
-          finishedAt,
-        },
-      });
-    });
+    await this.roomsService.finishWithoutWinner(roomId);
 
     this.cleanupRoom(roomId);
   }
 
   private async cancelRoomDueToRuntimeError(roomId: string) {
-    const finishedAt = new Date();
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.gameRoom.updateMany({
-        where: {
-          id: roomId,
-          status: RoomStatus.PLAYING,
-        },
-        data: {
-          status: RoomStatus.CANCELLED,
-          finishedAt,
-        },
-      });
-
-      await tx.roomPlayer.updateMany({
-        where: {
-          roomId,
-          status: {
-            in: [PlayerStatus.JOINED, PlayerStatus.PLAYING],
-          },
-        },
-        data: {
-          status: PlayerStatus.LEFT,
-          finishedAt,
-        },
-      });
-    });
+    await this.roomsService.cancelDueToRuntimeError(roomId);
 
     this.cleanupRoom(roomId);
   }

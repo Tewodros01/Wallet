@@ -258,6 +258,34 @@ describe('PaymentsService', () => {
     expect(ledgerService.applyEntry).not.toHaveBeenCalled();
   });
 
+  it('claims the daily bonus inside the serializable transaction helper', async () => {
+    const { service, ledgerService } = createService();
+    const tx = {
+      transaction: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+    const serializableSpy = jest
+      .spyOn(service as any, 'runSerializableTransaction')
+      .mockImplementation(async (operation: (db: unknown) => unknown) => operation(tx));
+    ledgerService.applyEntry.mockResolvedValue(250);
+
+    const result = await service.claimDailyBonus('user-1');
+
+    expect(serializableSpy).toHaveBeenCalled();
+    expect(result).toEqual({
+      coins: expect.any(Number),
+      newBalance: 250,
+    });
+    expect(ledgerService.applyEntry).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        userId: 'user-1',
+        title: 'Daily Bonus Spin',
+      }),
+    );
+  });
+
   it('rejects invalid transfer amounts before touching the database', async () => {
     const { service, prisma } = createService();
 

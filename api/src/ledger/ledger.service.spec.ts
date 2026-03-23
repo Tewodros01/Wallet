@@ -45,6 +45,11 @@ describe('LedgerService', () => {
     const tx = {
       user: {
         findUnique: jest.fn().mockResolvedValue({ coinsBalance: 25 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      wallet: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'wallet-1' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     } as any;
 
@@ -55,6 +60,29 @@ describe('LedgerService', () => {
         amount: 50,
         balanceDelta: -50,
         type: TransactionType.WITHDRAWAL,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a debit when the wallet balance is lower than the coin balance', async () => {
+    const tx = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ coinsBalance: 100 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      wallet: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'wallet-1' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+    } as any;
+
+    await expect(
+      service.applyEntry(tx, {
+        userId: 'user-1',
+        title: 'Room Entry',
+        amount: 50,
+        balanceDelta: -50,
+        type: TransactionType.GAME_ENTRY,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });

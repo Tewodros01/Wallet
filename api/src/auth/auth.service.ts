@@ -418,9 +418,14 @@ export class AuthService {
     }
   }
 
-  async getSessions(userId: string) {
+  async getSessions(userId: string, currentSessionToken?: string) {
     try {
-      return await this.prisma.session.findMany({
+      const normalizedCurrentSessionToken = currentSessionToken?.trim();
+      const currentSessionHash = normalizedCurrentSessionToken
+        ? this.hashToken(normalizedCurrentSessionToken)
+        : null;
+
+      const sessions = await this.prisma.session.findMany({
         where: {
           userId,
           expiresAt: { gt: new Date() },
@@ -428,6 +433,7 @@ export class AuthService {
         },
         select: {
           id: true,
+          refreshToken: true,
           userAgent: true,
           ipAddress: true,
           createdAt: true,
@@ -435,6 +441,12 @@ export class AuthService {
         },
         orderBy: { createdAt: 'desc' },
       });
+
+      return sessions.map(({ refreshToken, ...session }) => ({
+        ...session,
+        isCurrent:
+          currentSessionHash != null && currentSessionHash === refreshToken,
+      }));
     } catch {
       throw new InternalServerErrorException('Failed to fetch sessions');
     }
