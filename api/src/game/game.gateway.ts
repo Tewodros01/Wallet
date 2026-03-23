@@ -542,6 +542,7 @@ export class GameGateway
 
     const chatMsg = {
       id: `${Date.now()}-${userId.slice(-4)}`,
+      roomId,
       userId,
       username: player.user.username,
       avatar: player.user.avatar,

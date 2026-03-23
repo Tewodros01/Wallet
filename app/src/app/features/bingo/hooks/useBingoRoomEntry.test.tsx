@@ -14,13 +14,12 @@ vi.mock("@tanstack/react-query", () => ({
   }),
 }));
 
-vi.mock("./index", async () => {
-  const actual = await vi.importActual<typeof import("./index")>("./index");
-  return {
-    ...actual,
-    useRooms: (...args: unknown[]) => useRoomsMock(...args),
-  };
-});
+vi.mock("../../../../hooks/useRooms", () => ({
+  roomKeys: {
+    one: (id: string) => ["rooms", id],
+  },
+  useRooms: (...args: unknown[]) => useRoomsMock(...args),
+}));
 
 vi.mock("../../../../api/rooms.api", () => ({
   roomsApi: {
