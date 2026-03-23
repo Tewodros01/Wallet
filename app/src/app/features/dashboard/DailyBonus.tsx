@@ -1,116 +1,23 @@
-import { useEffect, useRef, useState } from "react";
 import { FaCoins } from "react-icons/fa";
 import { FiArrowLeft, FiClock, FiGift } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "../../../config/routes";
-import { useClaimDailyBonus } from "./hooks";
-import { useGameSound } from "../../../hooks/useSound";
-import { fireConfetti } from "../../../lib/confetti";
-import { getErrorMessage } from "../../../lib/errors";
-import { haptic } from "../../../lib/haptic";
-import { useWalletStore } from "../../../store/wallet.store";
-
-const PRIZES = [
-  { label: "50", coins: 50, color: "#10b981", bg: "#064e3b" },
-  { label: "200", coins: 200, color: "#f59e0b", bg: "#451a03" },
-  { label: "100", coins: 100, color: "#6366f1", bg: "#1e1b4b" },
-  { label: "500", coins: 500, color: "#ec4899", bg: "#500724" },
-  { label: "75", coins: 75, color: "#14b8a6", bg: "#042f2e" },
-  { label: "1000", coins: 1000, color: "#f97316", bg: "#431407" },
-  { label: "25", coins: 25, color: "#8b5cf6", bg: "#2e1065" },
-  { label: "300", coins: 300, color: "#06b6d4", bg: "#083344" },
-];
-
-const STORAGE_KEY = "daily_bonus_last_spin";
-const SEGMENT_ANGLE = 360 / PRIZES.length;
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-function hasSpunRecently() {
-  const last = localStorage.getItem(STORAGE_KEY);
-  return last ? Date.now() - new Date(last).getTime() < COOLDOWN_MS : false;
-}
-
-function getTimeUntilNext() {
-  const last = localStorage.getItem(STORAGE_KEY);
-  if (!last) return "00:00:00";
-  const diff = new Date(last).getTime() + COOLDOWN_MS - Date.now();
-  if (diff <= 0) return "00:00:00";
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { useDailyBonus } from "./hooks/useDailyBonus";
 
 export default function DailyBonus() {
   const navigate = useNavigate();
-  const { balance, setBalance } = useWalletStore();
-  const { mutate: claimBonus } = useClaimDailyBonus();
-  const { play } = useGameSound();
-
-  const [spinning, setSpinning] = useState(false);
-  const [rotation, setRotation] = useState(0);
-  const [prize, setPrize] = useState<(typeof PRIZES)[0] | null>(null);
-  const [claimed, setClaimed] = useState(false);
-  const [alreadySpin, setAlreadySpin] = useState(hasSpunRecently);
-  const [countdown, setCountdown] = useState(getTimeUntilNext);
-  const rotRef = useRef(rotation);
-
-  useEffect(() => {
-    rotRef.current = rotation;
-  }, [rotation]);
-
-  useEffect(() => {
-    if (!alreadySpin) return;
-    const t = setInterval(() => setCountdown(getTimeUntilNext()), 1000);
-    return () => clearInterval(t);
-  }, [alreadySpin]);
-
-  const spin = () => {
-    if (spinning || alreadySpin) return;
-    haptic.medium();
-    const idx = Math.floor(Math.random() * PRIZES.length);
-    const target = 360 * 8 + (360 - idx * SEGMENT_ANGLE - SEGMENT_ANGLE / 2);
-    setSpinning(true);
-    setPrize(null);
-    setRotation(rotRef.current + target);
-    setTimeout(() => {
-      setSpinning(false);
-      setPrize(PRIZES[idx]);
-      play("ding");
-      haptic.success();
-    }, 4000);
-  };
-
-  const claim = () => {
-    if (!prize) return;
-    play("coin");
-    haptic.success();
-    claimBonus(undefined, {
-      onSuccess: (data: { coins?: number; newBalance?: number }) => {
-        const awardedCoins = data.coins ?? prize.coins;
-        setPrize((current) =>
-          current
-            ? { ...current, coins: awardedCoins, label: String(awardedCoins) }
-            : current,
-        );
-        setBalance(data.newBalance ?? balance + awardedCoins);
-        localStorage.setItem(STORAGE_KEY, new Date().toISOString());
-        setClaimed(true);
-        setAlreadySpin(true);
-        play("win");
-        haptic.win();
-        fireConfetti();
-      },
-      onError: (err: unknown) => {
-        const msg = getErrorMessage(err, "");
-        // backend enforces 24h — sync local state if already claimed
-        if (msg.includes("Come back in")) {
-          localStorage.setItem(STORAGE_KEY, new Date().toISOString());
-          setAlreadySpin(true);
-        }
-      },
-    });
-  };
+  const {
+    balance,
+    claimed,
+    countdown,
+    alreadySpin,
+    prize,
+    prizes,
+    rotation,
+    spinning,
+    claim,
+    spin,
+  } = useDailyBonus();
 
   if (claimed && prize)
     return (
@@ -209,19 +116,19 @@ export default function DailyBonus() {
               viewBox="0 0 200 200"
               className="w-full h-full drop-shadow-2xl"
             >
-              {PRIZES.map((p, i) => {
-                const startAngle = i * SEGMENT_ANGLE - 90,
-                  endAngle = startAngle + SEGMENT_ANGLE;
+              {prizes.map((p, i) => {
+                const startAngle = i * (360 / prizes.length) - 90,
+                  endAngle = startAngle + 360 / prizes.length;
                 const s = Math.PI / 180;
                 const x1 = 100 + 100 * Math.cos(startAngle * s),
                   y1 = 100 + 100 * Math.sin(startAngle * s);
                 const x2 = 100 + 100 * Math.cos(endAngle * s),
                   y2 = 100 + 100 * Math.sin(endAngle * s);
                 const mx =
-                  100 + 65 * Math.cos((startAngle + SEGMENT_ANGLE / 2) * s);
+                  100 + 65 * Math.cos((startAngle + 360 / prizes.length / 2) * s);
                 const my =
-                  100 + 65 * Math.sin((startAngle + SEGMENT_ANGLE / 2) * s);
-                const tr = startAngle + SEGMENT_ANGLE / 2;
+                  100 + 65 * Math.sin((startAngle + 360 / prizes.length / 2) * s);
+                const tr = startAngle + 360 / prizes.length / 2;
                 return (
                   <g key={p.label}>
                     <path
@@ -323,7 +230,7 @@ export default function DailyBonus() {
             Possible Prizes
           </p>
           <div className="grid grid-cols-4 gap-2">
-            {PRIZES.map((p) => (
+            {prizes.map((p) => (
               <div
                 key={p.label}
                 className="rounded-xl py-2.5 flex flex-col items-center gap-1"

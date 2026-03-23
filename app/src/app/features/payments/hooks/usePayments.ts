@@ -60,9 +60,13 @@ export const useTransfer = () => {
 
 export const useClaimDailyBonus = () => {
   const qc = useQueryClient();
+  const setBalance = useWalletStore((s) => s.setBalance);
   return useMutation({
     mutationFn: () => paymentsApi.claimDailyBonus(),
-    onSuccess: () => {
+    onSuccess: (data: { newBalance?: number }) => {
+      if (typeof data.newBalance === "number") {
+        setBalance(data.newBalance);
+      }
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       qc.invalidateQueries({ queryKey: ["wallets"] });
     },

@@ -1,14 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 import { roomsApi } from "../../../../api/rooms.api";
-import { roomKeys } from "./queryKeys";
+import { roomKeys, useRooms } from "../../../../hooks/useRooms";
 import { getErrorMessage } from "../../../../lib/errors";
 import { RoomStatus } from "../../../../types/enums";
-import type {
-  GameRoomDetail,
-  GameRoomPlayer,
-  PlayerCard,
-} from "../../../../types/game.types";
+import type { GameRoomDetail, PlayerCard } from "../../../../types/game.types";
+import { useRoomLookup } from "./useRoomLookup";
+import { useRouteRoomEntry } from "./useRouteRoomEntry";
 
 type Filter = "all" | "waiting" | "playing";
 type Screen = "lobby" | "card-select" | "game";
@@ -40,58 +38,26 @@ export function useBingoRoomEntry({
   const [roomCount, setRoomCount] = useState(0);
   const [entryError, setEntryError] = useState<string | null>(null);
   const [isSpectator, setIsSpectator] = useState(false);
-  const handledRouteRoomId = useRef<string | null>(null);
-  const routeEntryInFlight = useRef<string | null>(null);
   const roomsQuery = {
     status: filter === "all" ? undefined : filter,
     search: search || undefined,
   } as const;
-  const { data: roomsData = [], isLoading } = useQuery({
-    queryKey: roomKeys.all(roomsQuery),
-    queryFn: () => roomsApi.getAll(roomsQuery),
-    refetchInterval: 5000,
-  });
+  const { data: roomsData = [], isLoading } = useRooms(roomsQuery);
   const qc = useQueryClient();
 
-  const seedRoom = (room: GameRoomDetail) =>
-    qc.setQueryData(roomKeys.one(room.id), room);
+  const seedRoom = useCallback(
+    (room: GameRoomDetail) => qc.setQueryData(roomKeys.one(room.id), room),
+    [qc],
+  );
+  const { resolveRoom } = useRoomLookup(roomsData);
 
-  const normalizeLookupValue = (value: string) => value.trim().toUpperCase();
-
-  const matchRoomLookup = (room: GameRoomDetail, value: string) => {
-    const normalized = normalizeLookupValue(value);
-    return (
-      room.id.toUpperCase() === normalized ||
-      room.id.slice(-8).toUpperCase() === normalized
-    );
-  };
-
-  const resolveRoom = async (value: string) => {
-    const normalized = value.trim();
-    if (!normalized) return null;
-
-    const localRoom = roomsData.find((room) =>
-      matchRoomLookup(room, normalized),
-    );
-    if (localRoom) return localRoom;
-
-    try {
-      return await roomsApi.getOne(normalized);
-    } catch {
-      const matchingRooms = await roomsApi.getAll({ search: normalized });
-      return (
-        matchingRooms.find((room) => matchRoomLookup(room, normalized)) ?? null
-      );
-    }
-  };
-
-  const openGameWithCards = (cards: PlayerCard[]) => {
+  const openGameWithCards = useCallback((cards: PlayerCard[]) => {
     setPlayerCards(cards);
     setSelectedCardId(cards[0]?.id ?? null);
     setScreen("game");
-  };
+  }, []);
 
-  const handleSpectate = (room: GameRoomDetail) => {
+  const handleSpectate = useCallback((room: GameRoomDetail) => {
     setEntryError(null);
     seedRoom(room);
     setActiveRoom(room);
@@ -100,9 +66,9 @@ export function useBingoRoomEntry({
     setSelectedCardId(null);
     setRoomCount(room._count?.players ?? room.players?.length ?? 0);
     setScreen("game");
-  };
+  }, [seedRoom]);
 
-  const openRoomFromLookup = async (room: GameRoomDetail) => {
+  const openRoomFromLookup = useCallback(async (room: GameRoomDetail) => {
     if (room.status === RoomStatus.PLAYING && !room.isPrivate) {
       handleSpectate(room);
       return;
@@ -114,9 +80,9 @@ export function useBingoRoomEntry({
     }
 
     setPayRoom(room);
-  };
+  }, [handleSpectate]);
 
-  const handleRejoin = async (room: GameRoomDetail) => {
+  const handleRejoin = useCallback(async (room: GameRoomDetail) => {
     setEntryError(null);
     setRejoining(room.id);
     try {
@@ -158,9 +124,9 @@ export function useBingoRoomEntry({
     } finally {
       setRejoining(null);
     }
-  };
+  }, [onNeedCardSelection, seedRoom]);
 
-  const handleCreatedRoomEntry = async (room: GameRoomDetail) => {
+  const handleCreatedRoomEntry = useCallback(async (room: GameRoomDetail) => {
     seedRoom(room);
     setActiveRoom(room);
     setIsSpectator(false);
@@ -201,9 +167,9 @@ export function useBingoRoomEntry({
         setScreen("lobby");
       }
     }
-  };
+  }, [onNeedCardSelection, seedRoom]);
 
-  const handlePaymentConfirm = async () => {
+  const handlePaymentConfirm = useCallback(async () => {
     if (!payRoom) return;
     setEntryError(null);
     try {
@@ -235,83 +201,21 @@ export function useBingoRoomEntry({
         ),
       );
     }
-  };
+  }, [onNeedCardSelection, payRoom, seedRoom]);
 
-  useEffect(() => {
-    if (!roomEntryId) return;
-    if (activeRoom?.id === roomEntryId || payRoom?.id === roomEntryId) {
-      handledRouteRoomId.current = roomEntryId;
-      return;
-    }
-    if (routeEntryInFlight.current === roomEntryId) return;
-    if (handledRouteRoomId.current === roomEntryId && entryError) return;
-
-    let isCancelled = false;
-
-    const enterFromRoute = async () => {
-      routeEntryInFlight.current = roomEntryId;
-      setEntryError(null);
-
-      try {
-        const room = await resolveRoom(roomEntryId);
-        if (isCancelled) return;
-
-        if (!room) {
-          handledRouteRoomId.current = roomEntryId;
-          setEntryError(
-            "This room link is invalid or the room no longer exists.",
-          );
-          return;
-        }
-
-        const isJoined =
-          room.players?.some(
-            (player: GameRoomPlayer) => player.user?.id === userId,
-          ) ?? false;
-
-        if (isJoined) {
-          handledRouteRoomId.current = roomEntryId;
-          await handleRejoin(room);
-          return;
-        }
-
-        seedRoom(room);
-
-        if (room.status === RoomStatus.WAITING) {
-          handledRouteRoomId.current = roomEntryId;
-          setPayRoom(room);
-          return;
-        }
-
-        if (room.status === RoomStatus.PLAYING && !room.isPrivate) {
-          handledRouteRoomId.current = roomEntryId;
-          handleSpectate(room);
-          return;
-        }
-
-        handledRouteRoomId.current = roomEntryId;
-        setEntryError(
-          room.isPrivate
-            ? "This private room is not available unless you have already joined it."
-            : "This room is no longer available to join.",
-        );
-      } catch (error) {
-        if (!isCancelled) {
-          setEntryError(getErrorMessage(error, "Failed to open this room"));
-        }
-      } finally {
-        if (routeEntryInFlight.current === roomEntryId) {
-          routeEntryInFlight.current = null;
-        }
-      }
-    };
-
-    void enterFromRoute();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [roomEntryId, roomsData, userId, activeRoom?.id, payRoom?.id, entryError]);
+  useRouteRoomEntry({
+    roomEntryId,
+    userId,
+    activeRoomId: activeRoom?.id,
+    payRoomId: payRoom?.id,
+    entryError,
+    resolveRoom,
+    setEntryError,
+    setPayRoom,
+    handleRejoin,
+    handleSpectate,
+    seedRoom,
+  });
 
   return {
     screen,

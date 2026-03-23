@@ -1,9 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { missionsApi } from "../../../../api/missions.api";
 import { paymentsApi } from "../../../../api/payments.api";
-import { roomsApi, type RoomQuery } from "../../../../api/rooms.api";
 import { tournamentsApi } from "../../../../api/tournaments.api";
 import { transactionApi } from "../../../../api/transaction.api";
+export {
+  useCancelRoom,
+  useFinishRoom,
+  useRemoveRoom,
+  useRooms,
+} from "../../../../hooks/useRooms";
 import type { UpdateMissionRequest } from "../../../../types/mission.types";
 
 export {
@@ -69,37 +74,6 @@ export const useAdminRejectWithdrawal = () => {
     mutationFn: (id: string) => paymentsApi.adminRejectWithdrawal(id),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["payments", "admin", "withdrawals"] }),
-  });
-};
-
-export const useRooms = (query?: RoomQuery) =>
-  useQuery({
-    queryKey: ["rooms", query],
-    queryFn: () => roomsApi.getAll(query),
-    refetchInterval: 5000,
-  });
-
-export const useRemoveRoom = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => roomsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rooms"] }),
-  });
-};
-
-export const useCancelRoom = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => roomsApi.cancel(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rooms"] }),
-  });
-};
-
-export const useFinishRoom = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => roomsApi.finish(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rooms"] }),
   });
 };
 

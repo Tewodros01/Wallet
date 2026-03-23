@@ -23,6 +23,9 @@ export function useBingoChat(roomId: string) {
   useEffect(() => {
     const socket = connectSocket();
     const handleMessage = (message: BingoChatMessage) => {
+      if (message.roomId !== roomId) {
+        return;
+      }
       setMessages((prev) => [...prev.slice(-(MAX_CHAT_MESSAGES - 1)), message]);
       if (!isChatOpenRef.current) {
         setUnreadCount((count) => count + 1);
@@ -33,7 +36,13 @@ export function useBingoChat(roomId: string) {
     return () => {
       socket.off("chat:message", handleMessage);
     };
-  }, []);
+  }, [roomId]);
+
+  useEffect(() => {
+    setMessages([]);
+    setUnreadCount(0);
+    setInput("");
+  }, [roomId]);
 
   useEffect(() => {
     return () => {

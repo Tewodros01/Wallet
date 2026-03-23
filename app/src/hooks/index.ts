@@ -3,5 +3,6 @@ export * from "./useAgents";
 export * from "./useAuth";
 export * from "./useGame";
 export * from "./useNotifications";
+export * from "./useRooms";
 export * from "./useSound";
 export * from "./useUser";
