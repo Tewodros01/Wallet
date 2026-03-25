@@ -96,14 +96,14 @@ export function useDailyBonus() {
     claimBonus(undefined, {
       onSuccess: (data: { coins?: number; newBalance?: number }) => {
         const awardedCoins = data.coins ?? prize.coins;
-        setPrize((current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            coins: awardedCoins as typeof current.coins,
-            label: String(awardedCoins) as typeof current.label
-          };
-        });
+        // Find the matching prize from the constants to maintain type safety
+        const matchingPrize = DAILY_BONUS_PRIZES.find(p => p.coins === awardedCoins);
+        if (matchingPrize) {
+          setPrize(matchingPrize);
+        } else {
+          // Fallback: keep the current prize but don't update it
+          // This maintains type safety while handling edge cases
+        }
         localStorage.setItem(DAILY_BONUS_STORAGE_KEY, new Date().toISOString());
         setClaimed(true);
         setAlreadySpin(true);
