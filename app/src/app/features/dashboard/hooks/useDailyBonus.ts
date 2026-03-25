@@ -98,12 +98,11 @@ export function useDailyBonus() {
         const awardedCoins = data.coins ?? prize.coins;
         setPrize((current) => {
           if (!current) return current;
-          const updatedPrize: DailyBonusPrize = {
+          return {
             ...current,
-            coins: awardedCoins,
+            coins: awardedCoins as typeof current.coins,
             label: String(awardedCoins) as typeof current.label
           };
-          return updatedPrize;
         });
         localStorage.setItem(DAILY_BONUS_STORAGE_KEY, new Date().toISOString());
         setClaimed(true);

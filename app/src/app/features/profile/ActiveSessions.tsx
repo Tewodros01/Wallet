@@ -42,7 +42,7 @@ export default function ActiveSessions() {
   const { data: sessions = [], isLoading } = useSessions();
   const { mutate: revoke, isPending: revoking } = useRevokeSession();
   const { mutate: revokeAll, isPending: revokingAll } = useRevokeAllSessions();
-  const currentSessionCount = sessions.filter((session) => session.isCurrent).length;
+  const currentSessionCount = sessions.filter((session: Session) => session.isCurrent).length;
   const otherSessionsCount = Math.max(0, sessions.length - currentSessionCount);
 
   return (
