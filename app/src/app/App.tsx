@@ -7,7 +7,7 @@ import {
   isTelegramMiniApp,
   prepareTelegramWebApp,
 } from "../lib/telegram";
-import { useRealtimeNotifications } from "../hooks";
+import { useRealtimeNotifications, useTheme } from "../hooks";
 import { useAuthStore } from "../store/auth.store";
 import { usePreferencesStore } from "../store/preferences.store";
 import {
@@ -63,9 +63,9 @@ import {
 
 const App = () => {
   useRealtimeNotifications();
+  useTheme(); // This handles theme application automatically
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const setAuth = useAuthStore((s) => s.setAuth);
-  const darkModeEnabled = usePreferencesStore((s) => s.darkModeEnabled);
   const language = usePreferencesStore((s) => s.language);
   const telegramMiniApp = useMemo(() => isTelegramMiniApp(), []);
   const telegramInitData = useMemo(
@@ -86,14 +86,7 @@ const App = () => {
 
   useEffect(() => {
     document.documentElement.lang = language;
-    document.documentElement.classList.toggle(
-      "app-theme-light",
-      !darkModeEnabled,
-    );
-    document.documentElement.style.colorScheme = darkModeEnabled
-      ? "dark"
-      : "light";
-  }, [darkModeEnabled, language]);
+  }, [language]);
 
   useEffect(() => {
     if (isAuthenticated || !telegramMiniApp) {

@@ -5,4 +5,5 @@ export * from "./useGame";
 export * from "./useNotifications";
 export * from "./useRooms";
 export * from "./useSound";
+export * from "./useTheme";
 export * from "./useUser";
