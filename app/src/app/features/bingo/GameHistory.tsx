@@ -162,8 +162,8 @@ export default function GameHistory() {
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-white/8 ring-2 ring-white/10 shrink-0 flex items-center justify-center text-white text-xs font-black">
                     {getAvatarInitials(
-                      g.room.host?.firstName,
-                      g.room.host?.lastName,
+                      g.room.host?.username,
+                      "",
                       "?",
                     )}
                   </div>

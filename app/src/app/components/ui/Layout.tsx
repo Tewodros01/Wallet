@@ -61,7 +61,6 @@ interface PillProps {
 }
 export const Pill = ({ icon, children, className = "" }: PillProps) => {
   const { isDark } = useTheme();
-  const theme = getThemeClasses(isDark);
   
   return (
     <div

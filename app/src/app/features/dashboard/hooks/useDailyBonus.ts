@@ -96,11 +96,15 @@ export function useDailyBonus() {
     claimBonus(undefined, {
       onSuccess: (data: { coins?: number; newBalance?: number }) => {
         const awardedCoins = data.coins ?? prize.coins;
-        setPrize((current) =>
-          current
-            ? { ...current, coins: awardedCoins, label: String(awardedCoins) }
-            : current,
-        );
+        setPrize((current) => {
+          if (!current) return current;
+          const updatedPrize: DailyBonusPrize = {
+            ...current,
+            coins: awardedCoins,
+            label: String(awardedCoins) as typeof current.label
+          };
+          return updatedPrize;
+        });
         localStorage.setItem(DAILY_BONUS_STORAGE_KEY, new Date().toISOString());
         setClaimed(true);
         setAlreadySpin(true);

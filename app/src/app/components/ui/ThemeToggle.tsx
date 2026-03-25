@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface ThemeToggleProps {
   className?: string;
