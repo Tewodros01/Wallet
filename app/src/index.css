@@ -15,21 +15,36 @@
   }
 }
 
-/* Light Theme - Bright and Clean */
+/* Light Theme Global Overrides */
 html.app-theme-light,
 html.app-theme-light body {
   background-color: #ffffff;
   color: #1e293b;
 }
 
-/* Card and Surface Backgrounds */
-html.app-theme-light .bg-gray-950,
-html.app-theme-light .bg-gray-950\/90,
-html.app-theme-light .bg-gray-950\/95,
-html.app-theme-light .bg-gray-900\/90 {
+/* Main Background Colors */
+html.app-theme-light .bg-gray-950 {
   background-color: #ffffff !important;
+}
+
+html.app-theme-light .bg-gray-900 {
+  background-color: #f8fafc !important;
+}
+
+html.app-theme-light .bg-gray-800 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Background with Opacity */
+html.app-theme-light .bg-gray-950\/90,
+html.app-theme-light .bg-gray-950\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+html.app-theme-light .bg-gray-900\/90 {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 /* Text Colors */
@@ -37,13 +52,15 @@ html.app-theme-light .text-white {
   color: #1e293b !important;
 }
 
-html.app-theme-light .text-gray-500,
-html.app-theme-light .text-gray-600 {
+html.app-theme-light .text-gray-500 {
   color: #64748b !important;
 }
 
-html.app-theme-light .text-gray-400,
-html.app-theme-light .text-slate-300 {
+html.app-theme-light .text-gray-600 {
+  color: #475569 !important;
+}
+
+html.app-theme-light .text-gray-400 {
   color: #94a3b8 !important;
 }
 
@@ -51,7 +68,11 @@ html.app-theme-light .text-gray-300 {
   color: #cbd5e1 !important;
 }
 
-/* Background Overlays - Light Theme */
+html.app-theme-light .text-slate-300 {
+  color: #94a3b8 !important;
+}
+
+/* Background Overlays */
 html.app-theme-light .bg-white\/4,
 html.app-theme-light .bg-white\/5,
 html.app-theme-light .bg-white\/6,
@@ -71,23 +92,33 @@ html.app-theme-light .border-white\/10 {
   border-color: #e2e8f0 !important;
 }
 
-/* Button and Interactive Elements */
-html.app-theme-light .bg-emerald-500,
-html.app-theme-light .bg-emerald-600 {
-  background-color: #10b981 !important;
-  color: #ffffff !important;
+/* Hover States */
+html.app-theme-light .hover\:bg-white\/4:hover,
+html.app-theme-light .hover\:bg-white\/5:hover,
+html.app-theme-light .hover\:bg-white\/7:hover,
+html.app-theme-light .hover\:bg-white\/10:hover,
+html.app-theme-light .hover\:bg-white\/15:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
 }
 
-html.app-theme-light .bg-emerald-500:hover,
-html.app-theme-light .bg-emerald-600:hover {
-  background-color: #059669 !important;
+/* Active States */
+html.app-theme-light .active\:bg-white\/6:active {
+  background-color: rgba(15, 23, 42, 0.08) !important;
 }
 
-/* Accent Colors */
-html.app-theme-light .bg-purple-500,
-html.app-theme-light .bg-purple-600 {
-  background-color: #8b5cf6 !important;
-  color: #ffffff !important;
+/* Navigation and Sidebar */
+html.app-theme-light .bg-slate-900,
+html.app-theme-light .bg-slate-800 {
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+/* Cards and Panels */
+html.app-theme-light .bg-slate-800\/50,
+html.app-theme-light .bg-slate-900\/50 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
 }
 
 /* Input Fields */
@@ -106,41 +137,16 @@ html.app-theme-light select:focus {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
 }
 
-/* Navigation and Sidebar */
-html.app-theme-light .bg-slate-900,
-html.app-theme-light .bg-slate-800 {
-  background-color: #f8fafc !important;
-  border-right: 1px solid #e2e8f0 !important;
+/* Button States */
+html.app-theme-light .bg-emerald-500,
+html.app-theme-light .bg-emerald-600 {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
 }
 
-/* Cards and Panels */
-html.app-theme-light .bg-slate-800\/50,
-html.app-theme-light .bg-slate-900\/50 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
-}
-
-/* Bingo Game Specific - Light Theme */
-html.app-theme-light .bg-gray-800,
-html.app-theme-light .bg-gray-900 {
-  background-color: #f1f5f9 !important;
-  color: #1e293b !important;
-}
-
-/* Success/Error States */
-html.app-theme-light .bg-green-500\/10 {
-  background-color: rgba(34, 197, 94, 0.1) !important;
-}
-
-html.app-theme-light .bg-red-500\/10 {
-  background-color: rgba(239, 68, 68, 0.1) !important;
-}
-
-/* Hover States */
-html.app-theme-light .hover\:bg-white\/5:hover,
-html.app-theme-light .hover\:bg-white\/10:hover {
-  background-color: rgba(15, 23, 42, 0.05) !important;
+html.app-theme-light .bg-emerald-500:hover,
+html.app-theme-light .bg-emerald-600:hover {
+  background-color: #059669 !important;
 }
 
 /* Loading States */
@@ -152,11 +158,6 @@ html.app-theme-light .shimmer {
 html.app-theme-light .bg-black\/50,
 html.app-theme-light .bg-gray-950\/50 {
   background-color: rgba(15, 23, 42, 0.5) !important;
-}
-
-/* Ring and Focus States */
-html.app-theme-light .ring-emerald-500\/20 {
-  --tw-ring-color: rgba(16, 185, 129, 0.2) !important;
 }
 
 /* Scrollbar Styling for Light Theme */
@@ -176,6 +177,310 @@ html.app-theme-light ::-webkit-scrollbar-thumb {
 
 html.app-theme-light ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Profile Page Specific Overrides */
+html.app-theme-light .text-slate-300 {
+  color: #64748b !important;
+}
+
+html.app-theme-light .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.app-theme-light .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.app-theme-light .text-slate-600 {
+  color: #475569 !important;
+}
+
+/* Profile Hero Section */
+html.app-theme-light .bg-\[linear-gradient\(145deg\,rgba\(16\,185\,129\,0\.14\)\,rgba\(6\,10\,18\,0\.96\)_38\%\,rgba\(34\,211\,238\,0\.1\)\)\] {
+  background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(248,250,252,0.95) 38%, rgba(34,211,238,0.08)) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Stats Cards */
+html.app-theme-light .bg-linear-to-b {
+  background: linear-gradient(to bottom, rgba(248,250,252,0.8), rgba(241,245,249,0.6)) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Badge Cards */
+html.app-theme-light .bg-linear-to-br {
+  background: linear-gradient(to bottom right, rgba(248,250,252,0.9), rgba(241,245,249,0.7)) !important;
+}
+
+/* Gradient Text */
+html.app-theme-light .text-transparent.bg-clip-text.bg-linear-to-r {
+  background: linear-gradient(to right, #059669, #0891b2) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+/* Color-specific text overrides */
+html.app-theme-light .text-emerald-200 {
+  color: #059669 !important;
+}
+
+html.app-theme-light .text-emerald-300 {
+  color: #10b981 !important;
+}
+
+html.app-theme-light .text-emerald-400 {
+  color: #10b981 !important;
+}
+
+html.app-theme-light .text-yellow-200\/70 {
+  color: rgba(180, 83, 9, 0.8) !important;
+}
+
+html.app-theme-light .text-yellow-300 {
+  color: #d97706 !important;
+}
+
+html.app-theme-light .text-cyan-400\/12 {
+  color: rgba(6, 182, 212, 0.15) !important;
+}
+
+html.app-theme-light .text-emerald-400\/10 {
+  color: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Background blur effects for light theme */
+html.app-theme-light .bg-cyan-400\/12 {
+  background-color: rgba(34, 211, 238, 0.08) !important;
+}
+
+html.app-theme-light .bg-emerald-400\/10 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Linear gradient backgrounds */
+html.app-theme-light .bg-linear-to-r {
+  background: linear-gradient(to right, transparent, rgba(100, 116, 139, 0.2), transparent) !important;
+}
+
+/* Shadow overrides for light theme */
+html.app-theme-light .shadow-\[0_22px_60px_rgba\(0\,0\,0\,0\.28\)\] {
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.app-theme-light .shadow-\[0_8px_18px_rgba\(0\,0\,0\,0\.12\)\] {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.app-theme-light .shadow-\[0_16px_40px_rgba\(244\,63\,94\,0\.14\)\] {
+  box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.1), 0 2px 4px -1px rgba(244, 63, 94, 0.06) !important;
+}
+
+html.app-theme-light .shadow-\[0_16px_40px_rgba\(251\,191\,36\,0\.14\)\] {
+  box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.1), 0 2px 4px -1px rgba(251, 191, 36, 0.06) !important;
+}
+
+html.app-theme-light .shadow-\[0_16px_40px_rgba\(16\,185\,129\,0\.14\)\] {
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06) !important;
+}
+
+html.app-theme-light .shadow-\[0_16px_40px_rgba\(34\,211\,238\,0\.14\)\] {
+  box-shadow: 0 4px 6px -1px rgba(34, 211, 238, 0.1), 0 2px 4px -1px rgba(34, 211, 238, 0.06) !important;
+}
+
+/* Ring colors */
+html.app-theme-light .ring-white\/15 {
+  --tw-ring-color: rgba(100, 116, 139, 0.2) !important;
+}
+
+html.app-theme-light .ring-emerald-500\/40 {
+  --tw-ring-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Border overrides */
+html.app-theme-light .border-slate-950 {
+  border-color: #ffffff !important;
+}
+
+html.app-theme-light .border-emerald-400\/20 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+html.app-theme-light .border-yellow-400\/15 {
+  border-color: rgba(251, 191, 36, 0.2) !important;
+}
+
+/* Surface backgrounds with better contrast */
+html.app-theme-light .bg-white\/3 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+  border: 1px solid rgba(226, 232, 240, 0.6) !important;
+}
+
+html.app-theme-light .bg-slate-950\/50 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+}
+
+/* Shadow inner for light theme */
+html.app-theme-light .shadow-inner {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+html.app-theme-light .shadow-black\/30 {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Additional text color fixes */
+html.app-theme-light .text-gray-600 {
+  color: #475569 !important;
+}
+
+html.app-theme-light .text-gray-700 {
+  color: #334155 !important;
+}
+
+/* Ensure all white text becomes dark in light mode */
+html.app-theme-light * {
+  --tw-text-opacity: 1;
+}
+
+html.app-theme-light .text-white,
+html.app-theme-light [class*="text-white"] {
+  color: #1e293b !important;
+}
+
+/* Force dark text on light backgrounds */
+html.app-theme-light .bg-white *,
+html.app-theme-light .bg-slate-50 *,
+html.app-theme-light .bg-gray-50 * {
+  color: #1e293b;
+}
+
+/* Override any remaining light text */
+html.app-theme-light .text-slate-200,
+html.app-theme-light .text-slate-100,
+html.app-theme-light .text-gray-200,
+html.app-theme-light .text-gray-100 {
+  color: #475569 !important;
+}
+
+/* Ensure proper contrast for all elements */
+html.app-theme-light h1,
+html.app-theme-light h2,
+html.app-theme-light h3,
+html.app-theme-light h4,
+html.app-theme-light h5,
+html.app-theme-light h6,
+html.app-theme-light p,
+html.app-theme-light span,
+html.app-theme-light div {
+  color: inherit;
+}
+
+/* Force visibility for any hidden elements */
+html.app-theme-light .opacity-70 {
+  opacity: 0.9 !important;
+}
+
+html.app-theme-light .opacity-35 {
+  opacity: 0.7 !important;
+}
+
+/* Background gradients for better visibility */
+html.app-theme-light .from-emerald-500\/16 {
+  --tw-gradient-from: rgba(16, 185, 129, 0.1) !important;
+}
+
+html.app-theme-light .via-emerald-500\/6 {
+  --tw-gradient-via: rgba(16, 185, 129, 0.05) !important;
+}
+
+html.app-theme-light .from-rose-500\/16 {
+  --tw-gradient-from: rgba(244, 63, 94, 0.1) !important;
+}
+
+html.app-theme-light .via-rose-500\/6 {
+  --tw-gradient-via: rgba(244, 63, 94, 0.05) !important;
+}
+
+html.app-theme-light .from-amber-500\/16 {
+  --tw-gradient-from: rgba(245, 158, 11, 0.1) !important;
+}
+
+html.app-theme-light .via-amber-500\/6 {
+  --tw-gradient-via: rgba(245, 158, 11, 0.05) !important;
+}
+
+html.app-theme-light .from-cyan-500\/16 {
+  --tw-gradient-from: rgba(6, 182, 212, 0.1) !important;
+}
+
+html.app-theme-light .via-cyan-500\/6 {
+  --tw-gradient-via: rgba(6, 182, 212, 0.05) !important;
+}
+
+/* Complex gradient overrides for profile hero section */
+html.app-theme-light [style*="linear-gradient(145deg,rgba(16,185,129,0.14),rgba(6,10,18,0.96)"] {
+  background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(248,250,252,0.95) 38%, rgba(34,211,238,0.08)) !important;
+}
+
+/* Ensure all card backgrounds are visible */
+html.app-theme-light .rounded-\[26px\] {
+  background: linear-gradient(145deg, rgba(16,185,129,0.08), rgba(255,255,255,0.95) 38%, rgba(34,211,238,0.06)) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Stats card backgrounds */
+html.app-theme-light .rounded-3xl {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Badge card backgrounds */
+html.app-theme-light .rounded-\[14px\] {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Quick action and more section backgrounds */
+html.app-theme-light .rounded-2xl {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Force all text to be visible */
+html.app-theme-light * {
+  text-shadow: none !important;
+}
+
+/* Ensure proper text contrast on all backgrounds */
+html.app-theme-light .bg-white\/4 *,
+html.app-theme-light .bg-white\/5 *,
+html.app-theme-light .bg-white\/6 *,
+html.app-theme-light .bg-white\/7 *,
+html.app-theme-light .bg-white\/8 *,
+html.app-theme-light .bg-white\/10 * {
+  color: #1e293b !important;
+}
+
+/* Override any remaining problematic classes */
+html.app-theme-light .text-slate-950 {
+  color: #ffffff !important;
+}
+
+/* Ensure icons remain visible */
+html.app-theme-light .text-emerald-400,
+html.app-theme-light .text-yellow-400,
+html.app-theme-light .text-rose-400,
+html.app-theme-light .text-cyan-400,
+html.app-theme-light .text-violet-400,
+html.app-theme-light .text-orange-400 {
+  /* Keep original colors for icons and accents */
+  filter: none !important;
 }
 
 /* scrollbar hide */

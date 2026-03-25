@@ -24,6 +24,8 @@ import { getAvatarInitials, getPublicAssetUrl } from "../../../lib/assets";
 import { haptic } from "../../../lib/haptic";
 import { useAuthStore } from "../../../store/auth.store";
 import { useWalletStore } from "../../../store/wallet.store";
+import { useTheme } from "../../../hooks/useTheme";
+import { getThemeClasses } from "../../../lib/theme";
 import type {
   GameRoom,
   LeaderboardEntry,
@@ -65,6 +67,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { balance, syncFromUser } = useWalletStore();
   const currentUser = useAuthStore((s) => s.user);
+  const { isDark } = useTheme();
+  const theme = getThemeClasses(isDark);
 
   const { data: me, isLoading: meLoading } = useMe();
   const { data: stats, isLoading: statsLoading } = useMyStats();
@@ -90,9 +94,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className={`min-h-screen ${theme.background} ${theme.textPrimary} flex flex-col`}>
       {/* ── Top bar ── */}
-      <div className="sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
+      <div className={`sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-3 ${isDark ? 'bg-gray-950/90' : 'bg-white/90'} backdrop-blur-xl ${isDark ? 'border-white/5' : 'border-slate-200'} border-b`}>
         <div className="flex items-center gap-3">
           <div className="relative">
             {meLoading ? (

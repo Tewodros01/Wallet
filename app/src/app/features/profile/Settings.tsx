@@ -31,22 +31,28 @@ import {
   usePreferencesStore,
 } from "../../../store/preferences.store";
 import { useSoundStore } from "../../../store/sound.store";
+import { useTheme } from "../../../hooks/useTheme";
+import { getThemeClasses } from "../../../lib/theme";
 import type { SettingsSection } from "../../../types/settings.types";
 import { AppBar } from "../../components/ui/Layout";
 
-const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
-  <button
-    type="button"
-    onClick={onToggle}
-    aria-label={on ? "Turn off" : "Turn on"}
-    title={on ? "Turn off" : "Turn on"}
-    className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${on ? "bg-emerald-500" : "bg-white/15"}`}
-  >
-    <span
-      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`}
-    />
-  </button>
-);
+const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => {
+  const { isDark } = useTheme();
+  
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={on ? "Turn off" : "Turn on"}
+      title={on ? "Turn off" : "Turn on"}
+      className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${on ? "bg-emerald-500" : (isDark ? "bg-white/15" : "bg-slate-200")}`}
+    >
+      <span
+        className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`}
+      />
+    </button>
+  );
+};
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -54,6 +60,8 @@ export default function Settings() {
   const { data: me } = useMe();
   const profile = me ?? user;
   const { mutate: logout, isPending: isSigningOut } = useLogout();
+  const { isDark } = useTheme();
+  const theme = getThemeClasses(isDark);
   const handleSignOut = () => {
     logout(undefined, {
       onSettled: () => {
@@ -228,7 +236,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col text-white">
+    <div className={`min-h-screen ${theme.background} flex flex-col ${theme.textPrimary}`}>
       <AppBar
         left={
           <div className="flex items-center gap-3">
@@ -237,16 +245,16 @@ export default function Settings() {
               aria-label="Go back"
               title="Go back"
               onClick={() => navigate(-1)}
-              className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+              className={`w-8 h-8 rounded-xl ${isDark ? 'bg-white/10 hover:bg-white/15' : 'bg-slate-100 hover:bg-slate-200'} flex items-center justify-center transition-colors`}
             >
-              <FiArrowLeft className="text-white text-sm" />
+              <FiArrowLeft className={`${theme.textPrimary} text-sm`} />
             </button>
-            <span className="text-base font-black">Settings</span>
+            <span className={`text-base font-black ${theme.textPrimary}`}>Settings</span>
           </div>
         }
         right={
-          <div className="w-8 h-8 rounded-xl bg-gray-500/15 border border-gray-500/25 flex items-center justify-center">
-            <FiSettings className="text-gray-400 text-sm" />
+          <div className={`w-8 h-8 rounded-xl ${isDark ? 'bg-gray-500/15 border-gray-500/25' : 'bg-slate-100 border-slate-200'} border flex items-center justify-center`}>
+            <FiSettings className={`${theme.textSecondary} text-sm`} />
           </div>
         }
       />
@@ -256,7 +264,7 @@ export default function Settings() {
         <button
           type="button"
           onClick={() => navigate(APP_ROUTES.profile)}
-          className="bg-white/4 border border-white/7 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/7 transition-colors active:scale-[0.98] text-left"
+          className={`${isDark ? 'bg-white/4 border-white/7 hover:bg-white/7' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'} border rounded-2xl p-4 flex items-center gap-4 transition-colors active:scale-[0.98] text-left`}
         >
           {profile?.avatar ? (
             <img
@@ -270,40 +278,40 @@ export default function Settings() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white">
+            <p className={`text-sm font-black ${theme.textPrimary}`}>
               {profile ? `${profile.firstName} ${profile.lastName}` : "—"}
             </p>
-            <p className="text-xs text-gray-500 truncate">
+            <p className={`text-xs ${theme.textMuted} truncate`}>
               {profile?.email ?? "—"}
             </p>
           </div>
-          <FiChevronRight className="text-gray-600 shrink-0" />
+          <FiChevronRight className={`${theme.textMuted} shrink-0`} />
         </button>
 
         {/* Sections */}
         {sections.map((section) => (
           <div key={section.title} className="flex flex-col gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}>
               {section.title}
             </p>
-            <div className="bg-white/4 border border-white/7 rounded-2xl overflow-hidden">
+            <div className={`${isDark ? 'bg-white/4 border-white/7' : 'bg-slate-50 border-slate-200'} border rounded-2xl overflow-hidden`}>
               {section.items.map((item, i) => {
-                const base = `w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${i < section.items.length - 1 ? "border-b border-white/5" : ""}`;
+                const base = `w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left ${i < section.items.length - 1 ? (isDark ? "border-b border-white/5" : "border-b border-slate-200") : ""}`;
                 if (item.toggle) {
                   return (
                     <div
                       key={item.label}
-                      className={`${base} hover:bg-white/4`}
+                      className={`${base} ${isDark ? 'hover:bg-white/4' : 'hover:bg-slate-100'}`}
                     >
-                      <span className="text-gray-400 text-sm shrink-0">
+                      <span className={`${theme.textSecondary} text-sm shrink-0`}>
                         {item.icon}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white">
+                        <p className={`text-sm font-semibold ${theme.textPrimary}`}>
                           {item.label}
                         </p>
                         {item.sub && (
-                          <p className="text-[11px] text-gray-500">
+                          <p className={`text-[11px] ${theme.textMuted}`}>
                             {item.sub}
                           </p>
                         )}
@@ -317,20 +325,20 @@ export default function Settings() {
                     key={item.label}
                     type="button"
                     onClick={item.action}
-                    className={`${base} hover:bg-white/4`}
+                    className={`${base} ${isDark ? 'hover:bg-white/4' : 'hover:bg-slate-100'}`}
                   >
-                    <span className="text-gray-400 text-sm shrink-0">
+                    <span className={`${theme.textSecondary} text-sm shrink-0`}>
                       {item.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white">
+                      <p className={`text-sm font-semibold ${theme.textPrimary}`}>
                         {item.label}
                       </p>
                       {item.sub && (
-                        <p className="text-[11px] text-gray-500">{item.sub}</p>
+                        <p className={`text-[11px] ${theme.textMuted}`}>{item.sub}</p>
                       )}
                     </div>
-                    <FiChevronRight className="text-gray-600 shrink-0" />
+                    <FiChevronRight className={`${theme.textMuted} shrink-0`} />
                   </button>
                 );
               })}
@@ -362,7 +370,7 @@ export default function Settings() {
           {isSigningOut ? "Signing Out..." : "Sign Out"}
         </button>
 
-        <p className="text-center text-[11px] text-gray-600">
+        <p className={`text-center text-[11px] ${theme.textMuted}`}>
           Version 1.0.0 · Bingo Game
         </p>
       </div>

@@ -20,6 +20,7 @@ import { useWalletStore } from "../../../store/wallet.store";
 import { useTheme } from "../../../hooks/useTheme";
 import { getThemeClasses } from "../../../lib/theme";
 import { AppBar, BottomNav } from "../../components/ui/Layout";
+import { ThemeDebug } from "../../components/ui/ThemeDebug";
 import { badges } from "./profileBadges";
 
 const quickActions = [
@@ -389,6 +390,7 @@ export default function Profile() {
         </div>
       </div>
       <BottomNav />
+      <ThemeDebug />
     </div>
   );
 }
