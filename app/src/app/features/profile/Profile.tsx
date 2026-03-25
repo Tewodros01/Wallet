@@ -13,14 +13,13 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "../../../config/routes";
+import { useTheme } from "../../../hooks/useTheme";
 import { getAvatarInitials, getPublicAssetUrl } from "../../../lib/assets";
-import { useLogout, useMe, useMyStats } from "./hooks";
+import { getThemeClasses } from "../../../lib/theme";
 import { useAuthStore } from "../../../store/auth.store";
 import { useWalletStore } from "../../../store/wallet.store";
-import { useTheme } from "../../../hooks/useTheme";
-import { getThemeClasses } from "../../../lib/theme";
 import { AppBar, BottomNav } from "../../components/ui/Layout";
-import { ThemeDebug } from "../../components/ui/ThemeDebug";
+import { useLogout, useMe, useMyStats } from "./hooks";
 import { badges } from "./profileBadges";
 
 const quickActions = [
@@ -131,14 +130,18 @@ export default function Profile() {
   ];
 
   return (
-    <div className={`min-h-screen ${theme.background} flex flex-col ${theme.textPrimary}`}>
+    <div
+      className={`min-h-screen ${theme.background} flex flex-col ${theme.textPrimary}`}
+    >
       <AppBar
         left={
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
               <FiUser className="text-emerald-400 text-sm" />
             </div>
-            <span className={`text-base font-black ${theme.textPrimary}`}>Profile</span>
+            <span className={`text-base font-black ${theme.textPrimary}`}>
+              Profile
+            </span>
           </div>
         }
         right={
@@ -147,19 +150,30 @@ export default function Profile() {
             aria-label="Edit profile"
             title="Edit profile"
             onClick={() => navigate(APP_ROUTES.editProfile)}
-            className={`w-8 h-8 rounded-xl ${isDark ? 'bg-white/10 hover:bg-white/15' : 'bg-slate-100 hover:bg-slate-200'} flex items-center justify-center transition-colors`}
+            className={`w-8 h-8 rounded-xl ${isDark ? "bg-white/10 hover:bg-white/15" : "bg-slate-100 hover:bg-slate-200"} flex items-center justify-center transition-colors`}
           >
-            <FiEdit2 className={`${theme.textPrimary} text-sm`} aria-hidden="true" />
+            <FiEdit2
+              className={`${theme.textPrimary} text-sm`}
+              aria-hidden="true"
+            />
           </button>
         }
       />
 
       <div className="flex flex-col gap-5 px-5 py-5 pb-28">
         {/* Avatar hero */}
-        <div className={`relative overflow-hidden rounded-[26px] ${theme.border} ${isDark ? 'bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(6,10,18,0.96)_38%,rgba(34,211,238,0.1))]' : 'bg-gradient-to-br from-emerald-50 via-white to-cyan-50'} p-5 ${isDark ? 'shadow-[0_22px_60px_rgba(0,0,0,0.28)]' : 'shadow-lg'}`}>
-          <div className={`absolute -right-10 -top-12 h-32 w-32 rounded-full ${isDark ? 'bg-cyan-400/12' : 'bg-cyan-100/50'} blur-3xl`} />
-          <div className={`absolute -left-8 bottom-0 h-24 w-24 rounded-full ${isDark ? 'bg-emerald-400/10' : 'bg-emerald-100/50'} blur-3xl`} />
-          <div className={`absolute inset-x-0 top-0 h-px ${isDark ? 'bg-linear-to-r from-transparent via-white/25 to-transparent' : 'bg-gradient-to-r from-transparent via-slate-200 to-transparent'}`} />
+        <div
+          className={`relative overflow-hidden rounded-[26px] ${theme.border} ${isDark ? "bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(6,10,18,0.96)_38%,rgba(34,211,238,0.1))]" : "bg-gradient-to-br from-emerald-50 via-white to-cyan-50"} p-5 ${isDark ? "shadow-[0_22px_60px_rgba(0,0,0,0.28)]" : "shadow-lg"}`}
+        >
+          <div
+            className={`absolute -right-10 -top-12 h-32 w-32 rounded-full ${isDark ? "bg-cyan-400/12" : "bg-cyan-100/50"} blur-3xl`}
+          />
+          <div
+            className={`absolute -left-8 bottom-0 h-24 w-24 rounded-full ${isDark ? "bg-emerald-400/10" : "bg-emerald-100/50"} blur-3xl`}
+          />
+          <div
+            className={`absolute inset-x-0 top-0 h-px ${isDark ? "bg-linear-to-r from-transparent via-white/25 to-transparent" : "bg-gradient-to-r from-transparent via-slate-200 to-transparent"}`}
+          />
 
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -169,15 +183,21 @@ export default function Profile() {
                   <img
                     src={getPublicAssetUrl(me?.avatar) ?? undefined}
                     alt="avatar"
-                    className={`relative h-[72px] w-[72px] rounded-[24px] object-cover ring-2 ${isDark ? 'ring-white/15' : 'ring-slate-200'}`}
+                    className={`relative h-[72px] w-[72px] rounded-[24px] object-cover ring-2 ${isDark ? "ring-white/15" : "ring-slate-200"}`}
                   />
                 ) : (
-                  <div className={`relative h-[72px] w-[72px] rounded-[24px] ${isDark ? 'bg-white/8 ring-white/15' : 'bg-slate-100 ring-slate-200'} ring-2 flex items-center justify-center ${theme.textPrimary} text-xl font-black`}>
+                  <div
+                    className={`relative h-[72px] w-[72px] rounded-[24px] ${isDark ? "bg-white/8 ring-white/15" : "bg-slate-100 ring-slate-200"} ring-2 flex items-center justify-center ${theme.textPrimary} text-xl font-black`}
+                  >
                     {getAvatarInitials(me?.firstName, me?.lastName, "?")}
                   </div>
                 )}
-                <div className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${isDark ? 'border-slate-950 bg-emerald-400' : 'border-white bg-emerald-500'}`}>
-                  <span className={`text-[9px] font-black ${isDark ? 'text-slate-950' : 'text-white'}`}>
+                <div
+                  className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${isDark ? "border-slate-950 bg-emerald-400" : "border-white bg-emerald-500"}`}
+                >
+                  <span
+                    className={`text-[9px] font-black ${isDark ? "text-slate-950" : "text-white"}`}
+                  >
                     ✓
                   </span>
                 </div>
@@ -185,28 +205,42 @@ export default function Profile() {
 
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                  <span className={`rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${isDark ? 'text-emerald-200' : 'text-emerald-700'}`}>
+                  <span
+                    className={`rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${isDark ? "text-emerald-200" : "text-emerald-700"}`}
+                  >
                     Active
                   </span>
-                  <span className={`rounded-full ${isDark ? 'border-white/10 bg-white/5 text-slate-300' : 'border-slate-200 bg-slate-100 text-slate-600'} px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]`}>
+                  <span
+                    className={`rounded-full ${isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-slate-200 bg-slate-100 text-slate-600"} px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]`}
+                  >
                     Profile
                   </span>
                 </div>
-                <h2 className={`text-[15px] font-black leading-tight tracking-tight ${theme.textPrimary} break-words`}>
+                <h2
+                  className={`text-[15px] font-black leading-tight tracking-tight ${theme.textPrimary} break-words`}
+                >
                   {me ? `${me.firstName} ${me.lastName}` : "—"}
                 </h2>
-                <p className={`mt-0.5 text-[11px] ${theme.textSecondary} break-words`}>
+                <p
+                  className={`mt-0.5 text-[11px] ${theme.textSecondary} break-words`}
+                >
                   @{me?.username ?? "—"} · Member since{" "}
                   {me ? new Date(me.createdAt).getFullYear() : "—"}
                 </p>
               </div>
             </div>
 
-            <div className={`shrink-0 rounded-2xl border border-yellow-400/15 bg-yellow-400/10 px-2.5 py-2 text-right backdrop-blur-sm`}>
-              <p className={`text-[7px] font-bold uppercase tracking-[0.14em] ${isDark ? 'text-yellow-200/70' : 'text-yellow-700/70'}`}>
+            <div
+              className={`shrink-0 rounded-2xl border border-yellow-400/15 bg-yellow-400/10 px-2.5 py-2 text-right backdrop-blur-sm`}
+            >
+              <p
+                className={`text-[7px] font-bold uppercase tracking-[0.14em] ${isDark ? "text-yellow-200/70" : "text-yellow-700/70"}`}
+              >
                 Coins
               </p>
-              <div className={`mt-1 flex items-center justify-end gap-1 ${isDark ? 'text-yellow-300' : 'text-yellow-600'}`}>
+              <div
+                className={`mt-1 flex items-center justify-end gap-1 ${isDark ? "text-yellow-300" : "text-yellow-600"}`}
+              >
                 <FaCoins className="text-[10px] text-yellow-400" />
                 <span className="text-[12px] font-black">
                   {(me?.coinsBalance ?? 0).toLocaleString()}
@@ -221,14 +255,20 @@ export default function Profile() {
           {statItems.map(({ icon, label, value, color, glow, surface }) => (
             <div
               key={label}
-              className={`relative flex flex-col items-center overflow-hidden rounded-3xl ${isDark ? 'border-white/8' : 'border-slate-200'} border bg-linear-to-b ${surface} px-2 py-3 text-center ${glow}`}
+              className={`relative flex flex-col items-center overflow-hidden rounded-3xl ${isDark ? "border-white/8" : "border-slate-200"} border bg-linear-to-b ${surface} px-2 py-3 text-center ${glow}`}
             >
-              <div className={`absolute inset-x-4 top-0 h-px ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
+              <div
+                className={`absolute inset-x-4 top-0 h-px ${isDark ? "bg-white/10" : "bg-slate-200"}`}
+              />
               <span className={`mb-1 text-base ${color}`}>{icon}</span>
-              <span className={`text-base font-black leading-none ${theme.textPrimary}`}>
+              <span
+                className={`text-base font-black leading-none ${theme.textPrimary}`}
+              >
                 {value}
               </span>
-              <span className={`mt-1 text-[9px] uppercase tracking-[0.18em] ${theme.textMuted}`}>
+              <span
+                className={`mt-1 text-[9px] uppercase tracking-[0.18em] ${theme.textMuted}`}
+              >
                 {label}
               </span>
             </div>
@@ -239,14 +279,20 @@ export default function Profile() {
         <div className="flex flex-col gap-1.5">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <p className={`text-[8px] font-bold uppercase tracking-[0.14em] ${theme.textMuted}`}>
+              <p
+                className={`text-[8px] font-bold uppercase tracking-[0.14em] ${theme.textMuted}`}
+              >
                 Badges
               </p>
-              <h3 className={`mt-0.5 text-[13px] font-black ${theme.textPrimary}`}>
+              <h3
+                className={`mt-0.5 text-[13px] font-black ${theme.textPrimary}`}
+              >
                 Gallery
               </h3>
             </div>
-            <div className={`rounded-full ${isDark ? 'border-white/10 bg-white/4 text-slate-400' : 'border-slate-200 bg-slate-100 text-slate-600'} border px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.1em]`}>
+            <div
+              className={`rounded-full ${isDark ? "border-white/10 bg-white/4 text-slate-400" : "border-slate-200 bg-slate-100 text-slate-600"} border px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.1em]`}
+            >
               {badgeUnlocked} unlocked
             </div>
           </div>
@@ -258,17 +304,19 @@ export default function Profile() {
               return (
                 <div
                   key={label}
-                  className={`group relative overflow-hidden rounded-[14px] border p-2 transition-all ${unlocked ? `${ring} ${isDark ? 'bg-white/5' : 'bg-slate-50'} shadow-[0_8px_18px_rgba(0,0,0,0.12)]` : `${isDark ? 'border-white/7 bg-white/3' : 'border-slate-200 bg-slate-100'} opacity-70`}`}
+                  className={`group relative overflow-hidden rounded-[14px] border p-2 transition-all ${unlocked ? `${ring} ${isDark ? "bg-white/5" : "bg-slate-50"} shadow-[0_8px_18px_rgba(0,0,0,0.12)]` : `${isDark ? "border-white/7 bg-white/3" : "border-slate-200 bg-slate-100"} opacity-70`}`}
                 >
                   <div
                     className={`absolute inset-0 bg-linear-to-br ${tone} ${unlocked ? "opacity-100" : "opacity-35"}`}
                   />
                   <div className="relative flex items-start justify-between gap-2">
-                    <div className={`flex h-7 w-7 items-center justify-center rounded-md ${isDark ? 'border-white/10 bg-slate-950/50' : 'border-slate-200 bg-white/80'} border text-sm shadow-inner ${isDark ? 'shadow-black/30' : 'shadow-slate-200/50'}`}>
+                    <div
+                      className={`flex h-7 w-7 items-center justify-center rounded-md ${isDark ? "border-white/10 bg-slate-950/50" : "border-slate-200 bg-white/80"} border text-sm shadow-inner ${isDark ? "shadow-black/30" : "shadow-slate-200/50"}`}
+                    >
                       {emoji}
                     </div>
                     <span
-                      className={`rounded-full px-1 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${unlocked ? (isDark ? "bg-white/10 text-white" : "bg-slate-200 text-slate-800") : (isDark ? "bg-white/5 text-slate-500" : "bg-slate-100 text-slate-400")}`}
+                      className={`rounded-full px-1 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${unlocked ? (isDark ? "bg-white/10 text-white" : "bg-slate-200 text-slate-800") : isDark ? "bg-white/5 text-slate-500" : "bg-slate-100 text-slate-400"}`}
                     >
                       {unlocked ? "On" : "Off"}
                     </span>
@@ -276,11 +324,13 @@ export default function Profile() {
 
                   <div className="relative mt-2">
                     <p
-                      className={`text-[10px] font-black leading-tight ${unlocked ? text : (isDark ? "text-slate-300" : "text-slate-600")}`}
+                      className={`text-[10px] font-black leading-tight ${unlocked ? text : isDark ? "text-slate-300" : "text-slate-600"}`}
                     >
                       {label}
                     </p>
-                    <p className={`mt-0.5 text-[8px] leading-snug ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p
+                      className={`mt-0.5 text-[8px] leading-snug ${isDark ? "text-slate-400" : "text-slate-500"}`}
+                    >
                       {unlocked ? "Milestone reward." : "Play more to unlock."}
                     </p>
                   </div>
@@ -292,7 +342,9 @@ export default function Profile() {
 
         {/* Quick Actions */}
         <div className="flex flex-col gap-2">
-          <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}>
+          <p
+            className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}
+          >
             Quick Actions
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -307,9 +359,11 @@ export default function Profile() {
                 <span className={`text-xl ${color}`} aria-hidden="true">
                   {icon}
                 </span>
-                <span className={`text-sm font-bold ${theme.textPrimary}`}>{label}</span>
+                <span className={`text-sm font-bold ${theme.textPrimary}`}>
+                  {label}
+                </span>
               </button>
-            ))}}
+            ))}
             {isAgent && (
               <button
                 type="button"
@@ -330,10 +384,14 @@ export default function Profile() {
 
         {/* More */}
         <div className="flex flex-col gap-2">
-          <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}>
+          <p
+            className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}
+          >
             More
           </p>
-          <div className={`${isDark ? 'bg-white/4 border-white/7' : 'bg-slate-50 border-slate-200'} border rounded-2xl overflow-hidden`}>
+          <div
+            className={`${isDark ? "bg-white/4 border-white/7" : "bg-slate-50 border-slate-200"} border rounded-2xl overflow-hidden`}
+          >
             {moreItems.map(({ icon, label, sub, path, danger }, i) => (
               <button
                 key={label}
@@ -343,7 +401,7 @@ export default function Profile() {
                 onClick={() =>
                   danger ? handleSignOut() : path && navigate(path)
                 }
-                className={`w-full flex items-center gap-3 px-4 py-3.5 ${isDark ? 'hover:bg-white/4' : 'hover:bg-slate-100'} transition-colors text-left disabled:opacity-60 ${i < moreItems.length - 1 ? (isDark ? "border-b border-white/5" : "border-b border-slate-200") : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 ${isDark ? "hover:bg-white/4" : "hover:bg-slate-100"} transition-colors text-left disabled:opacity-60 ${i < moreItems.length - 1 ? (isDark ? "border-b border-white/5" : "border-b border-slate-200") : ""}`}
               >
                 <span
                   className={`text-sm shrink-0 ${danger ? "text-rose-400" : theme.textSecondary}`}
@@ -366,21 +424,31 @@ export default function Profile() {
 
         {/* Info */}
         <div className="flex flex-col gap-3">
-          <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}>
+          <p
+            className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted}`}
+          >
             Account Info
           </p>
-          <div className={`${isDark ? 'bg-white/4 border-white/7' : 'bg-slate-50 border-slate-200'} border rounded-2xl overflow-hidden`}>
+          <div
+            className={`${isDark ? "bg-white/4 border-white/7" : "bg-slate-50 border-slate-200"} border rounded-2xl overflow-hidden`}
+          >
             {fields.map(({ icon, label, value }, i) => (
               <div
                 key={label}
                 className={`flex items-center gap-4 px-4 py-3.5 ${i < fields.length - 1 ? (isDark ? "border-b border-white/6" : "border-b border-slate-200") : ""}`}
               >
-                <span className={`${theme.textMuted} text-sm shrink-0`}>{icon}</span>
+                <span className={`${theme.textMuted} text-sm shrink-0`}>
+                  {icon}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[10px] ${theme.textMuted} uppercase tracking-wide`}>
+                  <p
+                    className={`text-[10px] ${theme.textMuted} uppercase tracking-wide`}
+                  >
                     {label}
                   </p>
-                  <p className={`text-sm font-semibold ${theme.textPrimary} truncate`}>
+                  <p
+                    className={`text-sm font-semibold ${theme.textPrimary} truncate`}
+                  >
                     {value}
                   </p>
                 </div>
@@ -390,7 +458,6 @@ export default function Profile() {
         </div>
       </div>
       <BottomNav />
-      <ThemeDebug />
     </div>
   );
 }
