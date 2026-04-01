@@ -27,7 +27,7 @@ import {
   AdminUsers,
   AdminWithdrawals,
 } from "./features/admin";
-import { AgentDeposit, AgentStats } from "./features/agents";
+import { AgentDeposit, AgentDashboard, AgentDeposits, AgentWithdrawals, AgentActions, AgentStats } from "./features/agents";
 import {
   ChangePassword,
   ForgotPassword,
@@ -229,10 +229,42 @@ const App = () => {
           }
         />
         <Route
+          path={APP_ROUTES.agentDashboard}
+          element={
+            <RequireAuth>
+              <AgentDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
           path={APP_ROUTES.agentDeposit}
           element={
             <RequireAuth>
               <AgentDeposit />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.agentDeposits}
+          element={
+            <RequireAuth>
+              <AgentDeposits />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.agentWithdrawals}
+          element={
+            <RequireAuth>
+              <AgentWithdrawals />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={APP_ROUTES.agentActions}
+          element={
+            <RequireAuth>
+              <AgentActions />
             </RequireAuth>
           }
         />
