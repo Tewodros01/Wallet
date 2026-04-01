@@ -9,6 +9,7 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "make-admin": "ts-node -r tsconfig-paths/register scripts/make-admin.ts",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
